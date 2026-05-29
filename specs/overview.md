@@ -41,13 +41,13 @@ The opportunity: treat **ongoing context as the product**. Continuously observe 
 
 ## 4. Concepts & Definitions
 
-This spec uses domain terms (Space, Arc, Situation, Signal, Evidence, Insight, Narrative Markdown, Memory, Monitor, Digest, sharing) at an intuitive level. Canonical definitions live in [[concepts]]; the example world (you, the `Framework` product, Brightmoor, Talia, Sam, …) is fixed in [[constitution]] §7.
+This spec uses domain terms (Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Monitor, Digest, sharing) at an intuitive level. Canonical definitions live in [[concepts]]; the example world (you, the `Framework` product, Brightmoor, Talia, Sam, …) is fixed in [[constitution]] §7.
 
 ## 5. Detailed Specification
 
 ### 5.1 Vision
 
-> **The System is a self-hosted operational intelligence that maintains continuous contextual awareness across your work, research, and life — and keeps thinking while you're away.** It models work as living *Situations and Arcs*, not feeds of events; it surfaces what changed, what matters, and what's blocked; and it acts on your behalf under explicit, approval-gated control. Any Space can be **shared with anyone**, so the same system serves one person or many. It should feel like a sharp **chief-of-staff + research assistant + operations dashboard** — alive, aware, proactive — without ever being creepy, spammy, or fake.
+> **The System is a self-hosted operational intelligence that maintains continuous contextual awareness across your work, research, and life — and keeps thinking while you're away.** It models work as living *Situations and Storylines*, not feeds of events; it surfaces what changed, what matters, and what's blocked; and it acts on your behalf under explicit, approval-gated control. Any Space can be **shared with anyone**, so the same system serves one person or many. It should feel like a sharp **chief-of-staff + research assistant + operations dashboard** — alive, aware, proactive — without ever being creepy, spammy, or fake.
 
 ### 5.2 What it is / What it is not
 
@@ -92,7 +92,7 @@ flowchart LR
 
 ### 5.6 Headline use cases
 
-1. **Project & work continuity.** Across `Framework`, `Brightmoor`, and research Spaces, the System keeps Arcs and Situations current — "the *Framework UI direction* has looped four times with no RFC," "the Brightmoor portal is blocked on Devin's sign-off."
+1. **Project & work continuity.** Across `Framework`, `Brightmoor`, and research Spaces, the System keeps Storylines and Situations current — "the *Framework UI direction* has looped four times with no RFC," "the Brightmoor portal is blocked on Devin's sign-off."
 2. **Autonomous research.** You point it at a question (e.g. consensus approaches with Dr. Belov); it keeps searching, reading, and synthesizing on the server, returning evidence-backed findings rather than a one-shot answer.
 3. **Browser automation.** In isolated profiles it logs in, fills forms, extracts data, and watches pages — e.g. detecting that the *Stripe automation is blocked by an expired login* and flagging it.
 4. **Monitoring & Digests.** A Monitor watches a competitor's release notes, the `framework`'s key npm dependency, Northwind Cloud's pricing, and flight prices for the family trip — rolling only meaningful changes into a morning briefing and a weekly Digest.
@@ -123,7 +123,7 @@ First use is about **establishing scope, not configuration**: stand up the serve
 flowchart LR
     SIG["Signals<br/>messages · files · web · notes · browser"] --> CORE
     AUTO["Server workers<br/>Agents · Monitors · Tasks"] --> CORE
-    CORE["Contextual core (server)<br/>Memory · Arcs · Situations · Insights"] --> SURF["Surfaces (clients)<br/>Briefing · Conversation · Calendar"]
+    CORE["Contextual core (server)<br/>Memory · Storylines · Situations · Insights"] --> SURF["Surfaces (clients)<br/>Briefing · Conversation · Calendar"]
 ```
 
 ### 6.2 A morning, on a timeline
@@ -148,7 +148,7 @@ You haven't touched the `Framework` Space in two weeks. You open a client. The S
 ### Example B — "Autonomy with a guardrail" (Given/When/Then)
 - **Given** a Monitor on Northwind Cloud's pricing page, no standing grant to act on changes, and your desktop is **closed**.
 - **When** the page changes overnight and the server's follow-up would *email Devin to flag the cost impact*.
-- **Then** the server does the Always parts autonomously (detect, summarize, attach Evidence to the *Operations* Arc) but **parks** the outbound email as an Ask-first request and **pushes it to your phone** — you approve from the mobile companion, and the server resumes. (Per [[constitution]] §5.2.)
+- **Then** the server does the Always parts autonomously (detect, summarize, attach Evidence to the *Operations* Storyline) but **parks** the outbound email as an Ask-first request and **pushes it to your phone** — you approve from the mobile companion, and the server resumes. (Per [[constitution]] §5.2.)
 
 ### Example C — "Quiet is correct" (Given/When/Then)
 - **Given** a normal day with no meaningful changes across any Space.

@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.1   ·   **Last updated:** 2026-05-29
+> **Version:** 1.2   ·   **Last updated:** 2026-05-29
 >
 > **Purpose:** The governing document for the entire specification suite and the eventual build. It fixes the product/engineering principles, the autonomy model, the example world, and the authoring conventions that every other spec inherits.
 >
@@ -36,7 +36,7 @@ These are inherited by every spec. A spec may *specialize* a principle but must 
 | # | Principle | What it means in practice |
 |---|-----------|---------------------------|
 | P1 | **Self-hosted & user-owned** | The System runs on a server the user controls (their own machine, a home box, or a host they deploy to) — never a mandatory vendor cloud. The user owns the data and the deployment. Outbound network/AI calls are opt-in, scoped, and visible. |
-| P2 | **Narrative, not event-driven** | The System models ongoing *Situations, Arcs, and momentum* — never raw feeds of disconnected events. Surfaces answer "what changed / what matters / what's blocked," not "here are 200 logs." |
+| P2 | **Narrative, not event-driven** | The System models ongoing *Situations, Storylines, and momentum* — never raw feeds of disconnected events. Surfaces answer "what changed / what matters / what's blocked," not "here are 200 logs." |
 | P3 | **Evidence-first** | Every insight, claim, or recommendation cites the evidence that produced it. No unbacked assertions; no hallucinated certainty. "I don't know yet" is a valid state. |
 | P4 | **Proactive, not spammy** | The System initiates only when it clears a relevance/urgency bar; otherwise it batches into digests. Silence is the default, not noise. (See [[proactivity]].) |
 | P5 | **No psychoanalysis** | The System reasons about *work and context*, not the user's psyche or emotions. It observes patterns in artifacts, not in the person. |
@@ -81,7 +81,7 @@ flowchart LR
 | Read mounted files / indexed content | **Always** | Within granted mounts only ([[filesystem]]). |
 | Search the web / fetch a public page | **Always** | Read-only retrieval. |
 | Summarize, extract, analyze, generate insights | **Always** | Local reasoning over existing evidence. |
-| Create/update internal objects (Notes, Arcs, Memories, Tasks) | **Always** | Internal state; fully reversible & logged. |
+| Create/update internal objects (Notes, Storylines, Memories, Tasks) | **Always** | Internal state; fully reversible & logged. |
 | Run a monitor / scheduled check | **Always** | Passive observation; results may *trigger* Ask-first follow-ups. |
 | Write/modify files in a mount | **Ask-first** | Even within a granted mount. |
 | Send a message / email / chat on the user's behalf | **Ask-first** | Any outbound communication. |
@@ -200,7 +200,7 @@ Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug
 | Entity | Prefix | Entity | Prefix |
 |--------|--------|--------|--------|
 | Space | `space_` | Task | `task_` |
-| Arc | `arc_` | Periodic task | `ptask_` |
+| Storyline | `story_` | Periodic task | `ptask_` |
 | Situation | `sit_` | Monitor | `mon_` |
 | Signal | `sig_` | Agent | `agent_` |
 | Evidence | `ev_` | Skill | `skill_` |
@@ -212,7 +212,7 @@ Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug
 
 - **Requirement IDs:** `REQ-<SPEC>-NN`, where `<SPEC>` is a short uppercase tag (e.g. `CONV`, `MEM`, `PERM`) and `NN` is zero-padded and **stable** (never renumbered). Each spec declares its tag in §1.
 - **File names:** lowercase kebab-case, `.md`, matching the spec's tag domain.
-- **Canonical capitalization of domain terms:** **Space, Arc, Situation, Signal, Evidence, Insight, Narrative Markdown, Memory, Entity, Agent, Skill, Monitor, Task, Digest.** Use the capitalized form when referring to the concept; lowercase only in generic prose.
+- **Canonical capitalization of domain terms:** **Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Entity, Agent, Skill, Monitor, Task, Digest.** Use the capitalized form when referring to the concept; lowercase only in generic prose.
 
 ### 6.3 Cross-linking & the index rule
 - Link related specs with wiki-style `[[spec-name]]` (filename without `.md`).
@@ -265,7 +265,7 @@ Global
 
 **Shared spaces (examples):** the `Family` space is shared with Sam Rivera; the `Framework` space is shared with Priya Nandakumar — the *same* sharing mechanism, just different people (there is no "personal vs business" distinction).
 
-**Recurring Arcs**
+**Recurring Storylines**
 - *Framework UI direction* — keeps looping; revisited four times, still no RFC.
 - *Investor fundraising* — courting Talia Brandt.
 - *Brightmoor portal delivery* — the client engagement.
@@ -326,3 +326,4 @@ This spec is satisfied when:
 - **2026-05-29 — v0.1 (refined)** — Added P10 (space isolation) and a fail-safe engineering principle; embedded the canonical spec template in §6.1 so the suite is self-contained; clarified meta-doc template adaptation; fixed a stray cast reference.
 - **2026-05-29 — v1.0** — Approved.
 - **2026-05-29 — v1.1** — Architecture shift to client-server / self-hosted with space-sharing. Amended P1 (local-first → self-hosted & user-owned), P10 (isolation now by space **and** person; sharing flows downstream-only), added P11 (the Space is the only primitive — no roles/orgs/teams) and P12 (untrusted content is data, not instructions — prompt-injection defense). Added a "share a Space" row to the §5 table and Sam Rivera to the cast. Re-approved.
+- **2026-05-29 — v1.2** — Terminology rename (decided during `concepts.md`): **Arc → Storyline** (`arc_` → `story_`) and **Narrative Markdown → Narrative** (dropped the tech word). Propagated across all approved docs.

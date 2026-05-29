@@ -24,7 +24,7 @@ The product is a **local-first operational intelligence system** — a persisten
 | Spec | Purpose | Load this when | Status |
 |------|---------|----------------|--------|
 | [[overview]] | Vision, goals, non-goals, audience, use cases, philosophy | Onboarding; aligning on what/why | ✅ Approved |
-| [[concepts]] | Glossary: Arc, Situation, Signal, Evidence, Insight, Narrative Markdown, … | Whenever a domain term is unclear | ⬜ Planned |
+| [[concepts]] | Glossary: Storyline, Situation, Signal, Evidence, Insight, Narrative, … | Whenever a domain term is unclear | ⬜ Planned |
 | [[spaces]] | Spaces + downstream inheritance (precedence, overrides, isolation) | Working on hierarchy, scoping, or inheritance | ⬜ Planned |
 | [[space-sharing]] | Sharing a Space with a person (shows in their menu; they extend it); downstream-only | Working on sharing / collaboration | ⬜ Planned |
 | [[data-model]] | Canonical conceptual entity-relationship map | Checking how entities relate / IDs | ⬜ Planned |
