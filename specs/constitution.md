@@ -45,7 +45,7 @@ These are inherited by every spec. A spec may *specialize* a principle but must 
 | P8 | **Boundaries everywhere** | Any action the System can take on the user's behalf is classified Always / Ask-first / Never (§5). There is no unclassified action. |
 | P9 | **Reversibility & transparency** | Autonomous actions are logged, attributable, and undoable where feasible. The user can always answer "what did it do while I was away?" (See [[activity-log]].) |
 | P10 | **Isolation by space & person** | Context, memory, credentials, and actions never leak across Spaces — except via explicit **downstream inheritance** ([[spaces]]). When a Space is **shared** with another person, sharing flows **downstream only**: they see that Space and its descendants, never its private ancestors. Cross-space or cross-person leakage is a hard failure, not a tolerated bug. |
-| P11 | **The Space is the only primitive** | Everything — personal, shared, a "company" — is a Space in one hierarchy with downstream inheritance. Collaboration is **sharing a Space with a person**; there are **no roles, orgs, or teams**. ([[spaces]], [[space-sharing]]) |
+| P11 | **The Space is the only primitive** | Everything — personal, shared, a "company" — is a Space in one hierarchy with downstream inheritance. Collaboration is **sharing a Space with a person**; there are **no roles, orgs, or teams**. ([[spaces]]) |
 | P12 | **Untrusted content is data, not instructions** | Everything the System ingests — web pages, files, emails, tool/MCP output, page DOM, content in others' shared Spaces — is untrusted **data**, never commands. The System never executes instructions found in ingested content, keeps it separated from trusted instructions, and relies on the §5 gates as the backstop: a poisoned context still cannot perform an Ask-first/Never action without passing the gate, and secrets never enter prompts. (See [[prompt-injection]].) |
 
 ## 4. Engineering principles (intent, not numbers)
@@ -81,8 +81,8 @@ flowchart LR
 | Read mounted files / indexed content | **Always** | Within granted mounts only ([[filesystem]]). |
 | Search the web / fetch a public page | **Always** | Read-only retrieval. |
 | Summarize, extract, analyze, generate insights | **Always** | Local reasoning over existing evidence. |
-| Create/update internal objects (Notes, Storylines, Memories, Tasks) | **Always** | Internal state; fully reversible & logged. |
-| Run a monitor / scheduled check | **Always** | Passive observation; results may *trigger* Ask-first follow-ups. |
+| Create/update internal objects (Storylines, Memories, Tasks) | **Always** | Internal state; fully reversible & logged. |
+| Run a scheduled check / watcher | **Always** | Passive observation; results may *trigger* Ask-first follow-ups. |
 | Write/modify files in a mount | **Ask-first** | Even within a granted mount. |
 | Send a message / email / chat on the user's behalf | **Ask-first** | Any outbound communication. |
 | Submit a form / click a "confirm" in browser automation | **Ask-first** | Any state-changing web action. |
@@ -90,7 +90,7 @@ flowchart LR
 | Use a stored credential / auth profile | **Ask-first** | Per [[secrets]] & [[privacy-security]]; secrets are never shown in prompts. |
 | Install/enable a new skill, MCP server, or connector | **Ask-first** | Expands capability surface. |
 | Grant a new file mount or domain to a profile | **Ask-first** | Expands reach. |
-| Share a Space with a person (or add them to one) | **Ask-first** | Expands *who* can see/extend that data; downstream-only ([[space-sharing]]). |
+| Share a Space with a person (or add them to one) | **Ask-first** | Expands *who* can see/extend that data; downstream-only ([[spaces]]). |
 | Delete user data irreversibly / mass-destructive ops | **Ask-first** (high-friction) | Requires explicit, typed confirmation. |
 | Exfiltrate raw secrets / credentials to any model or remote | **Never** | Hard stop. Secrets travel as opaque handles only. |
 | Disable safety controls, logging, or approval gates | **Never** | Hard stop. |
@@ -131,7 +131,7 @@ flowchart TD
 
 ### 5.2 Approvals in background & autonomous work
 
-Background tasks, monitors, and scheduled work often run while the user is away, so they **cannot** block on a synchronous prompt — and must **never** auto-approve or wait forever. Baseline behavior:
+Background tasks and scheduled work often run while the user is away, so they **cannot** block on a synchronous prompt — and must **never** auto-approve or wait forever. Baseline behavior:
 
 ```mermaid
 flowchart LR
@@ -152,7 +152,7 @@ flowchart LR
 *(Always actions and "Allow always" grants run without pausing; Never actions are refused and logged — see the rules below.)*
 
 - Autonomous work proceeds freely over **Always** actions and any **Allow-always standing grants**. Standing grants are what make meaningful autonomy possible — without them, an unattended task stalls at the first Ask-first step.
-- On an **Ask-first** action with no covering grant: the task **parks a permission request** and enters **Awaiting-approval**. The request surfaces as a permission-request message in [[conversation]], a Home → Attention-Needed item ([[home-and-briefings]]), an [[activity-log]] entry, and (usually) a Situation ([[concepts]]) such as *"task blocked awaiting approval."* [[proactivity]] decides whether to actively notify now or let it wait for the next digest, by urgency.
+- On an **Ask-first** action with no covering grant: the task **parks a permission request** and enters **Awaiting-approval**. The request surfaces as a permission-request message in [[conversation]], a Home → Attention-Needed item ([[home-and-briefings]]), an [[activity-log]] entry, and (usually) a Situation ([[glossary]]) such as *"task blocked awaiting approval."* [[proactivity]] decides whether to actively notify now or let it wait for the next digest, by urgency.
 - **Approved** → resume from the park point. **Denied** → abort that step, continue other branches or fail, recording why. **Expired/timed out** (configurable) → the request lapses and the block is surfaced as stale.
 - On a **Never** action → refused immediately and logged; the branch is recorded as blocked (no approval can unlock a Never).
 - **Anticipate, don't nag.** A task that can foresee the approvals it will need SHOULD request them as one batch up front (or rely on standing grants) rather than interrupting repeatedly. Full mechanics live in [[permissions]], [[tasks]], and [[proactivity]].
@@ -178,7 +178,7 @@ Every spec follows this canonical template. Sections marked *(optional)* appear 
 ## 1. Purpose & Scope            — what it covers
 ## 2. Non-Goals / Out of Scope   — what it excludes (→ which spec owns it)
 ## 3. Background & Rationale      — why it exists; how it fits the whole
-## 4. Concepts & Definitions      — terms used/introduced (canonical terms → concepts.md)
+## 4. Concepts & Definitions      — terms used/introduced (canonical terms → glossary.md)
 ## 5. Detailed Specification      — the body; each requirement carries a stable ID
                                      REQ-<SPEC>-NN; behavioral rules state pre/postconditions
 ## 6. Visualizations              — ASCII mockups / mermaid / tables (required where helpful)
@@ -188,7 +188,7 @@ Every spec follows this canonical template. Sections marked *(optional)* appear 
 ## 9. Edge Cases & Failure Modes (optional)
 ## 10. Open Questions & Decisions — options + current leaning; resolved before approval
 ## 11. Review & Acceptance Checklist — observable conditions meaning the spec is satisfied
-## 12. Cross-References           — links to related specs; terms feeding back to concepts.md
+## 12. Cross-References           — links to related specs; terms feeding back to glossary.md
 ## 13. Changelog                  — dated entries per revision
 ```
 
@@ -201,18 +201,16 @@ Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug
 |--------|--------|--------|--------|
 | Space | `space_` | Task | `task_` |
 | Storyline | `story_` | Periodic task | `ptask_` |
-| Situation | `sit_` | Monitor | `mon_` |
-| Signal | `sig_` | Agent | `agent_` |
-| Evidence | `ev_` | Skill | `skill_` |
-| Insight | `ins_` | Auth profile | `auth_` |
-| Memory | `mem_` | Secret (handle) | `secret_` |
-| Entity (graph) | `ent_` | Conversation | `conv_` |
-| Note | `note_` | Message | `msg_` |
-| Bookmark | `bm_` | | |
+| Situation | `sit_` | Signal | `sig_` |
+| Agent | `agent_` | Evidence | `ev_` |
+| Skill | `skill_` | Insight | `ins_` |
+| Auth profile | `auth_` | Memory | `mem_` |
+| Secret (handle) | `secret_` | Entity (graph) | `ent_` |
+| Conversation | `conv_` | Message | `msg_` |
 
 - **Requirement IDs:** `REQ-<SPEC>-NN`, where `<SPEC>` is a short uppercase tag (e.g. `CONV`, `MEM`, `PERM`) and `NN` is zero-padded and **stable** (never renumbered). Each spec declares its tag in §1.
 - **File names:** lowercase kebab-case, `.md`, matching the spec's tag domain.
-- **Canonical capitalization of domain terms:** **Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Entity, Agent, Skill, Monitor, Task, Digest.** Use the capitalized form when referring to the concept; lowercase only in generic prose.
+- **Canonical capitalization of domain terms:** **Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Entity, Agent, Skill, Task, Digest.** Use the capitalized form when referring to the concept; lowercase only in generic prose.
 
 ### 6.3 Cross-linking & the index rule
 - Link related specs with wiki-style `[[spec-name]]` (filename without `.md`).
@@ -278,7 +276,7 @@ Global
 - *Investor reply to Talia overdue.*
 - *Northwind Cloud bill spiked unexpectedly.*
 
-**Recurring Monitors:** a competitor's release notes page; the `framework`'s core dependency on npm; a Northwind Cloud pricing page; flight prices for the family trip.
+**Recurring watchers (periodic tasks):** a competitor's release notes page; the `framework`'s core dependency on npm; a Northwind Cloud pricing page; flight prices for the family trip.
 
 > Specs SHOULD reuse these names verbatim. If a spec needs a new cast member, add it here (changelog entry) rather than inventing a one-off.
 
@@ -309,7 +307,7 @@ This spec is satisfied when:
 - [ ] ID prefixes, requirement-ID format, file-naming, and canonical capitalization are fixed.
 - [ ] The cross-linking + index-as-loading-guide rule is stated.
 - [ ] The status lifecycle and changelog requirement are defined.
-- [ ] The invented cast (spaces, people, vendors, repos, arcs, situations, monitors) is complete enough to source examples in every downstream spec.
+- [ ] The invented cast (spaces, people, vendors, repos, storylines, situations, watchers) is complete enough to source examples in every downstream spec.
 - [ ] The visualization style guide gives concrete mermaid + ASCII conventions.
 - [ ] No placeholders/TODOs; the document is internally consistent.
 
@@ -326,3 +324,4 @@ This spec is satisfied when:
 - **2026-05-29 — v0.1 (refined)** — Added P10 (space isolation) and a fail-safe engineering principle; embedded the canonical spec template in §6.1 so the suite is self-contained; clarified meta-doc template adaptation; fixed a stray cast reference.
 - **2026-05-29 — v1.0** — Approved.
 - **2026-05-29 — v1.1** — Architecture shift to client-server / self-hosted with space-sharing. Amended P1 (local-first → self-hosted & user-owned), P10 (isolation now by space **and** person; sharing flows downstream-only), added P11 (the Space is the only primitive — no roles/orgs/teams) and P12 (untrusted content is data, not instructions — prompt-injection defense). Added a "share a Space" row to the §5 table and Sam Rivera to the cast. Re-approved.
+- **2026-05-29 — v1.2** — Removed **Monitor** (folded into Periodic Task — a Monitor is a recurring watcher task), **Note**, and **Bookmark** as primitives: dropped their `mon_`/`note_`/`bm_` ID prefixes (§6.2), the Monitor capitalization entry, and the Notes/Monitors action references; reworked the cast's Monitors into recurring watchers. Fixed a stale `arcs` cast reference (→ storylines).
