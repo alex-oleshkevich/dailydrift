@@ -1,8 +1,11 @@
 # Spec Index — Loading Guide
 
 > **Status:** Living (continuously maintained)
+>
 > **Version:** —   ·   **Last updated:** 2026-05-29
+>
 > **Purpose:** The map of the whole specification suite. For each spec: its path, what it defines, *when to load it*, and its current status. This is the **extended table of contents** — read it first, then load only the specs a task actually needs (per [[constitution]] §6.3).
+>
 > **Load this when:** Always read first; it tells you which other specs to open.
 
 The product is a **local-first operational intelligence system** — a persistent chief-of-staff / research assistant / operations dashboard. Specs are organized in tiers; reading order ≈ build order of understanding. Read [[constitution]] before any spec.
@@ -20,9 +23,10 @@ The product is a **local-first operational intelligence system** — a persisten
 
 | Spec | Purpose | Load this when | Status |
 |------|---------|----------------|--------|
-| [[overview]] | Vision, goals, non-goals, audience, use cases, philosophy | Onboarding; aligning on what/why | ⬜ Planned |
+| [[overview]] | Vision, goals, non-goals, audience, use cases, philosophy | Onboarding; aligning on what/why | ✅ Approved |
 | [[concepts]] | Glossary: Arc, Situation, Signal, Evidence, Insight, Narrative Markdown, … | Whenever a domain term is unclear | ⬜ Planned |
 | [[spaces]] | Spaces + downstream inheritance (precedence, overrides, isolation) | Working on hierarchy, scoping, or inheritance | ⬜ Planned |
+| [[space-sharing]] | Sharing a Space with a person (shows in their menu; they extend it); downstream-only | Working on sharing / collaboration | ⬜ Planned |
 | [[data-model]] | Canonical conceptual entity-relationship map | Checking how entities relate / IDs | ⬜ Planned |
 
 ## Tier 2 — Surfaces / experience (no tech)
@@ -80,6 +84,7 @@ The product is a **local-first operational intelligence system** — a persisten
 | [[secrets]] | Secret management; password-manager integration | Working on credential storage | ⬜ Planned |
 | [[permissions]] | Approval & permission system on Always/Ask-first/Never | Working on permissions/approvals | ⬜ Planned |
 | [[sandboxing]] | Execution isolation substrate for tools/skills/code | Working on sandboxed execution | ⬜ Planned |
+| [[prompt-injection]] | Untrusted-content / prompt-injection defense (P12): data-not-instructions, detection, backstops | Any ingestion or agent-security decision | ⬜ Planned |
 | [[activity-log]] | Audit/observability trail of agent/automation actions | Working on auditing/transparency | ⬜ Planned |
 | [[ai-models]] | Supported models, provider abstraction, routing | Working on model selection/routing | ⬜ Planned |
 
@@ -96,3 +101,4 @@ The product is a **local-first operational intelligence system** — a persisten
 
 ## Changelog
 - **2026-05-29** — Created; all 36 specs listed; `constitution` marked Approved.
+- **2026-05-29** — `overview` approved; added `space-sharing` and `prompt-injection` (now 38 specs); header format fixed.

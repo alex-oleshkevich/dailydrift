@@ -1,9 +1,13 @@
 # Constitution
 
 > **Status:** Approved
-> **Version:** 1.0   ·   **Last updated:** 2026-05-29
+>
+> **Version:** 1.1   ·   **Last updated:** 2026-05-29
+>
 > **Purpose:** The governing document for the entire specification suite and the eventual build. It fixes the product/engineering principles, the autonomy model, the example world, and the authoring conventions that every other spec inherits.
+>
 > **Load this when:** Starting *any* spec (read first), reviewing a spec for consistency, or making a decision that affects more than one subsystem.
+>
 > **Depends on:** —   ·   **Related:** [[index]], [[overview]], [[permissions]], [[privacy-security]]
 
 ---
@@ -31,8 +35,8 @@ These are inherited by every spec. A spec may *specialize* a principle but must 
 
 | # | Principle | What it means in practice |
 |---|-----------|---------------------------|
-| P1 | **Local-first** | Data lives on the user's machine by default. Network/cloud is opt-in, scoped, and visible. Nothing leaves the device without an explicit, surfaced reason. |
-| P2 | **Narrative, not event-driven** | The System models ongoing *situations, arcs, and momentum* — never raw feeds of disconnected events. Surfaces answer "what changed / what matters / what's blocked," not "here are 200 logs." |
+| P1 | **Self-hosted & user-owned** | The System runs on a server the user controls (their own machine, a home box, or a host they deploy to) — never a mandatory vendor cloud. The user owns the data and the deployment. Outbound network/AI calls are opt-in, scoped, and visible. |
+| P2 | **Narrative, not event-driven** | The System models ongoing *Situations, Arcs, and momentum* — never raw feeds of disconnected events. Surfaces answer "what changed / what matters / what's blocked," not "here are 200 logs." |
 | P3 | **Evidence-first** | Every insight, claim, or recommendation cites the evidence that produced it. No unbacked assertions; no hallucinated certainty. "I don't know yet" is a valid state. |
 | P4 | **Proactive, not spammy** | The System initiates only when it clears a relevance/urgency bar; otherwise it batches into digests. Silence is the default, not noise. (See [[proactivity]].) |
 | P5 | **No psychoanalysis** | The System reasons about *work and context*, not the user's psyche or emotions. It observes patterns in artifacts, not in the person. |
@@ -40,7 +44,9 @@ These are inherited by every spec. A spec may *specialize* a principle but must 
 | P7 | **Personality through continuity** | "Aliveness" comes from memory, timing, judgment, and initiative — not fake emotion, mascots, or anthropomorphic theater. (See [[agents]].) |
 | P8 | **Boundaries everywhere** | Any action the System can take on the user's behalf is classified Always / Ask-first / Never (§5). There is no unclassified action. |
 | P9 | **Reversibility & transparency** | Autonomous actions are logged, attributable, and undoable where feasible. The user can always answer "what did it do while I was away?" (See [[activity-log]].) |
-| P10 | **Space isolation** | Context, memory, credentials, and actions never leak across Spaces — except via explicit **downstream inheritance** ([[spaces]]). Cross-space leakage is a hard failure, not a tolerated bug. |
+| P10 | **Isolation by space & person** | Context, memory, credentials, and actions never leak across Spaces — except via explicit **downstream inheritance** ([[spaces]]). When a Space is **shared** with another person, sharing flows **downstream only**: they see that Space and its descendants, never its private ancestors. Cross-space or cross-person leakage is a hard failure, not a tolerated bug. |
+| P11 | **The Space is the only primitive** | Everything — personal, shared, a "company" — is a Space in one hierarchy with downstream inheritance. Collaboration is **sharing a Space with a person**; there are **no roles, orgs, or teams**. ([[spaces]], [[space-sharing]]) |
+| P12 | **Untrusted content is data, not instructions** | Everything the System ingests — web pages, files, emails, tool/MCP output, page DOM, content in others' shared Spaces — is untrusted **data**, never commands. The System never executes instructions found in ingested content, keeps it separated from trusted instructions, and relies on the §5 gates as the backstop: a poisoned context still cannot perform an Ask-first/Never action without passing the gate, and secrets never enter prompts. (See [[prompt-injection]].) |
 
 ## 4. Engineering principles (intent, not numbers)
 
@@ -75,7 +81,7 @@ flowchart LR
 | Read mounted files / indexed content | **Always** | Within granted mounts only ([[filesystem]]). |
 | Search the web / fetch a public page | **Always** | Read-only retrieval. |
 | Summarize, extract, analyze, generate insights | **Always** | Local reasoning over existing evidence. |
-| Create/update internal objects (notes, arcs, memories, tasks) | **Always** | Internal state; fully reversible & logged. |
+| Create/update internal objects (Notes, Arcs, Memories, Tasks) | **Always** | Internal state; fully reversible & logged. |
 | Run a monitor / scheduled check | **Always** | Passive observation; results may *trigger* Ask-first follow-ups. |
 | Write/modify files in a mount | **Ask-first** | Even within a granted mount. |
 | Send a message / email / chat on the user's behalf | **Ask-first** | Any outbound communication. |
@@ -84,6 +90,7 @@ flowchart LR
 | Use a stored credential / auth profile | **Ask-first** | Per [[secrets]] & [[privacy-security]]; secrets are never shown in prompts. |
 | Install/enable a new skill, MCP server, or connector | **Ask-first** | Expands capability surface. |
 | Grant a new file mount or domain to a profile | **Ask-first** | Expands reach. |
+| Share a Space with a person (or add them to one) | **Ask-first** | Expands *who* can see/extend that data; downstream-only ([[space-sharing]]). |
 | Delete user data irreversibly / mass-destructive ops | **Ask-first** (high-friction) | Requires explicit, typed confirmation. |
 | Exfiltrate raw secrets / credentials to any model or remote | **Never** | Hard stop. Secrets travel as opaque handles only. |
 | Disable safety controls, logging, or approval gates | **Never** | Hard stop. |
@@ -159,9 +166,13 @@ Every spec follows this canonical template. Sections marked *(optional)* appear 
 # <Spec Title>
 
 > **Status:** Draft | In Review | Approved | Deprecated
+>
 > **Version:** 0.1   ·   **Last updated:** YYYY-MM-DD
+>
 > **Purpose:** <one or two sentences — what this spec defines>
+>
 > **Load this when:** <the trigger that makes this spec relevant to read>
+>
 > **Depends on:** [[...]]   ·   **Related:** [[...]]
 
 ## 1. Purpose & Scope            — what it covers
@@ -180,6 +191,8 @@ Every spec follows this canonical template. Sections marked *(optional)* appear 
 ## 12. Cross-References           — links to related specs; terms feeding back to concepts.md
 ## 13. Changelog                  — dated entries per revision
 ```
+
+> **Header rendering rule.** Separate header fields with blank `>` lines (as above) so each renders on its own line. Do **not** rely on trailing-space hard breaks — formatters/linters strip them.
 
 ### 6.2 ID & naming schemes
 Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug or ULID; the concrete format is fixed in [[data-model]]/[[app-architecture]]).
@@ -243,11 +256,14 @@ Global
 |------|------|
 | Talia Brandt | Prospective investor (fundraising arc) |
 | Devin Osei | Stakeholder at Brightmoor Labs (client) |
-| Priya Nandakumar | Contractor on the framework |
+| Priya Nandakumar | Contractor on the framework (you share the `Framework` space with her) |
 | Dr. Ana Belov | Research collaborator (distributed systems) |
+| Sam Rivera | Your partner (you share the `Family` space with them) |
 
 **Vendors / services (entities):** Stripe, GitHub, npm registry, **Northwind Cloud** (fictional hosting provider).
 **Repos (entities):** `framework`, `brightmoor-portal`.
+
+**Shared spaces (examples):** the `Family` space is shared with Sam Rivera; the `Framework` space is shared with Priya Nandakumar — the *same* sharing mechanism, just different people (there is no "personal vs business" distinction).
 
 **Recurring Arcs**
 - *Framework UI direction* — keeps looping; revisited four times, still no RFC.
@@ -285,7 +301,8 @@ Per the visual-first principle, prefer a picture over prose for any structure.
 
 This spec is satisfied when:
 
-- [ ] Every product principle (P1–P10) is stated and unambiguous.
+- [ ] Every product principle (P1–P12) is stated and unambiguous.
+- [ ] Self-hosted topology (P1), space+person isolation with downstream-only sharing (P10), the "Space is the only primitive — no roles" rule (P11), and "untrusted content is data, not instructions" (P12) are reflected here and in the §5 table.
 - [ ] The canonical spec template is embedded and self-contained (no dependency on external files).
 - [ ] The Always/Ask-first/Never framework defines all three tiers and a conservative default table, plus the extension rule.
 - [ ] The permission relationship (two-gate model), the approval decision options (incl. "Allow always" standing grants), and the background/async approval model are specified.
@@ -308,3 +325,4 @@ This spec is satisfied when:
 - **2026-05-29 — v0.1** — Initial draft: principles, Always/Ask-first/Never framework (incl. §5.1 relationship to permissions / two-gate model + approval decisions with "Allow always", and §5.2 background/async approval model), authoring conventions, de-branded invented cast, visualization style guide.
 - **2026-05-29 — v0.1 (refined)** — Added P10 (space isolation) and a fail-safe engineering principle; embedded the canonical spec template in §6.1 so the suite is self-contained; clarified meta-doc template adaptation; fixed a stray cast reference.
 - **2026-05-29 — v1.0** — Approved.
+- **2026-05-29 — v1.1** — Architecture shift to client-server / self-hosted with space-sharing. Amended P1 (local-first → self-hosted & user-owned), P10 (isolation now by space **and** person; sharing flows downstream-only), added P11 (the Space is the only primitive — no roles/orgs/teams) and P12 (untrusted content is data, not instructions — prompt-injection defense). Added a "share a Space" row to the §5 table and Sam Rivera to the cast. Re-approved.
