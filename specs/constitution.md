@@ -8,7 +8,7 @@
 >
 > **Load this when:** Starting *any* spec (read first), reviewing a spec for consistency, or making a decision that affects more than one subsystem.
 >
-> **Depends on:** —   ·   **Related:** [[index]], [[overview]], [[permissions]], [[privacy-security]]
+> **Depends on:** —   ·   **Related:** [index](index.md), [overview](overview.md), [permissions](permissions.md), [privacy-security](privacy-security.md)
 
 ---
 
@@ -25,7 +25,7 @@ When a downstream spec conflicts with this document, **this document wins** — 
 
 ## 2. Non-Goals
 
-- This is **not** a technical architecture document. Concrete stack choices, data persistence, and build tooling live in [[app-architecture]] and [[stack]].
+- This is **not** a technical architecture document. Concrete stack choices, data persistence, and build tooling live in [app-architecture](app-architecture.md) and [stack](stack.md).
 - It does **not** enumerate every action's permission classification — only the defaults and the framework. Each subsystem spec classifies its own actions (see §5).
 - It does **not** define product features. Features live in their home specs; this document only constrains them.
 
@@ -38,31 +38,31 @@ These are inherited by every spec. A spec may *specialize* a principle but must 
 | P1 | **Self-hosted & user-owned** | The System runs on a server the user controls (their own machine, a home box, or a host they deploy to) — never a mandatory vendor cloud. The user owns the data and the deployment. Outbound network/AI calls are opt-in, scoped, and visible. |
 | P2 | **Narrative, not event-driven** | The System models ongoing *Situations, Storylines, and momentum* — never raw feeds of disconnected events. Surfaces answer "what changed / what matters / what's blocked," not "here are 200 logs." |
 | P3 | **Evidence-first** | Every insight, claim, or recommendation cites the evidence that produced it. No unbacked assertions; no hallucinated certainty. "I don't know yet" is a valid state. |
-| P4 | **Proactive, not spammy** | The System initiates only when it clears a relevance/urgency bar; otherwise it batches into digests. Silence is the default, not noise. (See [[proactivity]].) |
+| P4 | **Proactive, not spammy** | The System initiates only when it clears a relevance/urgency bar; otherwise it batches into digests. Silence is the default, not noise. (See [proactivity](proactivity.md).) |
 | P5 | **No psychoanalysis** | The System reasons about *work and context*, not the user's psyche or emotions. It observes patterns in artifacts, not in the person. |
 | P6 | **Least-privilege & explicit scope** | Capabilities, file access, and credentials are granted narrowly and visibly. The System never silently broadens its reach (e.g., never scans the whole filesystem). |
-| P7 | **Personality through continuity** | "Aliveness" comes from memory, timing, judgment, and initiative — not fake emotion, mascots, or anthropomorphic theater. (See [[agents]].) |
+| P7 | **Personality through continuity** | "Aliveness" comes from memory, timing, judgment, and initiative — not fake emotion, mascots, or anthropomorphic theater. (See [agents](agents.md).) |
 | P8 | **Boundaries everywhere** | Any action the System can take on the user's behalf is classified Always / Ask-first / Never (§5). There is no unclassified action. |
-| P9 | **Reversibility & transparency** | Autonomous actions are logged, attributable, and undoable where feasible. The user can always answer "what did it do while I was away?" (See [[activity-log]].) |
-| P10 | **Isolation by space & person** | Context, memory, credentials, and actions never leak across Spaces — except via explicit **downstream inheritance** ([[spaces]]). When a Space is **shared** with another person, sharing flows **downstream only**: they see that Space and its descendants, never its private ancestors. Cross-space or cross-person leakage is a hard failure, not a tolerated bug. |
-| P11 | **The Space is the only primitive** | Everything — personal, shared, a "company" — is a Space in one hierarchy with downstream inheritance. Collaboration is **sharing a Space with a person**; there are **no roles, orgs, or teams**. ([[spaces]]) |
-| P12 | **Untrusted content is data, not instructions** | Everything the System ingests — web pages, files, emails, tool/MCP output, page DOM, content in others' shared Spaces — is untrusted **data**, never commands. The System never executes instructions found in ingested content, keeps it separated from trusted instructions, and relies on the §5 gates as the backstop: a poisoned context still cannot perform an Ask-first/Never action without passing the gate, and secrets never enter prompts. (See [[prompt-injection]].) |
+| P9 | **Reversibility & transparency** | Autonomous actions are logged, attributable, and undoable where feasible. The user can always answer "what did it do while I was away?" (See [activity-log](activity-log.md).) |
+| P10 | **Isolation by space & person** | Context, memory, credentials, and actions never leak across Spaces — except via explicit **downstream inheritance** ([spaces](spaces.md)). When a Space is **shared** with another person, sharing flows **downstream only**: they see that Space and its descendants, never its private ancestors. Cross-space or cross-person leakage is a hard failure, not a tolerated bug. |
+| P11 | **The Space is the only primitive** | Everything — personal, shared, a "company" — is a Space in one hierarchy with downstream inheritance. Collaboration is **sharing a Space with a person**; there are **no roles, orgs, or teams**. ([spaces](spaces.md)) |
+| P12 | **Untrusted content is data, not instructions** | Everything the System ingests — web pages, files, emails, tool/MCP output, page DOM, content in others' shared Spaces — is untrusted **data**, never commands. The System never executes instructions found in ingested content, keeps it separated from trusted instructions, and relies on the §5 gates as the backstop: a poisoned context still cannot perform an Ask-first/Never action without passing the gate, and secrets never enter prompts. (See [prompt-injection](prompt-injection.md).) |
 
 ## 4. Engineering principles (intent, not numbers)
 
-Concrete bars (test strategy, accessibility level, performance budgets) are set in [[app-architecture]] / [[stack]]. Here we fix *intent*:
+Concrete bars (test strategy, accessibility level, performance budgets) are set in [app-architecture](app-architecture.md) / [stack](stack.md). Here we fix *intent*:
 
 - **Isolation & clear boundaries.** Each unit has one purpose, a well-defined interface, and is independently understandable and testable.
 - **Tested by default.** Behavior is verified; correctness is demonstrated, not assumed.
 - **Accessible & responsive.** The UI is usable by keyboard and assistive tech, and adapts to window size.
 - **Performant & quiet.** Background work must not degrade foreground responsiveness; idle cost is minimized.
 - **Resilient & fail-safe.** On error or uncertainty the System stops safely and surfaces the problem; it never acts on a guessed or partial state.
-- **Observable.** The System's actions and state are inspectable (see [[activity-log]]).
+- **Observable.** The System's actions and state are inspectable (see [activity-log](activity-log.md)).
 - **Clean & minimal.** Prefer the smallest correct implementation. No dead code, no speculative generality, no decorative comments.
 
 ## 5. The Always / Ask-first / Never framework
 
-The canonical autonomy & approval model. **Every action the System can take is classified into exactly one tier.** Subsystem specs ([[permissions]], [[tools]], [[browser-automation]], [[filesystem]], [[tasks]], [[mcp]], …) extend this table with their own actions; they may make a default *stricter* for a given space but never *looser* than this baseline. Every tool ([[tools]]) declares the tier of the action it performs.
+The canonical autonomy & approval model. **Every action the System can take is classified into exactly one tier.** Subsystem specs ([permissions](permissions.md), [tools](tools.md), [browser-automation](browser-automation.md), [filesystem](filesystem.md), [tasks](tasks.md), [mcp](mcp.md), …) extend this table with their own actions; they may make a default *stricter* for a given space but never *looser* than this baseline. Every tool ([tools](tools.md)) declares the tier of the action it performs.
 
 ```mermaid
 flowchart LR
@@ -78,7 +78,7 @@ flowchart LR
 
 | Action | Default tier | Notes |
 |--------|--------------|-------|
-| Read mounted files / indexed content | **Always** | Within granted mounts only ([[filesystem]]). |
+| Read mounted files / indexed content | **Always** | Within granted mounts only ([filesystem](filesystem.md)). |
 | Search the web / fetch a public page | **Always** | Read-only retrieval. |
 | Summarize, extract, analyze, generate insights | **Always** | Local reasoning over existing evidence. |
 | Create/update internal objects (Storylines, Memories, Tasks) | **Always** | Internal state; fully reversible & logged. |
@@ -87,10 +87,10 @@ flowchart LR
 | Send a message / email / chat on the user's behalf | **Ask-first** | Any outbound communication. |
 | Submit a form / click a "confirm" in browser automation | **Ask-first** | Any state-changing web action. |
 | Make a purchase or incur a cost | **Ask-first** | Always surfaced with amount. |
-| Use a stored credential / auth profile | **Ask-first** | Per [[secrets]] & [[privacy-security]]; secrets are never shown in prompts. |
+| Use a stored credential / auth profile | **Ask-first** | Per [secrets](secrets.md) & [privacy-security](privacy-security.md); secrets are never shown in prompts. |
 | Install/enable a new skill, MCP server, or connector | **Ask-first** | Expands capability surface. |
 | Grant a new file mount or domain to a profile | **Ask-first** | Expands reach. |
-| Share a Space with a person (or add them to one) | **Ask-first** | Expands *who* can see/extend that data; downstream-only ([[spaces]]). |
+| Share a Space with a person (or add them to one) | **Ask-first** | Expands *who* can see/extend that data; downstream-only ([spaces](spaces.md)). |
 | Delete user data irreversibly / mass-destructive ops | **Ask-first** (high-friction) | Requires explicit, typed confirmation. |
 | Exfiltrate raw secrets / credentials to any model or remote | **Never** | Hard stop. Secrets travel as opaque handles only. |
 | Disable safety controls, logging, or approval gates | **Never** | Hard stop. |
@@ -102,7 +102,7 @@ flowchart LR
 
 The framework is **not** the permission system — they are different axes that combine:
 
-- **Permissions / grants** (capability + scope) decide whether an action is *possible at all* — for this agent/skill, in this space, with the required auth profile and file mounts. This is least-privilege; it is owned by [[permissions]] (with credentials in [[privacy-security]] / [[secrets]]).
+- **Permissions / grants** (capability + scope) decide whether an action is *possible at all* — for this agent/skill, in this space, with the required auth profile and file mounts. This is least-privilege; it is owned by [permissions](permissions.md) (with credentials in [privacy-security](privacy-security.md) / [secrets](secrets.md)).
 - **Always / Ask-first / Never tier** (consent + friction) decides, *given the action is possible*, how much human confirmation it requires.
 
 Every action passes **two gates**, in order:
@@ -127,7 +127,7 @@ flowchart TD
 - **Deny** — reject this invocation.
 - **Deny always (scoped)** — a standing denial; matching actions become a *Never* for that scope (revocable).
 
-**The dynamic link.** An "Allow always" grant is exactly the scoped standing approval that promotes an action's tier from *Ask-first* to *Always* within that scope. Constraints: a grant can **never** lower a baseline **Never**, and can **never** exceed this baseline. All standing decisions are recorded, inspectable, and revocable. [[permissions]] owns the full evaluation, the approval flow, and storage/revocation of remembered decisions; the constitution owns only the baseline policy.
+**The dynamic link.** An "Allow always" grant is exactly the scoped standing approval that promotes an action's tier from *Ask-first* to *Always* within that scope. Constraints: a grant can **never** lower a baseline **Never**, and can **never** exceed this baseline. All standing decisions are recorded, inspectable, and revocable. [permissions](permissions.md) owns the full evaluation, the approval flow, and storage/revocation of remembered decisions; the constitution owns only the baseline policy.
 
 ### 5.2 Approvals in background & autonomous work
 
@@ -152,15 +152,15 @@ flowchart LR
 *(Always actions and "Allow always" grants run without pausing; Never actions are refused and logged — see the rules below.)*
 
 - Autonomous work proceeds freely over **Always** actions and any **Allow-always standing grants**. Standing grants are what make meaningful autonomy possible — without them, an unattended task stalls at the first Ask-first step.
-- On an **Ask-first** action with no covering grant: the task **parks a permission request** and enters **Awaiting-approval**. The request surfaces as a permission-request message in [[conversation]], a Home → Attention-Needed item ([[home-and-briefings]]), an [[activity-log]] entry, and (usually) a Situation ([[glossary]]) such as *"task blocked awaiting approval."* [[proactivity]] decides whether to actively notify now or let it wait for the next digest, by urgency.
+- On an **Ask-first** action with no covering grant: the task **parks a permission request** and enters **Awaiting-approval**. The request surfaces as a permission-request message in [conversation](conversation.md), a Home → Attention-Needed item ([home-and-briefings](home-and-briefings.md)), an [activity-log](activity-log.md) entry, and (usually) a Situation ([glossary](glossary.md)) such as *"task blocked awaiting approval."* [proactivity](proactivity.md) decides whether to actively notify now or let it wait for the next digest, by urgency.
 - **Approved** → resume from the park point. **Denied** → abort that step, continue other branches or fail, recording why. **Expired/timed out** (configurable) → the request lapses and the block is surfaced as stale.
 - On a **Never** action → refused immediately and logged; the branch is recorded as blocked (no approval can unlock a Never).
-- **Anticipate, don't nag.** A task that can foresee the approvals it will need SHOULD request them as one batch up front (or rely on standing grants) rather than interrupting repeatedly. Full mechanics live in [[permissions]], [[tasks]], and [[proactivity]].
+- **Anticipate, don't nag.** A task that can foresee the approvals it will need SHOULD request them as one batch up front (or rely on standing grants) rather than interrupting repeatedly. Full mechanics live in [permissions](permissions.md), [tasks](tasks.md), and [proactivity](proactivity.md).
 
 ## 6. Authoring conventions
 
 ### 6.1 Document template
-Every spec follows this canonical template. Sections marked *(optional)* appear only when they add value; all others are required. Meta-documents ([[index]] and this constitution) adapt the template to their purpose rather than following it literally.
+Every spec follows this canonical template. Sections marked *(optional)* appear only when they add value; all others are required. Meta-documents ([index](index.md) and this constitution) adapt the template to their purpose rather than following it literally.
 
 ```markdown
 # <Spec Title>
@@ -173,7 +173,7 @@ Every spec follows this canonical template. Sections marked *(optional)* appear 
 >
 > **Load this when:** <the trigger that makes this spec relevant to read>
 >
-> **Depends on:** [[...]]   ·   **Related:** [[...]]
+> **Depends on:** [spec-name](spec-name.md)   ·   **Related:** [spec-name](spec-name.md)
 
 ## 1. Purpose & Scope            — what it covers
 ## 2. Non-Goals / Out of Scope   — what it excludes (→ which spec owns it)
@@ -195,7 +195,7 @@ Every spec follows this canonical template. Sections marked *(optional)* appear 
 > **Header rendering rule.** Separate header fields with blank `>` lines (as above) so each renders on its own line. Do **not** rely on trailing-space hard breaks — formatters/linters strip them.
 
 ### 6.2 ID & naming schemes
-Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug or ULID; the concrete format is fixed in [[data-model]]/[[app-architecture]]).
+Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug or ULID; the concrete format is fixed in [data-model](data-model.md)/[app-architecture](app-architecture.md)).
 
 | Entity | Prefix | Entity | Prefix |
 |--------|--------|--------|--------|
@@ -213,9 +213,9 @@ Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug
 - **Canonical capitalization of domain terms:** **Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Entity, Agent, Skill, Task, Digest.** Use the capitalized form when referring to the concept; lowercase only in generic prose.
 
 ### 6.3 Cross-linking & the index rule
-- Link related specs with wiki-style `[[spec-name]]` (filename without `.md`).
+- Link related specs with standard Markdown links: `[spec-name](spec-name.md)` (renders clickable on GitHub and any Markdown viewer).
 - A spec's header lists **Depends on** (must-read prerequisites) and **Related** (helpful neighbors).
-- [[index]] is the **extended TOC / loading guide**: it summarizes each spec and says *when to load it*, so an agent reads only what a task requires. Keeping the index accurate is mandatory after every approval.
+- [index](index.md) is the **extended TOC / loading guide**: it summarizes each spec and says *when to load it*, so an agent reads only what a task requires. Keeping the index accurate is mandatory after every approval.
 
 ### 6.4 Status lifecycle & changelog
 ```mermaid
@@ -227,7 +227,7 @@ stateDiagram-v2
     Approved --> Deprecated: superseded
     Approved --> InReview: material change
 ```
-Every spec carries a dated `## Changelog`. Status is shown in the header and mirrored in [[index]].
+Every spec carries a dated `## Changelog`. Status is shown in the header and mirrored in [index](index.md).
 
 ## 7. The recurring example cast (the shared world)
 
@@ -313,10 +313,10 @@ This spec is satisfied when:
 
 ## 10. Cross-References
 
-- [[index]] — the loading guide this document mandates.
-- [[overview]] — applies the product principles to the product narrative.
-- [[permissions]], [[tools]], [[sandboxing]], [[privacy-security]], [[secrets]], [[browser-automation]], [[filesystem]], [[mcp]] — extend §5.
-- [[data-model]] — fixes the concrete ID format referenced in §6.2.
+- [index](index.md) — the loading guide this document mandates.
+- [overview](overview.md) — applies the product principles to the product narrative.
+- [permissions](permissions.md), [tools](tools.md), [sandboxing](sandboxing.md), [privacy-security](privacy-security.md), [secrets](secrets.md), [browser-automation](browser-automation.md), [filesystem](filesystem.md), [mcp](mcp.md) — extend §5.
+- [data-model](data-model.md) — fixes the concrete ID format referenced in §6.2.
 
 ## 11. Changelog
 

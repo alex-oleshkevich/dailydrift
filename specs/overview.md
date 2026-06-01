@@ -8,7 +8,7 @@
 >
 > **Load this when:** Onboarding to the project, aligning on what/why, or sanity-checking that a feature serves the vision.
 >
-> **Depends on:** [[constitution]]   ·   **Related:** [[glossary]], [[spaces]], [[how-it-works]], [[home-and-briefings]]
+> **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [how-it-works](how-it-works.md), [home-and-briefings](home-and-briefings.md)
 
 > Requirement tag: **OVR**
 
@@ -20,12 +20,12 @@ This spec defines the **product**, not its mechanics: the vision, audience, goal
 
 It covers: vision · audience · goals · non-goals · how it's deployed (at a product level) · headline use cases · product philosophy · what success feels like · onboarding at a glance.
 
-It does **not** cover: domain definitions ([[glossary]]), how the System operates ([[how-it-works]]), or any implementation ([[app-architecture]], [[stack]]).
+It does **not** cover: domain definitions ([glossary](glossary.md)), how the System operates ([how-it-works](how-it-works.md)), or any implementation ([app-architecture](app-architecture.md), [stack](stack.md)).
 
 ## 2. Non-Goals
 
 - **REQ-OVR-01 — No vendor cloud / not multi-tenant SaaS.** The System is **self-hosted**: it runs on a server the user controls, and there is no provider holding their data. One deployment serves one user-or-group, not many tenants.
-- **REQ-OVR-02 — No roles / orgs / teams / RBAC / SSO.** Collaboration is **sharing a Space with a person** ([[spaces]]). There is deliberately no permission-role system, no org/team objects — everything is a Space + inheritance ([[constitution]] P11).
+- **REQ-OVR-02 — No roles / orgs / teams / RBAC / SSO.** Collaboration is **sharing a Space with a person** ([spaces](spaces.md)). There is deliberately no permission-role system, no org/team objects — everything is a Space + inheritance ([constitution](constitution.md) P11).
 - **Not a general coding assistant.** It can *work with* code/repos as context, but it is not an IDE copilot.
 - **Multi-device is via multiple clients to one server**, not peer-to-peer sync between devices. (A manual export/import for backup/migration is a possible future addition — see §10.)
 
@@ -41,7 +41,7 @@ The opportunity: treat **ongoing context as the product**. Continuously observe 
 
 ## 4. Concepts & Definitions
 
-This spec uses domain terms (Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Digest, sharing) at an intuitive level. Canonical definitions live in [[glossary]]; the example world (you, the `Framework` product, Brightmoor, Talia, Sam, …) is fixed in [[constitution]] §7.
+This spec uses domain terms (Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Digest, sharing) at an intuitive level. Canonical definitions live in [glossary](glossary.md); the example world (you, the `Framework` product, Brightmoor, Talia, Sam, …) is fixed in [constitution](constitution.md) §7.
 
 ## 5. Detailed Specification
 
@@ -79,16 +79,16 @@ flowchart LR
 
 - **One self-hosted server**, deployed anywhere the user controls. It is the always-on brain.
 - **Desktop and mobile clients** connect to it. The **mobile client is a companion** — notifications, approving/denying permission requests on the go, quick capture, and viewing briefings/situations — which fits naturally because the *server* does the heavy, long-running work.
-- Mechanics (deployment, sync, offline) live in [[app-architecture]] / [[stack]].
+- Mechanics (deployment, sync, offline) live in [app-architecture](app-architecture.md) / [stack](stack.md).
 
 ### 5.5 Goals
 
 - **G1 — Maintain awareness.** Continuously turn raw Signals into durable, queryable understanding across all contexts.
 - **G2 — Surface signal, suppress noise.** Tell the user what changed, what matters, what's blocked — and stay silent otherwise (P4).
-- **G3 — Keep working while away.** Run research, monitoring, and automation autonomously on the always-on server, within approved bounds ([[constitution]] §5).
+- **G3 — Keep working while away.** Run research, monitoring, and automation autonomously on the always-on server, within approved bounds ([constitution](constitution.md) §5).
 - **G4 — Be trustworthy.** Self-hosted, evidence-first, approval-gated, fully auditable, injection-resistant (P1, P3, P8, P9, P12).
 - **G5 — Feel alive through continuity, not theater.** Earn the sense of an aware partner via Memory, timing, and judgment — never fake emotion (P7).
-- **G6 — Collaborate by sharing.** Let people work in the same context by sharing Spaces with anyone — no roles, no setup ceremony (P11, [[spaces]]).
+- **G6 — Collaborate by sharing.** Let people work in the same context by sharing Spaces with anyone — no roles, no setup ceremony (P11, [spaces](spaces.md)).
 
 ### 5.6 Headline use cases
 
@@ -113,7 +113,7 @@ The System is **narrative-driven, not event-driven** (P2): it models stories and
 
 ### 5.9 Onboarding at a glance
 
-First use is about **establishing scope, not configuration**: stand up the server (self-host it wherever you like), connect a desktop or mobile client, create your first Spaces, optionally mount a folder, connect a browser profile, or share a Space with someone — and state a few things you care about. From there the server begins observing and briefing. The principle is **incremental, visible reach** (P6): nothing is assumed. Full flows live in [[ui-shell]], [[spaces]], [[filesystem]], [[settings]].
+First use is about **establishing scope, not configuration**: stand up the server (self-host it wherever you like), connect a desktop or mobile client, create your first Spaces, optionally mount a folder, connect a browser profile, or share a Space with someone — and state a few things you care about. From there the server begins observing and briefing. The principle is **incremental, visible reach** (P6): nothing is assumed. Full flows live in [ui-shell](ui-shell.md), [spaces](spaces.md), [filesystem](filesystem.md), [settings](settings.md).
 
 ## 6. Visualizations
 
@@ -138,7 +138,7 @@ flowchart LR
 
 ## 7. Data Shapes
 
-*(Not applicable — overview defines no data. See [[data-model]].)*
+*(Not applicable — overview defines no data. See [data-model](data-model.md).)*
 
 ## 8. Examples & Use Cases
 
@@ -148,7 +148,7 @@ You haven't touched the `Framework` Space in two weeks. You open a client. The S
 ### Example B — "Autonomy with a guardrail" (Given/When/Then)
 - **Given** a periodic task watching Northwind Cloud's pricing page, no standing grant to act on changes, and your desktop is **closed**.
 - **When** the page changes overnight and the server's follow-up would *email Devin to flag the cost impact*.
-- **Then** the server does the Always parts autonomously (detect, summarize, attach Evidence to the *Operations* Storyline) but **parks** the outbound email as an Ask-first request and **pushes it to your phone** — you approve from the mobile companion, and the server resumes. (Per [[constitution]] §5.2.)
+- **Then** the server does the Always parts autonomously (detect, summarize, attach Evidence to the *Operations* Storyline) but **parks** the outbound email as an Ask-first request and **pushes it to your phone** — you approve from the mobile companion, and the server resumes. (Per [constitution](constitution.md) §5.2.)
 
 ### Example C — "Quiet is correct" (Given/When/Then)
 - **Given** a normal day with no meaningful changes across any Space.
@@ -169,10 +169,10 @@ You haven't touched the `Framework` Space in two weeks. You open a client. The S
 
 ## 10. Open Questions & Decisions
 
-- **OQ-1 — Product name.** Deferred; no suitable domain is free. Specs use "the System" ([[constitution]] §1).
-- **OQ-2 — Export/import.** Peer sync is a non-goal, but a manual export/import for backup/migration is likely desirable. Deferred ([[privacy-security]] / [[app-architecture]]).
+- **OQ-1 — Product name.** Deferred; no suitable domain is free. Specs use "the System" ([constitution](constitution.md) §1).
+- **OQ-2 — Export/import.** Peer sync is a non-goal, but a manual export/import for backup/migration is likely desirable. Deferred ([privacy-security](privacy-security.md) / [app-architecture](app-architecture.md)).
 - **OQ-3 — Mobile parity.** Companion-first is decided; whether mobile later grows toward parity is open.
-- **OQ-4 — Onboarding depth.** How far to simplify for non-technical users without diluting the power-user core. Revisit with [[ui-shell]].
+- **OQ-4 — Onboarding depth.** How far to simplify for non-technical users without diluting the power-user core. Revisit with [ui-shell](ui-shell.md).
 
 ## 11. Review & Acceptance Checklist
 
@@ -188,11 +188,11 @@ You haven't touched the `Framework` Space in two weeks. You open a client. The S
 
 ## 12. Cross-References
 
-- [[constitution]] — the principles (P1–P12) and example cast this spec applies.
-- [[spaces]] — the hierarchy and sharing behind the multi-context and collaboration use cases.
-- [[glossary]] — definitions used loosely here.
-- [[how-it-works]] — the operating loop that realizes this vision.
-- [[home-and-briefings]] — the briefing experience in §5.8/§6.2.
+- [constitution](constitution.md) — the principles (P1–P12) and example cast this spec applies.
+- [spaces](spaces.md) — the hierarchy and sharing behind the multi-context and collaboration use cases.
+- [glossary](glossary.md) — definitions used loosely here.
+- [how-it-works](how-it-works.md) — the operating loop that realizes this vision.
+- [home-and-briefings](home-and-briefings.md) — the briefing experience in §5.8/§6.2.
 
 ## 13. Changelog
 

@@ -4,3 +4,10 @@
 *.db
 .beads-credential-key
 .claude/settings.json
+
+build/bin
+node_modules
+frontend/dist
+
+# Scratch / temp working dir
+var/
