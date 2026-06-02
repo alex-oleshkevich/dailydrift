@@ -7,19 +7,46 @@ export interface Space {
 
 interface SpacesState {
     spaces: Space[];
-    activeSpaceId: string;
+    activeSpaceId: string | null;
+    loading: boolean;
+    error: string | null;
+    load: () => Promise<void>;
     setActiveSpace: (id: string) => void;
 }
 
-const defaultSpaces: Space[] = [
-    { id: "personal", name: "Personal" },
-    { id: "investerra", name: "Investerra" },
-    { id: "research", name: "Research" },
-];
+async function fetchSpaces(): Promise<Space[]> {
+    return [
+        { id: "personal", name: "Personal" },
+        { id: "investerra", name: "Investerra" },
+        { id: "research", name: "Research" },
+    ];
+}
 
-export const useSpacesStore = create<SpacesState>((set) => ({
-    spaces: defaultSpaces,
-    activeSpaceId: defaultSpaces[0].id,
+export const useSpacesStore = create<SpacesState>()((set, get) => ({
+    spaces: [],
+    activeSpaceId: null,
+    loading: false,
+    error: null,
+    load: async () => {
+        if (get().loading) {
+            return;
+        }
+        set({ loading: true, error: null });
+        try {
+            const spaces = await fetchSpaces();
+            set((state) => ({
+                spaces,
+                loading: false,
+                activeSpaceId: state.activeSpaceId ?? spaces[0]?.id ?? null,
+            }));
+        } catch (error) {
+            set({
+                error:
+                    error instanceof Error ? error.message : "Failed to load",
+                loading: false,
+            });
+        }
+    },
     setActiveSpace: (id) => {
         set({ activeSpaceId: id });
     },
