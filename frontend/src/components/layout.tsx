@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { AppSidebar, type NavLeaf } from "@/components/app-sidebar";
+import { CommandPalette } from "@/components/command-palette";
 import { type TabItem, TabView } from "@/components/tab-view";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
@@ -51,6 +52,7 @@ export default function Layout() {
                     onClose={closeTab}
                 />
             </SidebarInset>
+            <CommandPalette />
         </SidebarProvider>
     );
 }
