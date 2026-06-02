@@ -15,6 +15,15 @@
             "recommended": true,
             "style": {
                 "useBlockStatements": "error"
+            },
+            "nursery": {
+                "useSortedClasses": {
+                    "level": "error",
+                    "options": {
+                        "attributes": ["className"],
+                        "functions": ["clsx", "cva", "cn", "twMerge"]
+                    }
+                }
             }
         }
     },
