@@ -1,0 +1,32 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
+    "files": {
+        "ignoreUnknown": true,
+        "includes": ["**", "!dist", "!wailsjs"]
+    },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "style": {
+                "useBlockStatements": "error"
+            }
+        }
+    },
+    "javascript": {
+        "formatter": {
+            "semicolons": "always",
+            "quoteStyle": "double"
+        }
+    },
+    "css": {
+        "parser": {
+            "tailwindDirectives": true
+        }
+    }
+}
