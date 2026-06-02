@@ -4,6 +4,7 @@ import {
     type LucideIcon,
     MessageSquare,
     Radar,
+    Settings,
     Target,
 } from "lucide-react";
 import type * as React from "react";
@@ -13,6 +14,7 @@ import { SpaceSwitcher } from "@/components/space-switcher";
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
@@ -46,11 +48,38 @@ const mainItems: NavLeaf[] = [
     { id: "calendar", title: "Calendar", icon: Calendar },
 ];
 
+const settingsItem: NavLeaf = {
+    id: "settings",
+    title: "Settings",
+    icon: Settings,
+};
+
 const SKELETON_KEYS = ["a", "b", "c"];
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     activeId?: string;
     onOpen: (item: NavLeaf) => void;
+}
+
+function NavButton({
+    item,
+    activeId,
+    onOpen,
+}: {
+    item: NavLeaf;
+    activeId?: string;
+    onOpen: (item: NavLeaf) => void;
+}) {
+    return (
+        <SidebarMenuButton
+            isActive={item.id === activeId}
+            tooltip={item.title}
+            onClick={() => onOpen(item)}
+        >
+            <item.icon />
+            <span>{item.title}</span>
+        </SidebarMenuButton>
+    );
 }
 
 export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
@@ -111,16 +140,11 @@ export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
                                       ))
                                     : group.items.map((item) => (
                                           <SidebarMenuItem key={item.id}>
-                                              <SidebarMenuButton
-                                                  isActive={
-                                                      item.id === activeId
-                                                  }
-                                                  tooltip={item.title}
-                                                  onClick={() => onOpen(item)}
-                                              >
-                                                  <item.icon />
-                                                  <span>{item.title}</span>
-                                              </SidebarMenuButton>
+                                              <NavButton
+                                                  item={item}
+                                                  activeId={activeId}
+                                                  onOpen={onOpen}
+                                              />
                                               {item.status === "warning" ? (
                                                   <SidebarMenuBadge className="min-w-0 p-0">
                                                       <span className="size-2 rounded-full bg-warning" />
@@ -133,6 +157,17 @@ export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
                     </SidebarGroup>
                 ))}
             </SidebarContent>
+            <SidebarFooter>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <NavButton
+                            item={settingsItem}
+                            activeId={activeId}
+                            onOpen={onOpen}
+                        />
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
             <SidebarRail />
         </Sidebar>
     );
