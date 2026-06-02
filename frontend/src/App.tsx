@@ -1,7 +1,12 @@
 import Layout from "@/components/layout";
+import { StoreLoader } from "@/components/store-loader";
 
 function App() {
-    return <Layout />;
+    return (
+        <StoreLoader>
+            <Layout />
+        </StoreLoader>
+    );
 }
 
 export default App;

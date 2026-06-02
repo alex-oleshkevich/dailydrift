@@ -1,5 +1,4 @@
 import { ChevronsUpDown } from "lucide-react";
-import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
     DropdownMenu,
@@ -17,22 +16,16 @@ import {
 import { useSpacesStore } from "@/stores/spaces";
 
 export function SpaceSwitcher() {
-    const { spaces, activeSpaceId, loading, load, setActiveSpace } =
-        useSpacesStore(
-            useShallow((state) => ({
-                spaces: state.spaces,
-                activeSpaceId: state.activeSpaceId,
-                loading: state.loading,
-                load: state.load,
-                setActiveSpace: state.setActiveSpace,
-            })),
-        );
+    const { spaces, activeSpaceId, loading, setActiveSpace } = useSpacesStore(
+        useShallow((state) => ({
+            spaces: state.spaces,
+            activeSpaceId: state.activeSpaceId,
+            loading: state.loading,
+            setActiveSpace: state.setActiveSpace,
+        })),
+    );
     const activeSpace = spaces.find((space) => space.id === activeSpaceId);
     const label = activeSpace?.name ?? (loading ? "Loading…" : "Select space");
-
-    useEffect(() => {
-        load();
-    }, [load]);
 
     return (
         <SidebarMenu>

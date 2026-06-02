@@ -7,7 +7,6 @@ import {
     Target,
 } from "lucide-react";
 import type * as React from "react";
-import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { SpaceSwitcher } from "@/components/space-switcher";
@@ -59,21 +58,14 @@ export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
         useShallow((state) => ({
             items: state.items,
             loading: state.loading,
-            load: state.load,
         })),
     );
     const chats = useChatsStore(
         useShallow((state) => ({
             items: state.items,
             loading: state.loading,
-            load: state.load,
         })),
     );
-
-    useEffect(() => {
-        focus.load();
-        chats.load();
-    }, [focus.load, chats.load]);
 
     const navGroups: NavGroup[] = [
         { items: mainItems },
