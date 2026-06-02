@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"os"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -12,6 +13,12 @@ import (
 var assets embed.FS
 
 func main() {
+	// WebKitGTK 2.40+ (the webkit2_41 build) defaults to a DMABUF renderer that
+	// renders text without antialiasing on many Linux GPU/driver combos, leaving
+	// fonts jagged. Disabling it restores smooth glyphs. Must be set before the
+	// webview is created; ignored on non-Linux platforms.
+	os.Setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+
 	// Create an instance of the app structure
 	app := NewApp()
 
