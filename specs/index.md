@@ -38,8 +38,8 @@ Specs for every feature with overview, purpose, description, implementation deta
 | Spec | Purpose | Load this when | Status |
 |------|---------|----------------|--------|
 | [data-model](data-model.md) | Canonical conceptual entity-relationship model for the narrative layer (Space, Storyline, Situation, Insight, Evidence, Narrative); the Situation↔Insight boundary; the capture-and-retrieve Insight | Checking how entities relate / IDs, or before changing any narrative-layer primitive | ✅ Approved |
-| [insights](insights.md) | Insight capture-and-retrieve mechanics: capture path, `kind` catalog, embedding/semantic recall, dedup/reinforcement, lifecycle, surfacing & anti-spam | Working on Insight capture, recall, or surfacing | 📝 In Review |
-| [storylines](storylines.md) | Storyline mechanics: scarcity, candidate→active promotion, Status lifecycle, Momentum, merging, the Storyline summary, surfacing | Working on Storyline creation, lifecycle, or surfacing | 📝 In Review |
+| [insights](insights.md) | Insight capture-and-retrieve mechanics: capture path, `kind` catalog, embedding/semantic recall, dedup/reinforcement, lifecycle, surfacing & anti-spam | Working on Insight capture, recall, or surfacing | ✅ Approved |
+| [storylines](storylines.md) | Storyline mechanics: scarcity, creation (enough Evidence on one topic, any source), Status lifecycle, Momentum, merging, the Storyline summary, surfacing | Working on Storyline creation, lifecycle, or surfacing | ✅ Approved |
 
 
 ## Untiered — unapproved backlog
@@ -93,3 +93,5 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 - **2026-06-03** — Drafted [data-model](data-model.md) (narrative-layer concept model + capture-and-retrieve Insight) and placed it in **Tier 3: Features** (📝 In Review). Set the [insights](insights.md) row to the capture-and-retrieve scope. Registered feature specs [storylines](storylines.md) and [situations](situations.md) in the backlog. Drafted [insights](insights.md) (capture-and-retrieve mechanics) into **Tier 3** (📝 In Review).
 - **2026-06-03** — [data-model](data-model.md) **approved** (v1.0).
 - **2026-06-03** — Drafted [storylines](storylines.md) (continuity-container mechanics) into **Tier 3** (📝 In Review).
+- **2026-06-03** — [insights](insights.md) **approved** (v1.0).
+- **2026-06-03** — [storylines](storylines.md) **approved** (v1.0); creation model = enough Evidence on one coherent topic, any source.

@@ -1,8 +1,8 @@
 # Insights
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.1   ·   **Last updated:** 2026-06-03
+> **Version:** 1.0   ·   **Last updated:** 2026-06-03
 >
 > **Purpose:** The Insight feature end-to-end — what an Insight is, how the System captures one, how it is embedded and recalled by semantic relevance, and how it is deduped, expired, and surfaced without becoming noise.
 >
@@ -249,4 +249,5 @@ A Northwind pricing-page watcher and two competitor watchers distill Evidence th
 
 ## 13. Changelog
 
-- **2026-06-03 — v0.1** — Initial draft. Capture-and-retrieve Insight: atomic single-`kind` note (REQ-INS-01), the `kind` catalog (REQ-INS-02), Always/liberal capture (REQ-INS-03…-05), embedding + semantic recall with a relevance threshold (REQ-INS-06…-08), dedup/reinforcement (REQ-INS-09), lifecycle and per-`kind` expiry (REQ-INS-10/11), capture-cheap/surface-selective with channels and escalation-to-Situation (REQ-INS-12…-14), and Space scope with downstream-only promotion (REQ-INS-15). In Review.
+- **2026-06-03 — v0.1** — Initial draft. Capture-and-retrieve Insight: atomic single-`kind` note (REQ-INS-01), the `kind` catalog (REQ-INS-02), Always/liberal capture (REQ-INS-03…-05), embedding + semantic recall with a relevance threshold (REQ-INS-06…-08), dedup/reinforcement (REQ-INS-09), lifecycle and per-`kind` expiry (REQ-INS-10/11), capture-cheap/surface-selective with channels and escalation-to-Situation (REQ-INS-12…-14), and Space scope with downstream-only promotion (REQ-INS-15).
+- **2026-06-03 — v1.0** — Approved.
