@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { ListTodo, MessageSquare } from "lucide-react";
+import { useRef, useState } from "react";
 
 import { AppSidebar, type NavLeaf } from "@/components/app-sidebar";
 import { CommandPalette } from "@/components/command-palette";
 import { type TabItem, TabView } from "@/components/tab-view";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 
 interface TabState {
     tabs: TabItem[];
@@ -12,6 +14,7 @@ interface TabState {
 
 export default function Layout() {
     const [state, setState] = useState<TabState>({ tabs: [] });
+    const newCounter = useRef(0);
 
     const openTab = (item: NavLeaf) => {
         setState((prev) => ({
@@ -41,6 +44,16 @@ export default function Layout() {
         setState((prev) => ({ ...prev, activeId: id }));
     };
 
+    const openNew = (kind: "chat" | "task") => {
+        newCounter.current += 1;
+        const count = newCounter.current;
+        openTab({
+            id: `${kind}-new-${count}`,
+            title: kind === "chat" ? `New chat ${count}` : `New task ${count}`,
+            icon: kind === "chat" ? MessageSquare : ListTodo,
+        });
+    };
+
     return (
         <SidebarProvider>
             <AppSidebar activeId={state.activeId} onOpen={openTab} />
@@ -50,9 +63,11 @@ export default function Layout() {
                     activeId={state.activeId}
                     onActiveChange={setActive}
                     onClose={closeTab}
+                    onNew={openNew}
                 />
             </SidebarInset>
             <CommandPalette />
+            <Toaster />
         </SidebarProvider>
     );
 }

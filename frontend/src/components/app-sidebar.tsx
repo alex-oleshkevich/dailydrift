@@ -1,15 +1,17 @@
 import {
     Calendar,
     Home,
+    Inbox,
     type LucideIcon,
     MessageSquare,
     Radar,
     Settings,
-    Target,
+    Waypoints,
 } from "lucide-react";
 import type * as React from "react";
 import { useShallow } from "zustand/react/shallow";
 
+import { FileTreeNav } from "@/components/file-tree-nav";
 import { SpaceSwitcher } from "@/components/space-switcher";
 import {
     Sidebar,
@@ -27,7 +29,8 @@ import {
     SidebarRail,
 } from "@/components/ui/sidebar";
 import { useChatsStore } from "@/stores/chats";
-import { useFocusStore } from "@/stores/focus";
+import { useFilesStore } from "@/stores/files";
+import { useStorylinesStore } from "@/stores/storylines";
 
 export interface NavLeaf {
     id: string;
@@ -45,6 +48,7 @@ interface NavGroup {
 // Static app navigation. Focus and Chats come from their stores (API-backed later).
 const mainItems: NavLeaf[] = [
     { id: "home", title: "Home", icon: Home },
+    { id: "inbox", title: "Inbox", icon: Inbox },
     { id: "calendar", title: "Calendar", icon: Calendar },
 ];
 
@@ -83,7 +87,7 @@ function NavButton({
 }
 
 export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
-    const focus = useFocusStore(
+    const storylines = useStorylinesStore(
         useShallow((state) => ({
             items: state.items,
             loading: state.loading,
@@ -95,13 +99,22 @@ export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
             loading: state.loading,
         })),
     );
+    const files = useFilesStore(
+        useShallow((state) => ({
+            items: state.items,
+            loading: state.loading,
+        })),
+    );
 
     const navGroups: NavGroup[] = [
         { items: mainItems },
         {
-            label: "Focus",
-            loading: focus.loading,
-            items: focus.items.map((item) => ({ ...item, icon: Target })),
+            label: "Storylines",
+            loading: storylines.loading,
+            items: storylines.items.map((item) => ({
+                ...item,
+                icon: Waypoints,
+            })),
         },
         {
             label: "Chats",
@@ -156,6 +169,22 @@ export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
                         </SidebarGroupContent>
                     </SidebarGroup>
                 ))}
+                <SidebarGroup>
+                    <SidebarGroupLabel>Files</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        {files.loading && files.items.length === 0 ? (
+                            <SidebarMenu>
+                                {SKELETON_KEYS.map((key) => (
+                                    <SidebarMenuItem key={key}>
+                                        <SidebarMenuSkeleton showIcon />
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        ) : (
+                            <FileTreeNav trees={files.items} />
+                        )}
+                    </SidebarGroupContent>
+                </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
                 <SidebarMenu>

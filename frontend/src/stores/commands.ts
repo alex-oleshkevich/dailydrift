@@ -22,12 +22,18 @@ export interface ContentResult {
 }
 
 interface CommandPaletteState {
+    open: boolean;
+    setOpen: (open: boolean) => void;
+    toggle: () => void;
     commands: PaletteCommand[];
     content: ContentResult[];
 }
 
 // Stub data. `content` becomes a real API-backed search later; `commands` stay local.
-export const useCommandPaletteStore = create<CommandPaletteState>()(() => ({
+export const useCommandPaletteStore = create<CommandPaletteState>()((set) => ({
+    open: false,
+    setOpen: (open) => set({ open }),
+    toggle: () => set((state) => ({ open: !state.open })),
     commands: [
         { id: "go-home", title: "Go to Home", icon: Home },
         { id: "go-calendar", title: "Go to Calendar", icon: Calendar },

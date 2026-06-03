@@ -3,6 +3,27 @@ import { create } from "zustand";
 export interface Space {
     id: string;
     name: string;
+    children?: Space[];
+}
+
+// Depth-first lookup across the (possibly nested) space tree.
+export function findSpace(
+    spaces: Space[],
+    id: string | null,
+): Space | undefined {
+    if (id === null) {
+        return undefined;
+    }
+    for (const space of spaces) {
+        if (space.id === id) {
+            return space;
+        }
+        const nested = space.children && findSpace(space.children, id);
+        if (nested) {
+            return nested;
+        }
+    }
+    return undefined;
 }
 
 interface SpacesState {
@@ -17,7 +38,14 @@ interface SpacesState {
 async function fetchSpaces(): Promise<Space[]> {
     return [
         { id: "personal", name: "Personal" },
-        { id: "investerra", name: "Investerra" },
+        {
+            id: "investerra",
+            name: "Investerra",
+            children: [
+                { id: "investerra-fund-i", name: "Fund I" },
+                { id: "investerra-ops", name: "Ops" },
+            ],
+        },
         { id: "research", name: "Research" },
     ];
 }

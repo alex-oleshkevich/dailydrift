@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -14,9 +14,11 @@ import {
 import { useCommandPaletteStore } from "@/stores/commands";
 
 export function CommandPalette() {
-    const [open, setOpen] = useState(false);
-    const { commands, content } = useCommandPaletteStore(
+    const { open, setOpen, toggle, commands, content } = useCommandPaletteStore(
         useShallow((state) => ({
+            open: state.open,
+            setOpen: state.setOpen,
+            toggle: state.toggle,
             commands: state.commands,
             content: state.content,
         })),
@@ -26,12 +28,12 @@ export function CommandPalette() {
         const onKeyDown = (event: KeyboardEvent) => {
             if ((event.ctrlKey || event.metaKey) && event.key === "p") {
                 event.preventDefault();
-                setOpen((prev) => !prev);
+                toggle();
             }
         };
         document.addEventListener("keydown", onKeyDown);
         return () => document.removeEventListener("keydown", onKeyDown);
-    }, []);
+    }, [toggle]);
 
     // Stub: selecting an item just closes the palette for now.
     const handleSelect = () => {
