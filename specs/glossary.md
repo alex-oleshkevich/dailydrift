@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-05-29
+> **Version:** 1.1   ·   **Last updated:** 2026-06-03
 >
 > **Purpose:** The canonical glossary — the shared vocabulary every other spec uses. Each term gets one authoritative definition, a cast example, and how it relates to the others; full mechanics live in each term's dedicated spec.
 >
@@ -41,13 +41,13 @@ Each entry: **Term** (`id-prefix`) — definition. *Example:* … · *Relates to
 - **Space** (`space_`) — the **only primitive** and universal organizing container: a node in one hierarchy, with **downstream inheritance** (children inherit a parent's config/context). Everything else lives inside a Space. *Example:* `Business/Framework`. *→ [spaces](spaces.md).* (Constitution P11)
 
 - **Storyline** (`story_`) — a long-running **narrative thread** of related work and events inside a Space; carries Momentum, Status, Evidence, and related Entities. *Example:* the *Framework UI direction* Storyline, looping for months. *Relates to:* draws on Evidence; spawns Insights; summarized in the Narrative.
-- **Situation** (`sit_`) — an **operational state that needs awareness now**; carries an Attention score, Status, Evidence, and suggested actions; usually tied to a Storyline. *Example:* *Stripe automation blocked by expired login.* *Relates to:* surfaced in Home → Attention-Needed ([home-and-briefings](home-and-briefings.md)).
+- **Situation** (`sit_`) — a persistent **operational condition that needs action now**; carries an Attention score, Status, Evidence, and suggested actions; usually tied to a Storyline. A Situation is **acted upon** and lives until resolved — distinct from an Insight, which is *recalled* (see [data-model](data-model.md) §5.4). *Example:* *Stripe automation blocked by expired login.* *Relates to:* surfaced in Home → Attention-Needed ([home-and-briefings](home-and-briefings.md)).
 - **Momentum** — how a Storyline is **moving**: *advancing · steady · stalled · looping.* Drives "what's progressing vs stuck." *Example:* the Framework UI direction's Momentum = *looping* (revisited four times, no RFC).
 - **Attention score** — how much a Situation **needs the user now**; ranks the briefing. *Example:* an overdue reply to Talia scores higher each day it slips.
 - **Status** — the lifecycle state of a Storyline or Situation (*active · blocked · resolved · dormant*).
 - **Signal** (`sig_`) — a **meaningful change entering the System** from a source: a message, file change, web/page change, browser activity, a scheduled watcher run, or an external connector. The raw input unit. *Example:* the competitor's release-notes page changed overnight. *→ [signals](signals.md).*
 - **Evidence** (`ev_`) — a **normalized, attributable fact** distilled from one or more Signals, carrying provenance (where it came from, when). The citable substance behind everything. *Example:* "Northwind raised the Pro tier 18% on 2026-05-28 (source: pricing page diff)."
-- **Insight** (`ins_`) — a **synthesized observation** that is evidence-backed and actionable. Categories: *contradiction · opportunity · risk · stale work · dependency · anomaly · repetition · synthesis.* *Example:* a *repetition* Insight: "You've revisited the Framework routing decision four times without an RFC." *→ [insights](insights.md).*
+- **Insight** (`ins_`) — a **lightweight, evidence-backed captured note** of non-obvious discovered info; a short message **recalled by semantic relevance**, not pushed. One Insight = one note of one *kind*: *observation · connection · risk · opportunity · prediction · context.* The intelligence is in **retrieval**, not in heavy write-time scoring. *Example:* a *connection* Insight: "Your distributed-consensus research and the Framework routing problem share the same ordering guarantee." *→ [insights](insights.md), [data-model](data-model.md).*
 - **Narrative** — the **editable per-Space summary**: current state, active Storylines, risks. It is both human-editable memory *and* the System's context-compression layer. One Narrative per Space. *Example:* the `Framework` Space's Narrative opens with "Converging on component model; routing still unresolved." *→ [memory](memory.md).*
 - **Memory** (`mem_`) — **durable distilled knowledge** the System retains and retrieves (facts, preferences, summaries), subject to retention/decay. *Example:* it remembers you prefer terse briefings. *→ [memory](memory.md).*
 - **Entity** (`ent_`) — a **real-world thing** tracked in a knowledge graph (person, company, product, repo), linking Storylines and Evidence. *Example:* `Stripe`, `Talia Brandt`, the `framework` repo. *→ [entities](entities.md).*
@@ -99,13 +99,13 @@ flowchart LR
 ## 8. Examples & Use Cases
 
 ### Example A — a change becomes understanding (narrative)
-A periodic watcher on the competitor's release-notes page detects a change → a **Signal**. The System normalizes it into **Evidence** ("competitor shipped feature X, 2026-05-28"). That Evidence attaches to the *Framework UI direction* **Storyline** and, combined with three prior revisits, produces a *repetition* **Insight** ("you keep circling routing without deciding"). The `Framework` Space's **Narrative** is updated to reflect the unresolved decision, and its **Momentum** stays *looping*.
+A periodic watcher on the competitor's release-notes page detects a change → a **Signal**. The System normalizes it into **Evidence** ("competitor shipped feature X, 2026-05-28"). That Evidence attaches to the *Framework UI direction* **Storyline** and, combined with three prior revisits, produces an *observation* **Insight** ("you've revisited routing four times without an RFC") — recallable later when the topic resurfaces. The `Framework` Space's **Narrative** is updated to reflect the unresolved decision, and its **Momentum** stays *looping*.
 
 ## 9. Open Questions & Decisions
 
 - **OQ-CON-1** — Is there exactly one **Narrative** per Space, or can large Spaces have sub-Narratives? (Resolve in [memory](memory.md)/[spaces](spaces.md).)
 - **OQ-CON-2** — Does **Evidence** dedupe/merge across multiple Signals, and where does that live? (Resolve in [signals](signals.md)/[memory](memory.md).)
-- **OQ-CON-3** — Is **Status** a shared enum across Storyline and Situation, or per-type? (Resolve in [data-model](data-model.md).)
+- **OQ-CON-3 (resolved)** — **Status is per-type, drawn from a shared vocabulary**; **Momentum is orthogonal** to Status (carries the "growing/stalled" nuance). See [data-model](data-model.md) §5.6.
 
 ## 10. Review & Acceptance Checklist
 
@@ -128,3 +128,4 @@ A periodic watcher on the competitor's release-notes page detects a change → a
 - **2026-05-29 — v0.2** — Renamed `concepts` → `glossary`. Flattened §5 into a single vocabulary list (removed the thematic subsections 5.1–5.6); moved the pipeline invariant (REQ-CON-01/02) to the head of §5.
 - **2026-05-29 — v0.3** — Removed terms **Person** (sharing deferred), **Open question**, and **Promise** (with its Example B and the `promise-tracking` Insight category — a Promise is memory-like, not a first-class type).
 - **2026-05-29 — v1.0** — Removed **Monitor** (folded into **Periodic Task** — a Monitor is a recurring watcher task) and **Note**/**Bookmark**. **Approved.**
+- **2026-06-03 — v1.1** — Insight defined as a lightweight, evidence-backed *captured note* recalled by semantic relevance (`kind`: observation · connection · risk · opportunity · prediction · context). Situation definition carries the *acted-upon vs recalled* boundary. Status fixed as per-type from a shared vocabulary, with Momentum orthogonal (OQ-CON-3). Concept model: [data-model](data-model.md).

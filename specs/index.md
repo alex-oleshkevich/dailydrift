@@ -37,6 +37,9 @@ Specs for every feature with overview, purpose, description, implementation deta
 
 | Spec | Purpose | Load this when | Status |
 |------|---------|----------------|--------|
+| [data-model](data-model.md) | Canonical conceptual entity-relationship model for the narrative layer (Space, Storyline, Situation, Insight, Evidence, Narrative); the Situation↔Insight boundary; the capture-and-retrieve Insight | Checking how entities relate / IDs, or before changing any narrative-layer primitive | ✅ Approved |
+| [insights](insights.md) | Insight capture-and-retrieve mechanics: capture path, `kind` catalog, embedding/semantic recall, dedup/reinforcement, lifecycle, surfacing & anti-spam | Working on Insight capture, recall, or surfacing | 📝 In Review |
+| [storylines](storylines.md) | Storyline mechanics: scarcity, candidate→active promotion, Status lifecycle, Momentum, merging, the Storyline summary, surfacing | Working on Storyline creation, lifecycle, or surfacing | 📝 In Review |
 
 
 ## Untiered — unapproved backlog
@@ -46,7 +49,6 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 | Spec | Purpose | Load this when | Status |
 |------|---------|----------------|--------|
 | [spaces](spaces.md) | Space hierarchy + downstream inheritance (precedence, overrides, isolation) | Working on hierarchy, scoping, or inheritance | ⬜ Planned |
-| [data-model](data-model.md) | Canonical conceptual entity-relationship map | Checking how entities relate / IDs | ⬜ Planned |
 | [ui-shell](ui-shell.md) | Global app shell: nav, command palette, search, layout, keyboard | Building navigation or overall layout | ⬜ Planned |
 | [settings](settings.md) | Global + per-space configuration & preferences | Working on settings / configuration | ⬜ Planned |
 | [home-and-briefings](home-and-briefings.md) | Operational-briefing homepage + Digest system | Building the home surface or digests | ⬜ Planned |
@@ -55,7 +57,7 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 | [calendar](calendar.md) | Calendar of tasks, periodic tasks, watcher runs, deadlines, events | Building the calendar surface | ⬜ Planned |
 | [memory](memory.md) | Capture, distillation, retention/decay, retrieval, semantic search | Working on memory/recall | ⬜ Planned |
 | [entities](entities.md) | Entity & relationship knowledge graph | Working on entities/relationships | ⬜ Planned |
-| [insights](insights.md) | Insight detection & generation; detector catalog; anti-spam | Working on insight generation | ⬜ Planned |
+| [situations](situations.md) | Situation as persistent operational condition: categories, Attention score, Status lifecycle, suggested actions, detection, surfacing | Working on Situations | ⬜ Planned |
 | [agents](agents.md) | Agent philosophy, types, personality-through-continuity | Working on agents | ⬜ Planned |
 | [agent-orchestration](agent-orchestration.md) | How agents coordinate: delegation, hand-offs, approval routing | Working on multi-agent coordination | ⬜ Planned |
 | [tools](tools.md) | Tool layer: tool model, tool-call lifecycle, secure invocation | Working on tools or tool calls | ⬜ Planned |
@@ -88,3 +90,6 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 - **2026-05-29** — **Untiered all unapproved specs**: only ✅ Approved specs stay placed (`constitution`, `overview`); the rest moved to a flat untiered backlog pending the tiering rework (Product / Functional / Technical bands under discussion). Fixed stale facts: `local-first` → self-hosted; dropped `Wails` from the `app-architecture`/`stack` rows (architecture decided — Go server + native clients).
 - **2026-05-29** — Drafted [how-it-works](how-it-works.md) (product-altitude feature tour) and moved it from the backlog into **Tier 2: Product overview** (📝 In Review).
 - **2026-05-29** — Converted all live spec links from `[[wiki-style]]` to standard Markdown `[name](name.md)` (constitution §6.3 updated); changelog references kept verbatim as historical record.
+- **2026-06-03** — Drafted [data-model](data-model.md) (narrative-layer concept model + capture-and-retrieve Insight) and placed it in **Tier 3: Features** (📝 In Review). Set the [insights](insights.md) row to the capture-and-retrieve scope. Registered feature specs [storylines](storylines.md) and [situations](situations.md) in the backlog. Drafted [insights](insights.md) (capture-and-retrieve mechanics) into **Tier 3** (📝 In Review).
+- **2026-06-03** — [data-model](data-model.md) **approved** (v1.0).
+- **2026-06-03** — Drafted [storylines](storylines.md) (continuity-container mechanics) into **Tier 3** (📝 In Review).
