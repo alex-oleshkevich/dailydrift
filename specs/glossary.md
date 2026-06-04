@@ -2,13 +2,13 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.2   ·   **Last updated:** 2026-06-04
+> **Version:** 1.3   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The canonical glossary — the shared vocabulary every other spec uses. Each term gets one authoritative definition, a cast example, and how it relates to the others; full mechanics live in each term's dedicated spec.
 >
 > **Load this when:** A domain term is unclear, or you're about to define/use a term in another spec (check it matches here first).
 >
-> **Depends on:** [constitution](constitution.md)   ·   **Related:** [spaces](spaces.md), [signals](signals.md), [inbox](inbox.md), [evidence](evidence.md), [insights](insights.md), [memory](memory.md), [entities](entities.md), [data-model](data-model.md)
+> **Depends on:** [constitution](constitution.md)   ·   **Related:** [spaces](spaces.md), [signals](signals.md), [inbox](inbox.md), [evidence](evidence.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [entities](entities.md), [data-model](data-model.md)
 
 > Requirement tag: **CON**
 
@@ -49,7 +49,7 @@ Each entry: **Term** (`id-prefix`) — definition. *Example:* … · *Relates to
 - **Inbox** — the **ingestion staging buffer** where Signals are batched, deduped, noise-filtered, scored, and resolved before surviving ones are distilled into Evidence. Internal infrastructure, not a user surface. *Example:* twelve rapid saves of `components.md` are batched into one analysis. *→ [inbox](inbox.md).*
 - **Evidence** (`ev_`) — a **typed, normalized, attributable, immutable fact** distilled from one or more Signals, carrying provenance (where it came from, when). **Append-only** — never edited in place — and the citable substance behind everything (P3). Each item carries one `type`: *observation · statement · decision · promise · change · relationship · activity.* *Example:* "Northwind raised the Pro tier 18% on 2026-05-28 (source: pricing page diff)." *→ [evidence](evidence.md), [data-model](data-model.md).*
 - **Insight** (`ins_`) — a **lightweight, evidence-backed captured note** of non-obvious discovered info; a short message **recalled by semantic relevance**, not pushed. One Insight = one note of one *kind*: *observation · connection · risk · opportunity · prediction · context.* The intelligence is in **retrieval**, not in heavy write-time scoring. *Example:* a *connection* Insight: "Your distributed-consensus research and the Framework routing problem share the same ordering guarantee." *→ [insights](insights.md), [data-model](data-model.md).*
-- **Narrative** — the **editable per-Space summary**: current state, active Storylines, risks. It is both human-editable memory *and* the System's context-compression layer. One Narrative per Space. *Example:* the `Framework` Space's Narrative opens with "Converging on component model; routing still unresolved." *→ [memory](memory.md).*
+- **Narrative** (`nar_`) — the **editable synthesis** at **Space or Storyline** scope: current state, direction, momentum, friction, open questions, next step. Both human-editable memory *and* the System's context-compression layer. At most one per Space and one per Storyline (a Storyline's Narrative is its `summary`). *Example:* the `Framework` Space's Narrative opens with "Converging on component model; routing still unresolved." *→ [narrative](narrative.md).*
 - **Memory** (`mem_`) — **durable distilled knowledge** the System retains and retrieves (facts, preferences, summaries), subject to retention/decay. *Example:* it remembers you prefer terse briefings. *→ [memory](memory.md).*
 - **Entity** (`ent_`) — a **real-world thing** tracked in a knowledge graph (person, company, product, repo), linking Storylines and Evidence. *Example:* `Stripe`, `Talia Brandt`, the `framework` repo. *→ [entities](entities.md).*
 
@@ -88,7 +88,7 @@ flowchart LR
 |------|-------|----------|
 | Container | Space | [spaces](spaces.md) |
 | Narrative | Storyline, Situation, Momentum, Attention score, Status | [glossary](glossary.md) (here) + surfaced in [home-and-briefings](home-and-briefings.md) |
-| Pipeline | Signal, Inbox, Evidence, Insight, Narrative, Memory, Entity | [signals](signals.md), [inbox](inbox.md), [evidence](evidence.md), [insights](insights.md), [memory](memory.md), [entities](entities.md) |
+| Pipeline | Signal, Inbox, Evidence, Insight, Narrative, Memory, Entity | [signals](signals.md), [inbox](inbox.md), [evidence](evidence.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [entities](entities.md) |
 | Work | Task, Periodic Task | [tasks](tasks.md), [periodic-tasks](periodic-tasks.md) |
 | Capability | Agent, Skill, Tool | [agents](agents.md), [skills](skills.md), [tools](tools.md) |
 | Surfaces | Conversation, Message, Digest | [conversation](conversation.md), [home-and-briefings](home-and-briefings.md) |
@@ -104,7 +104,7 @@ A periodic watcher on the competitor's release-notes page detects a change → a
 
 ## 9. Open Questions & Decisions
 
-- **OQ-CON-1** — Is there exactly one **Narrative** per Space, or can large Spaces have sub-Narratives? (Resolve in [memory](memory.md)/[spaces](spaces.md).)
+- **OQ-CON-1 (partly resolved)** — A **Narrative** exists at **Space and Storyline** scope (at most one each); a Storyline's Narrative is its `summary` ([narrative](narrative.md) REQ-NAR-02, [data-model](data-model.md) REQ-DM-16). Whether very large Spaces also need **sub-Space** Narratives below the Space level remains open ([narrative](narrative.md) OQ-NAR-3, [spaces](spaces.md)).
 - **OQ-CON-2 (resolved)** — **Evidence** dedupes/merges across Signals in **two layers**: signal-level **fingerprint dedup** ([signals](signals.md) REQ-SIG-06) collapses identical inputs, and Evidence-level **reinforcement** ([evidence](evidence.md) REQ-EV-10) consolidates corroborating facts. The exact reinforce-vs-new-fact boundary is tuned in those specs (OQ-SIG-3 / OQ-EV-3).
 - **OQ-CON-3 (resolved)** — **Status is per-type, drawn from a shared vocabulary**; **Momentum is orthogonal** to Status (carries the "growing/stalled" nuance). See [data-model](data-model.md) §5.6.
 
@@ -131,3 +131,4 @@ A periodic watcher on the competitor's release-notes page detects a change → a
 - **2026-05-29 — v1.0** — Removed **Monitor** (folded into **Periodic Task** — a Monitor is a recurring watcher task) and **Note**/**Bookmark**. **Approved.**
 - **2026-06-03 — v1.1** — Insight defined as a lightweight, evidence-backed *captured note* recalled by semantic relevance (`kind`: observation · connection · risk · opportunity · prediction · context). Situation definition carries the *acted-upon vs recalled* boundary. Status fixed as per-type from a shared vocabulary, with Momentum orthogonal (OQ-CON-3). Concept model: [data-model](data-model.md).
 - **2026-06-04 — v1.2** — Evidence redefined as **typed, immutable, append-only** (one `type` of observation/statement/decision/promise/change/relationship/activity), pointing to the new [evidence](evidence.md) spec. Added the **Inbox** term (ingestion staging buffer → [inbox](inbox.md)) and updated the pipeline ownership row. **OQ-CON-2 resolved** — two-layer dedup (signal fingerprint + Evidence reinforcement).
+- **2026-06-04 — v1.3** — Narrative redefined as the **editable synthesis at Space or Storyline scope** (`nar_`), pointing to the new [narrative](narrative.md) spec; the Storyline's Narrative is its `summary`. **OQ-CON-1 partly resolved** (sub-Space Narratives still open).

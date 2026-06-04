@@ -43,6 +43,8 @@ Specs for every feature with overview, purpose, description, implementation deta
 | [situations](situations.md) | Situation mechanics: category catalog, detection, Attention score, Status lifecycle, suggested actions, escalation from an Insight, surfacing | Working on Situation detection, scoring, or surfacing | ✅ Approved |
 | [signals](signals.md) | Signal mechanics: source catalog, normalization, fingerprint/dedup, two-axis scoring, lifecycle, ingestion API, distillation to Evidence | Working on ingestion, scoring, or how raw input becomes Evidence | 📝 In Review |
 | [evidence](evidence.md) | Evidence mechanics: the type catalog, immutability/append-only, creation from Signals, provenance, the evidence graph, explainability, visibility | Working on how facts are recorded, typed, linked, or cited | 📝 In Review |
+| [inbox](inbox.md) | Signal Inbox: the `InboxItem` state machine, the batch→dedup→noise→resolve→extract→propose→reduce→commit pipeline, the LLM extraction contract, processor tiers, retention | Working on the ingestion pipeline that turns Signals into Evidence | 📝 In Review |
+| [narrative](narrative.md) | Narrative mechanics: Space + Storyline scope, the section structure, Curator generation, update cadence, editability, Evidence-backing, surfacing as the briefing | Working on Narrative synthesis, generation, or surfacing | 📝 In Review |
 
 
 ## Untiered — unapproved backlog
@@ -64,8 +66,6 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 | [agent-orchestration](agent-orchestration.md) | How agents coordinate: delegation, hand-offs, approval routing | Working on multi-agent coordination | ⬜ Planned |
 | [tools](tools.md) | Tool layer: tool model, tool-call lifecycle, secure invocation | Working on tools or tool calls | ⬜ Planned |
 | [skills](skills.md) | Skills as packaged capabilities (bundles of tools) | Working on skills | ⬜ Planned |
-| [inbox](inbox.md) | Signal Inbox: staging buffer, batching windows, dedup/noise-filter, scoring thresholds, processor tiers (Fast/Batch/Curator), the `InboxItem` state machine, retention | Working on the ingestion pipeline / staging | ⬜ Planned *(raw draft parked)* |
-| [narrative](narrative.md) | The continuously maintained per-Space/Storyline synthesis: structure, generation, levels, quality tests. **Folds into [memory](memory.md)** (REQ-DM-16) when drafted | Working on Narrative synthesis / briefings | ⬜ Planned *(raw draft parked)* |
 | [tasks](tasks.md) | Task model/lifecycle, creation sources, task events, approvals | Working on tasks | ⬜ Planned |
 | [periodic-tasks](periodic-tasks.md) | Recurring/scheduled automation incl. source watchers (change detection); catch-up; distillation jobs | Working on scheduling or watching | ⬜ Planned |
 | [browser-automation](browser-automation.md) | Playwright workers, isolated browser profiles, approval-gating | Working on browser automation | ⬜ Planned |
@@ -92,6 +92,7 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 - **2026-05-29** — Renamed `concepts` → [[glossary]] and flattened its §5 vocabulary (removed thematic subsections). Retargeted all `[[concepts]]` links.
 - **2026-05-29** — **Untiered all unapproved specs**: only ✅ Approved specs stay placed (`constitution`, `overview`); the rest moved to a flat untiered backlog pending the tiering rework (Product / Functional / Technical bands under discussion). Fixed stale facts: `local-first` → self-hosted; dropped `Wails` from the `app-architecture`/`stack` rows (architecture decided — Go server + native clients).
 - **2026-05-29** — Drafted [how-it-works](how-it-works.md) (product-altitude feature tour) and moved it from the backlog into **Tier 2: Product overview** (📝 In Review).
+- **2026-06-04** — Approved [situations](situations.md). Drafted and moved into **Tier 3** (📝 In Review): [signals](signals.md), [evidence](evidence.md), [inbox](inbox.md), [narrative](narrative.md). Extended the canonical model: Evidence typed/append-only ([data-model](data-model.md) v1.2, [glossary](glossary.md) v1.3) and Narrative at Space+Storyline scope ([storylines](storylines.md) v1.1). Created **stub files** (⬜ Planned, with intended-scope notes) for all remaining backlog specs so links resolve and intent is captured.
 - **2026-05-29** — Converted all live spec links from `[[wiki-style]]` to standard Markdown `[name](name.md)` (constitution §6.3 updated); changelog references kept verbatim as historical record.
 - **2026-06-03** — Drafted [data-model](data-model.md) (narrative-layer concept model + capture-and-retrieve Insight) and placed it in **Tier 3: Features** (📝 In Review). Set the [insights](insights.md) row to the capture-and-retrieve scope. Registered feature specs [storylines](storylines.md) and [situations](situations.md) in the backlog. Drafted [insights](insights.md) (capture-and-retrieve mechanics) into **Tier 3** (📝 In Review).
 - **2026-06-03** — [data-model](data-model.md) **approved** (v1.0).

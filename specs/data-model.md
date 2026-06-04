@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.1   ·   **Last updated:** 2026-06-04
+> **Version:** 1.2   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The canonical conceptual entity-relationship model for the System — how the narrative-layer primitives (Space, Storyline, Situation, Insight, Evidence, Narrative) relate, what each owns, and how they are identified. It fixes the **Situation ↔ Insight boundary** and the **capture-and-retrieve Insight**.
 >
@@ -63,7 +63,7 @@ Canonical definitions live in [glossary](glossary.md); this spec uses them and r
 | Situation | `sit_` | [situations](situations.md) | **modeled** |
 | Insight | `ins_` | [insights](insights.md) | **modeled** |
 | Evidence | `ev_` | [evidence](evidence.md) | **modeled** |
-| Narrative | — | [memory](memory.md) | **modeled** (one per Space; not separately ID'd here) |
+| Narrative | `nar_` | [narrative](narrative.md) | **modeled** (Space or Storyline scope) |
 | Signal | `sig_` | [signals](signals.md) | upstream (relationship only) |
 | Entity (graph) | `ent_` | [entities](entities.md) | cross-link (relationship only) |
 | Task | `task_` | [tasks](tasks.md) | relationship only |
@@ -149,7 +149,7 @@ The Insight follows a **capture-and-retrieve** model: capture is cheap and liber
 
 ### 5.7 Narrative as the synthesis layer
 
-> **REQ-DM-16.** There is **exactly one editable Narrative per Space**. It synthesizes the Space's active Storylines, open Situations, and salient Insights into a human-readable, human-**editable** summary that doubles as the System's context-compression layer ([memory](memory.md)). It is *not* a feed and *not* a dump. (Whether very large Spaces may hold sub-Narratives is deferred — [glossary](glossary.md) OQ-CON-1.)
+> **REQ-DM-16.** A **Narrative** (`nar_`) is the editable synthesis at **Space** or **Storyline** scope: **at most one per Space** and **at most one per Storyline**. The **Space** Narrative synthesizes the Space's active Storylines, open Situations, and salient Insights; the **Storyline** Narrative is that Storyline's running `summary` ([storylines](storylines.md) REQ-STORY-08), given structure. A Narrative is human-readable and human-**editable**, and doubles as the System's context-compression layer ([narrative](narrative.md)). It is *not* a feed and *not* a dump. (A "global" view is the root Space's Narrative; whether very large Spaces need sub-Space Narratives below the Space level remains open — [glossary](glossary.md) OQ-CON-1, [narrative](narrative.md) OQ-NAR-3.)
 
 ### 5.8 The Evidence (typed and append-only)
 
@@ -295,9 +295,22 @@ interface Evidence {          // immutable, append-only
   captured_at: Date;
 }
 
-interface Narrative {         // one per Space; editable
-  space_id: string;
-  body: string;               // synthesized + human-edited
+interface Narrative {         // editable synthesis; scope = Space or Storyline (catalog/shape owned by narrative.md)
+  id: string;                 // nar_
+  scope: "space" | "storyline";
+  scope_id: string;           // space_ or story_
+  current_state: string;
+  direction: string;
+  momentum: string;           // prose; canonical Momentum enum stays on the Storyline
+  friction: string;
+  open_questions: string[];
+  next_step: string;
+  body: string;               // rendered Narrative Markdown — synthesized + human-edited
+  evidence_ids: string[];     // provenance (P3)
+  situation_ids: string[];
+  insight_ids: string[];
+  confidence: number;
+  generated_at: Date;
   updated_at: Date;
 }
 ```
@@ -342,7 +355,7 @@ A watcher on Northwind Cloud's pricing page and two competitor pages distills **
 - [constitution](constitution.md) — ID/capitalization rules (§6.2), the Always/Ask-first/Never table (§5), the cast (§7).
 - [glossary](glossary.md) — canonical definitions; this spec specifies the Situation, Insight, and Evidence relationships in depth.
 - [storylines](storylines.md) / [situations](situations.md) / [insights](insights.md) — the feature specs that own each primitive's mechanics.
-- [signals](signals.md) — Signal ingestion → Evidence. [evidence](evidence.md) — the Evidence type catalog, immutability, and graph mechanics. [memory](memory.md) — Narrative + semantic recall. [entities](entities.md) — the Entity graph. [spaces](spaces.md) — scope, inheritance, isolation.
+- [signals](signals.md) — Signal ingestion → Evidence. [evidence](evidence.md) — the Evidence type catalog, immutability, and graph mechanics. [narrative](narrative.md) — the Narrative synthesis (Space/Storyline scope). [memory](memory.md) — capture, retention, and semantic recall. [entities](entities.md) — the Entity graph. [spaces](spaces.md) — scope, inheritance, isolation.
 - [app-architecture](app-architecture.md) — the concrete ID format and persistence this model abstracts over.
 
 ## 13. Changelog
@@ -351,3 +364,4 @@ A watcher on Northwind Cloud's pricing page and two competitor pages distills **
 - **2026-06-03 — v1.0** — Approved.
 - **2026-06-03 — v1.0 (note)** — Clarified the Situation `category` examples to the action-shaped catalog owned by [situations](situations.md), disjoint from Insight `kind`s per REQ-DM-05 (editorial; the rule is unchanged).
 - **2026-06-04 — v1.1** — Extended Evidence to a **typed, append-only** fact: added the `type` enum and `storyline_ids`/`entity_ids`/`metadata` to the Evidence shape (§7), added §5.8 / REQ-DM-17, and moved Evidence ownership to the new [evidence](evidence.md) feature spec (with [signals](signals.md) owning the Signal). The conceptual pipeline (REQ-DM-04) is unchanged — the new [inbox](inbox.md) is the *mechanism* of the Signal → Evidence arrow, not a new node.
+- **2026-06-04 — v1.2** — Extended the **Narrative** to **Space *or* Storyline** scope (REQ-DM-16): gave it a `nar_` id and a structured, scoped shape (§7), moved ownership to the new [narrative](narrative.md) feature spec, and reframed the Storyline `summary` as the Storyline-scoped Narrative ([storylines](storylines.md) REQ-STORY-08). "Global" = the root Space's Narrative; sub-Space Narratives remain open (OQ-CON-1 / OQ-NAR-3).
