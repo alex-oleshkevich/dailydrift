@@ -40,6 +40,7 @@ Specs for every feature with overview, purpose, description, implementation deta
 | [data-model](data-model.md) | Canonical conceptual entity-relationship model for the narrative layer (Space, Storyline, Situation, Insight, Evidence, Narrative); the Situation↔Insight boundary; the capture-and-retrieve Insight | Checking how entities relate / IDs, or before changing any narrative-layer primitive | ✅ Approved |
 | [insights](insights.md) | Insight capture-and-retrieve mechanics: capture path, `kind` catalog, embedding/semantic recall, dedup/reinforcement, lifecycle, surfacing & anti-spam | Working on Insight capture, recall, or surfacing | ✅ Approved |
 | [storylines](storylines.md) | Storyline mechanics: scarcity, creation (enough Evidence on one topic, any source), Status lifecycle, Momentum, merging, the Storyline summary, surfacing | Working on Storyline creation, lifecycle, or surfacing | ✅ Approved |
+| [situations](situations.md) | Situation mechanics: category catalog, detection, Attention score, Status lifecycle, suggested actions, escalation from an Insight, surfacing | Working on Situation detection, scoring, or surfacing | ✅ Approved |
 
 
 ## Untiered — unapproved backlog
@@ -57,7 +58,6 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 | [calendar](calendar.md) | Calendar of tasks, periodic tasks, watcher runs, deadlines, events | Building the calendar surface | ⬜ Planned |
 | [memory](memory.md) | Capture, distillation, retention/decay, retrieval, semantic search | Working on memory/recall | ⬜ Planned |
 | [entities](entities.md) | Entity & relationship knowledge graph | Working on entities/relationships | ⬜ Planned |
-| [situations](situations.md) | Situation as persistent operational condition: categories, Attention score, Status lifecycle, suggested actions, detection, surfacing | Working on Situations | ⬜ Planned |
 | [agents](agents.md) | Agent philosophy, types, personality-through-continuity | Working on agents | ⬜ Planned |
 | [agent-orchestration](agent-orchestration.md) | How agents coordinate: delegation, hand-offs, approval routing | Working on multi-agent coordination | ⬜ Planned |
 | [tools](tools.md) | Tool layer: tool model, tool-call lifecycle, secure invocation | Working on tools or tool calls | ⬜ Planned |
@@ -95,3 +95,4 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 - **2026-06-03** — Drafted [storylines](storylines.md) (continuity-container mechanics) into **Tier 3** (📝 In Review).
 - **2026-06-03** — [insights](insights.md) **approved** (v1.0).
 - **2026-06-03** — [storylines](storylines.md) **approved** (v1.0); creation model = enough Evidence on one coherent topic, any source.
+- **2026-06-03** — Drafted [situations](situations.md) (operational-condition mechanics) into **Tier 3** (📝 In Review); aligned the data-model Situation `category` examples to its action-shaped catalog.

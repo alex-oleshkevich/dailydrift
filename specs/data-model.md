@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-03
+> **Version:** 1.1   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The canonical conceptual entity-relationship model for the System — how the narrative-layer primitives (Space, Storyline, Situation, Insight, Evidence, Narrative) relate, what each owns, and how they are identified. It fixes the **Situation ↔ Insight boundary** and the **capture-and-retrieve Insight**.
 >
@@ -62,7 +62,7 @@ Canonical definitions live in [glossary](glossary.md); this spec uses them and r
 | Storyline | `story_` | [storylines](storylines.md) | **modeled** |
 | Situation | `sit_` | [situations](situations.md) | **modeled** |
 | Insight | `ins_` | [insights](insights.md) | **modeled** |
-| Evidence | `ev_` | [signals](signals.md) | **modeled** |
+| Evidence | `ev_` | [evidence](evidence.md) | **modeled** |
 | Narrative | — | [memory](memory.md) | **modeled** (one per Space; not separately ID'd here) |
 | Signal | `sig_` | [signals](signals.md) | upstream (relationship only) |
 | Entity (graph) | `ent_` | [entities](entities.md) | cross-link (relationship only) |
@@ -150,6 +150,10 @@ The Insight follows a **capture-and-retrieve** model: capture is cheap and liber
 ### 5.7 Narrative as the synthesis layer
 
 > **REQ-DM-16.** There is **exactly one editable Narrative per Space**. It synthesizes the Space's active Storylines, open Situations, and salient Insights into a human-readable, human-**editable** summary that doubles as the System's context-compression layer ([memory](memory.md)). It is *not* a feed and *not* a dump. (Whether very large Spaces may hold sub-Narratives is deferred — [glossary](glossary.md) OQ-CON-1.)
+
+### 5.8 The Evidence (typed and append-only)
+
+> **REQ-DM-17.** Evidence (`ev_`) is a **typed, append-only fact**. Each item carries exactly one `type` from a small catalog (`observation · statement · decision · promise · change · relationship · activity`, owned by [evidence](evidence.md) REQ-EV-02), links the `signal_ids` it was distilled from, and **aggregates into** Storylines and links Entities — it may belong to several (REQ-DM-03). It is **never edited in place**: when reality moves, a **new** Evidence record is added, and interpretations built on it ([Insights](insights.md), [Situations](situations.md), the Narrative) change while the fact does not. The Evidence `type` vocabulary is **disjoint from** Situation `category`s and Insight `kind`s (REQ-DM-05) — those *interpret* Evidence; they are not Evidence. (Signal ingestion that produces Evidence is owned by [signals](signals.md); the type catalog and graph mechanics by [evidence](evidence.md).)
 
 ## 6. Visualizations
 
@@ -248,7 +252,7 @@ interface Situation {
   storyline_id?: string;
   title: string;
   summary: string;
-  category: string;           // catalog owned by situations.md (blocker, risk, decision, dependency, contradiction, watch, …)
+  category: string;           // catalog owned by situations.md (blocker, decision, dependency, overdue, contradiction, approval, watch)
   status: "active" | "blocked" | "resolved" | "snoozed" | "dismissed";
   attention_score: number;    // ranks the briefing
   evidence_ids: string[];     // required (P3)
@@ -276,12 +280,18 @@ interface Insight {           // a little captured message
   last_seen_at: Date;         // bumped on reinforcement
 }
 
-interface Evidence {          // immutable
+interface Evidence {          // immutable, append-only
   id: string;                 // ev_
   space_id: string;
-  signal_ids: string[];
+  type:                       // the kind of fact (catalog owned by evidence.md)
+    | "observation" | "statement" | "decision" | "promise"
+    | "change" | "relationship" | "activity";
+  signal_ids: string[];       // one or more Signals distilled into this fact
   claim: string;              // the normalized fact
-  provenance: string;         // where it came from
+  provenance: string;         // where it came from, when
+  storyline_ids: string[];    // aggregates into (may be several)
+  entity_ids: string[];       // graph links to Entities
+  metadata: Record<string, unknown>;
   captured_at: Date;
 }
 
@@ -323,6 +333,7 @@ A watcher on Northwind Cloud's pricing page and two competitor pages distills **
 - [ ] The Situation ↔ Insight boundary is stated by **role**, with **no shared category enum**, and the escalation path is one-way and recorded (REQ-DM-05, -06).
 - [ ] The Insight is fully specified: atomic single-kind note, Always/liberal capture, `kind` taxonomy, embedding-based read-time recall, Space scope, lightweight lifecycle, capture-cheap/surface-selective (REQ-DM-07…-13).
 - [ ] Status is per-type from a shared vocabulary, with Momentum orthogonal (REQ-DM-14, -15).
+- [ ] Evidence is typed and append-only, aggregating into Storylines and linking Entities, with a `type` vocabulary disjoint from Situation/Insight (REQ-DM-17; [evidence](evidence.md)).
 - [ ] No persistence/storage-tech or embedding-library detail leaked in; examples use the [constitution](constitution.md) §7 cast; capitalization per §6.2.
 - [ ] No placeholders/TODOs; internally consistent with [glossary](glossary.md).
 
@@ -331,10 +342,12 @@ A watcher on Northwind Cloud's pricing page and two competitor pages distills **
 - [constitution](constitution.md) — ID/capitalization rules (§6.2), the Always/Ask-first/Never table (§5), the cast (§7).
 - [glossary](glossary.md) — canonical definitions; this spec specifies the Situation, Insight, and Evidence relationships in depth.
 - [storylines](storylines.md) / [situations](situations.md) / [insights](insights.md) — the feature specs that own each primitive's mechanics.
-- [signals](signals.md) — Signal → Evidence. [memory](memory.md) — Narrative + semantic recall. [entities](entities.md) — the Entity graph. [spaces](spaces.md) — scope, inheritance, isolation.
+- [signals](signals.md) — Signal ingestion → Evidence. [evidence](evidence.md) — the Evidence type catalog, immutability, and graph mechanics. [memory](memory.md) — Narrative + semantic recall. [entities](entities.md) — the Entity graph. [spaces](spaces.md) — scope, inheritance, isolation.
 - [app-architecture](app-architecture.md) — the concrete ID format and persistence this model abstracts over.
 
 ## 13. Changelog
 
 - **2026-06-03 — v0.1** — Initial draft. Narrative-layer entity-relationship model: ID catalog, containment and pipeline invariants, the Situation ↔ Insight boundary by role (REQ-DM-05/06), the capture-and-retrieve Insight with its `kind` taxonomy (REQ-DM-07…-13), and per-type Status with orthogonal Momentum (REQ-DM-14/15).
 - **2026-06-03 — v1.0** — Approved.
+- **2026-06-03 — v1.0 (note)** — Clarified the Situation `category` examples to the action-shaped catalog owned by [situations](situations.md), disjoint from Insight `kind`s per REQ-DM-05 (editorial; the rule is unchanged).
+- **2026-06-04 — v1.1** — Extended Evidence to a **typed, append-only** fact: added the `type` enum and `storyline_ids`/`entity_ids`/`metadata` to the Evidence shape (§7), added §5.8 / REQ-DM-17, and moved Evidence ownership to the new [evidence](evidence.md) feature spec (with [signals](signals.md) owning the Signal). The conceptual pipeline (REQ-DM-04) is unchanged — the new [inbox](inbox.md) is the *mechanism* of the Signal → Evidence arrow, not a new node.
