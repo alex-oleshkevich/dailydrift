@@ -41,6 +41,8 @@ Specs for every feature with overview, purpose, description, implementation deta
 | [insights](insights.md) | Insight capture-and-retrieve mechanics: capture path, `kind` catalog, embedding/semantic recall, dedup/reinforcement, lifecycle, surfacing & anti-spam | Working on Insight capture, recall, or surfacing | ✅ Approved |
 | [storylines](storylines.md) | Storyline mechanics: scarcity, creation (enough Evidence on one topic, any source), Status lifecycle, Momentum, merging, the Storyline summary, surfacing | Working on Storyline creation, lifecycle, or surfacing | ✅ Approved |
 | [situations](situations.md) | Situation mechanics: category catalog, detection, Attention score, Status lifecycle, suggested actions, escalation from an Insight, surfacing | Working on Situation detection, scoring, or surfacing | ✅ Approved |
+| [signals](signals.md) | Signal mechanics: source catalog, normalization, fingerprint/dedup, two-axis scoring, lifecycle, ingestion API, distillation to Evidence | Working on ingestion, scoring, or how raw input becomes Evidence | 📝 In Review |
+| [evidence](evidence.md) | Evidence mechanics: the type catalog, immutability/append-only, creation from Signals, provenance, the evidence graph, explainability, visibility | Working on how facts are recorded, typed, linked, or cited | 📝 In Review |
 
 
 ## Untiered — unapproved backlog
@@ -62,7 +64,8 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 | [agent-orchestration](agent-orchestration.md) | How agents coordinate: delegation, hand-offs, approval routing | Working on multi-agent coordination | ⬜ Planned |
 | [tools](tools.md) | Tool layer: tool model, tool-call lifecycle, secure invocation | Working on tools or tool calls | ⬜ Planned |
 | [skills](skills.md) | Skills as packaged capabilities (bundles of tools) | Working on skills | ⬜ Planned |
-| [signals](signals.md) | Signal sources, ingestion API, normalization → evidence | Working on intake/extensibility | ⬜ Planned |
+| [inbox](inbox.md) | Signal Inbox: staging buffer, batching windows, dedup/noise-filter, scoring thresholds, processor tiers (Fast/Batch/Curator), the `InboxItem` state machine, retention | Working on the ingestion pipeline / staging | ⬜ Planned *(raw draft parked)* |
+| [narrative](narrative.md) | The continuously maintained per-Space/Storyline synthesis: structure, generation, levels, quality tests. **Folds into [memory](memory.md)** (REQ-DM-16) when drafted | Working on Narrative synthesis / briefings | ⬜ Planned *(raw draft parked)* |
 | [tasks](tasks.md) | Task model/lifecycle, creation sources, task events, approvals | Working on tasks | ⬜ Planned |
 | [periodic-tasks](periodic-tasks.md) | Recurring/scheduled automation incl. source watchers (change detection); catch-up; distillation jobs | Working on scheduling or watching | ⬜ Planned |
 | [browser-automation](browser-automation.md) | Playwright workers, isolated browser profiles, approval-gating | Working on browser automation | ⬜ Planned |
