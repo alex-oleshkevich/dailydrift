@@ -8,7 +8,7 @@
 >
 > **Load this when:** Building or changing how Situations are detected, scored, resolved, or surfaced.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [insights](insights.md), [storylines](storylines.md), [signals](signals.md), [tasks](tasks.md), [permissions](permissions.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [insights](insights.md), [storylines](storylines.md), [signals](signals.md), [evidence](evidence.md), [tasks](tasks.md), [permissions](permissions.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md)
 
 > Requirement tag: **SIT**
 
@@ -319,7 +319,7 @@ A background Task needs to email Devin to unblock the Brightmoor portal — an *
 - [data-model](data-model.md) — the Situation entity, Status vocabulary, the Situation↔Insight boundary, and the escalation relationship this spec builds on.
 - [glossary](glossary.md) — canonical Situation and Attention-score definitions.
 - [insights](insights.md) — the Insight that escalates into a Situation. [storylines](storylines.md) — the Storyline that aggregates Situations. [tasks](tasks.md) — Tasks that act on them.
-- [signals](signals.md) — Evidence, the input to detection. [permissions](permissions.md) / [constitution](constitution.md) §5.2 — the approval gate behind `approval` Situations.
+- [evidence](evidence.md) — the Evidence detection draws on; [signals](signals.md) — where it originates. [permissions](permissions.md) / [constitution](constitution.md) §5.2 — the approval gate behind `approval` Situations.
 - [home-and-briefings](home-and-briefings.md) / [conversation](conversation.md) — the surfaces. [proactivity](proactivity.md) — the relevance/urgency bar.
 
 ## 13. Changelog
@@ -327,3 +327,4 @@ A background Task needs to email Devin to unblock the Brightmoor portal — an *
 - **2026-06-03 — v0.1** — Initial draft. Situation as an acted-upon operational condition (REQ-SIT-01); the action-shaped category catalog disjoint from Insight kinds (REQ-SIT-02); detection — deterministic + reasoning, evidence-backed, deduped (REQ-SIT-03…-05); derived Attention score (REQ-SIT-06); Status lifecycle with reopening (REQ-SIT-07/08); suggested actions carrying their own tier (REQ-SIT-09); one-way escalation from an Insight (REQ-SIT-10); Storyline/Task relationships (REQ-SIT-11); surfacing in Attention-Needed and the detail view (REQ-SIT-12/13). In Review.
 - **2026-06-04 — v1.0** — Approved.
 - **2026-06-04 — v1.1** — Added §5.10 / REQ-SIT-14: the **reasoning-detector LLM contract** (system prompt + user template + output schema), evidence-backed, single-category, tier-aware, deduped, proposing (not committing) Situations under the untrusted-data rule (P12).
+- **2026-06-04 — v1.1 (note)** — Cross-reference hygiene: pointed the detection-input cross-ref to [evidence](evidence.md) and added it to Related (editorial; no rule change).

@@ -23,8 +23,8 @@ This spec owns the Evidence's **mechanics**: its **type catalog**, the **immutab
 ## 2. Non-Goals / Out of Scope
 
 - **Not Signals or ingestion.** Sources, normalization, fingerprint dedup, scoring, and the ingestion API are owned by [signals](signals.md); here, Evidence is the *output* of distillation.
-- **Not the processing pipeline.** The Inbox, batching, and the Fast/Batch/Curator processor tiers that *propose* Evidence are owned by [inbox](inbox.md).
-- **Not interpretation.** Conclusions, conditions, and synthesis live in [situations](situations.md), [insights](insights.md), and the Narrative ([memory](memory.md)); Evidence holds **facts only** (§5.5).
+- **Not the processing pipeline.** The Inbox, batching, and the Fast/Batch processor tiers that *propose* Evidence are owned by [inbox](inbox.md).
+- **Not interpretation.** Conclusions, conditions, and synthesis live in [situations](situations.md), [insights](insights.md), and the Narrative ([narrative](narrative.md)); Evidence holds **facts only** (§5.5).
 - **Not the entity-relationship model.** The `ev_` identity, Space scoping, and the pipeline position are fixed in [data-model](data-model.md); this spec does not redefine them.
 - **Not persistence or the embedding index.** Storage, indexing, and semantic search are [app-architecture](app-architecture.md) / [memory](memory.md).
 
@@ -77,7 +77,7 @@ The type vocabulary is **disjoint from** Situation `category`s ([situations](sit
 
 ### 5.5 Factual, not interpretive
 
-> **REQ-EV-05.** Evidence holds **facts, never conclusions**. *"User discussed Rust in 18 conversations"* is Evidence; *"User likes Rust"* is an interpretation and is not. Interpretation belongs to [Insights](insights.md) (discoveries), [Situations](situations.md) (conditions), and the Narrative ([memory](memory.md)) (synthesis). Keeping Evidence interpretation-free is what lets those layers change their minds without rewriting history (REQ-EV-03).
+> **REQ-EV-05.** Evidence holds **facts, never conclusions**. *"User discussed Rust in 18 conversations"* is Evidence; *"User likes Rust"* is an interpretation and is not. Interpretation belongs to [Insights](insights.md) (discoveries), [Situations](situations.md) (conditions), and the Narrative ([narrative](narrative.md)) (synthesis). Keeping Evidence interpretation-free is what lets those layers change their minds without rewriting history (REQ-EV-03).
 
 ### 5.6 Provenance & attribution
 
@@ -235,7 +235,7 @@ Three `activity` Signals — a Playwright bookmark, a `browser` visit, and a `ch
 - [glossary](glossary.md) — canonical Evidence definition; REQ-CON-02 (evidence-backing) and OQ-CON-2 (dedup), resolved jointly here and in [signals](signals.md).
 - [signals](signals.md) — the raw input that Evidence is distilled from; fingerprint dedup vs evidence-level reinforcement.
 - [inbox](inbox.md) — the processors that *propose* Evidence and the confidence gate behind committing it.
-- [situations](situations.md) / [insights](insights.md) / [storylines](storylines.md) — the interpretation and continuity layers that cite, are raised from, and accumulate Evidence. [entities](entities.md) — graph link targets. [memory](memory.md) — the Narrative that synthesizes Evidence-backed state.
+- [situations](situations.md) / [insights](insights.md) / [storylines](storylines.md) — the interpretation and continuity layers that cite, are raised from, and accumulate Evidence. [entities](entities.md) — graph link targets. [narrative](narrative.md) — the Narrative that synthesizes Evidence-backed state. [memory](memory.md) — capture/retention/recall.
 
 ## 13. Changelog
 

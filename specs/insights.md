@@ -8,7 +8,7 @@
 >
 > **Load this when:** Building or changing how the System captures, stores, recalls, or surfaces Insights.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [memory](memory.md), [situations](situations.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [evidence](evidence.md), [narrative](narrative.md), [memory](memory.md), [situations](situations.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md)
 
 > Requirement tag: **INS**
 
@@ -322,7 +322,7 @@ A Northwind pricing-page watcher and two competitor watchers distill Evidence th
 - [data-model](data-model.md) — the Insight entity, relationships, and the Situation ↔ Insight boundary this spec builds on.
 - [glossary](glossary.md) — canonical Insight definition and `kind` list.
 - [situations](situations.md) — the Situation an Insight escalates into.
-- [signals](signals.md) — Signal → Evidence, the input to capture. [memory](memory.md) — embedding index, semantic recall, Narrative synthesis.
+- [signals](signals.md) — Signal ingestion; [evidence](evidence.md) — the Evidence captured Insights cite. [narrative](narrative.md) — the Narrative salient Insights feed. [memory](memory.md) — embedding index and semantic recall.
 - [home-and-briefings](home-and-briefings.md) / [conversation](conversation.md) — the surfaces that render Insights. [proactivity](proactivity.md) — the relevance/urgency bar.
 - [spaces](spaces.md) — scope, promotion, isolation.
 
@@ -331,3 +331,4 @@ A Northwind pricing-page watcher and two competitor watchers distill Evidence th
 - **2026-06-03 — v0.1** — Initial draft. Capture-and-retrieve Insight: atomic single-`kind` note (REQ-INS-01), the `kind` catalog (REQ-INS-02), Always/liberal capture (REQ-INS-03…-05), embedding + semantic recall with a relevance threshold (REQ-INS-06…-08), dedup/reinforcement (REQ-INS-09), lifecycle and per-`kind` expiry (REQ-INS-10/11), capture-cheap/surface-selective with channels and escalation-to-Situation (REQ-INS-12…-14), and Space scope with downstream-only promotion (REQ-INS-15).
 - **2026-06-03 — v1.0** — Approved.
 - **2026-06-04 — v1.1** — Added §5.10 / REQ-INS-16: the **LLM capture contract** (system prompt + user template + output schema) for the Curator, enforcing atomic single-`kind`, evidence-backed, liberal, non-action, reinforce-not-duplicate capture under the untrusted-data rule (P12).
+- **2026-06-04 — v1.1 (note)** — Cross-reference hygiene: pointed Narrative to [narrative](narrative.md) and Evidence mechanics to [evidence](evidence.md); added both to Related (editorial; no rule change).

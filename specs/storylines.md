@@ -8,7 +8,7 @@
 >
 > **Load this when:** Building or changing how Storylines are created, promoted, merged, scored for movement, or surfaced.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [situations](situations.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [entities](entities.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [evidence](evidence.md), [situations](situations.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [entities](entities.md)
 
 > Requirement tag: **STORY**
 
@@ -327,7 +327,7 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 
 - [data-model](data-model.md) — the Storyline entity, Status/Momentum vocabularies, and aggregation relationships this spec builds on.
 - [glossary](glossary.md) — canonical Storyline, Momentum, Status definitions.
-- [signals](signals.md) — Signal → Evidence, the material a Storyline accumulates. [situations](situations.md) / [insights](insights.md) — what a Storyline aggregates.
+- [evidence](evidence.md) — the Evidence a Storyline accumulates; [signals](signals.md) — where it originates. [situations](situations.md) / [insights](insights.md) — what a Storyline aggregates.
 - [narrative](narrative.md) — the Narrative at Space and Storyline scope; a Storyline's `summary` is its Storyline-scoped Narrative. [memory](memory.md) — capture/retention/recall.
 - [home-and-briefings](home-and-briefings.md) / [conversation](conversation.md) — the surfaces that render Storylines. [proactivity](proactivity.md) — the bar for proposing one. [entities](entities.md) — linked Entities.
 
@@ -337,3 +337,4 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 - **2026-06-03 — v1.0** — Approved.
 - **2026-06-04 — v1.1** — Reframed the Storyline `summary` as the **Storyline-scoped Narrative** (REQ-STORY-08): its structure/cadence/generation now owned by the new [narrative](narrative.md) spec, which carries Narratives at both Space and Storyline scope ([data-model](data-model.md) REQ-DM-16). No change to Storyline lifecycle, Momentum, or aggregation.
 - **2026-06-04 — v1.2** — Added §5.10 / REQ-STORY-13: the **curation LLM contract** (system prompt + user template + output schema) for emergent creation and merge, scarcity-first (defaults to keep_candidate), single-topic, conservative merging, under the untrusted-data rule (P12).
+- **2026-06-04 — v1.2 (note)** — Cross-reference hygiene: pointed the accumulated-material cross-ref to [evidence](evidence.md) and added it to Related (editorial; no rule change).

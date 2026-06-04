@@ -23,7 +23,7 @@ This spec owns the Signal's **mechanics**: the **source catalog**, **normalizati
 ## 2. Non-Goals / Out of Scope
 
 - **Not Evidence.** What a fact *is*, its types, immutability, and the evidence graph are owned by [evidence](evidence.md); this spec only *produces* the Signals that Evidence is distilled from.
-- **Not the staging pipeline mechanics.** The centralized **Inbox** — batching windows, the per-item state machine (`pending/processing/needs_review/…`), the Fast/Batch/Curator **processor** tiers, retention policy — is owned by [inbox](inbox.md). This spec references it and defines only the Signal itself.
+- **Not the staging pipeline mechanics.** The centralized **Inbox** — batching windows, the per-item state machine (`pending/processing/needs_review/…`), the Fast/Batch **processor** tiers, retention policy — is owned by [inbox](inbox.md). This spec references it and defines only the Signal itself.
 - **Not the entity-relationship model.** The `sig_` identity and the `Signal → Evidence` pipeline position are fixed in [data-model](data-model.md) §5.1/§5.3; this spec applies them.
 - **Not Situations, Insights, or Narrative.** Those are downstream of Evidence ([situations](situations.md), [insights](insights.md), [memory](memory.md)).
 - **Not surface layout.** Signals are internal infrastructure and are not a user surface (§5.10).
@@ -116,7 +116,7 @@ This aligns with the Signal sources in [glossary](glossary.md) and [how-it-works
 
 ### 5.9 From Signal to Evidence
 
-> **REQ-SIG-10.** Surviving Signals are **distilled into [Evidence](evidence.md)** by processors that **propose** facts — a Signal **never writes memory directly**. The governing question is *"did this prove something useful?"*, not *"should this become memory?"*: if yes, the processor proposes Evidence; if no, the Signal is dropped or deferred. The Inbox and its Fast/Batch/Curator **processor** tiers that perform this are owned by [inbox](inbox.md); what a fact is and how it is typed and committed is owned by [evidence](evidence.md). Distillation may also update a Situation, spawn a Task, or request an approval, but **only** Evidence is the durable knowledge output (Insights and the Narrative are produced further downstream, never by a Signal).
+> **REQ-SIG-10.** Surviving Signals are **distilled into [Evidence](evidence.md)** by processors that **propose** facts — a Signal **never writes memory directly**. The governing question is *"did this prove something useful?"*, not *"should this become memory?"*: if yes, the processor proposes Evidence; if no, the Signal is dropped or deferred. The Inbox and its Fast/Batch **processor** tiers that perform this are owned by [inbox](inbox.md); what a fact is and how it is typed and committed is owned by [evidence](evidence.md). Distillation may also update a Situation, spawn a Task, or request an approval, but **only** Evidence is the durable knowledge output (Insights and the Narrative are produced further downstream, never by a Signal).
 
 ### 5.10 Visibility & retention
 
