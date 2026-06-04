@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.4   ·   **Last updated:** 2026-06-04
+> **Version:** 1.5   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The canonical glossary — the shared vocabulary every other spec uses. Each term gets one authoritative definition, a cast example, and how it relates to the others; full mechanics live in each term's dedicated spec.
 >
@@ -56,7 +56,8 @@ Each entry: **Term** (`id-prefix`) — definition. *Example:* … · *Relates to
 - **Task** (`task_`) — a **unit of work** with a lifecycle and events; created by the user, an Agent, a Signal/Insight, or from chat. *Example:* "Draft the Framework RFC skeleton." *→ [tasks](tasks.md).*
 - **Periodic Task** (`ptask_`) — a **recurring/scheduled** Task, including a **watcher** that polls a source and emits a Signal on meaningful change. *Example:* nightly Memory distillation; a watch on Northwind's pricing page; the weekly Digest. *→ [periodic-tasks](periodic-tasks.md).*
 
-- **Agent** (`agent_`) — a **scoped, role-based actor** (Executive · Research · Browser · Ops) that does work *for the user*, observable and bounded by Always/Ask-first/Never. *→ [agents](agents.md), [agent-orchestration](agent-orchestration.md).*
+- **Agent** (`agent_`) — a **scoped, role-based actor** that does work *for the user* (built-in roles: Executive · Research · Browser · Ops · Reviewer; plus **user-definable** agents), defined by name/role/when-to-use/system_prompt/personality/skills/tools/model/mode; observable and bounded by Always/Ask-first/Never. *→ [agents](agents.md).*
+- **Orchestrator** — the **task-execution control loop** (not an agent) that plans a [Task](tasks.md) into subtasks, routes each to an Agent (on its when-to-use), dispatches **isolated** workers, **synthesizes** their results, **reviews** with a fresh agent, and **replans**. Depth-1. *→ [agent-orchestration](agent-orchestration.md).*
 - **Curator** — the **background state-maintenance engine** that turns accepted Evidence into maintained understanding (Storylines, Situations, Insights, Narratives) via small triggered jobs and a propose→commit transaction. Internal; never executes user tasks; peer to the Inbox. *Example:* it auto-resolves a Stripe-blocked Situation once auth succeeds. *→ [curator](curator.md).*
 - **Skill** (`skill_`) — a **packaged capability**: a bundle of Tools, prompts, permissions, and a sandbox policy that an Agent receives and a Space constrains. *Example:* a "release-watcher" Skill. *→ [skills](skills.md).*
 - **Tool** — a **single callable capability** with a typed input/output contract and a declared risk tier; the unit a Skill bundles and an Agent invokes. *Example:* `fetch_page`, `send_email`. *→ [tools](tools.md).*
@@ -134,3 +135,4 @@ A periodic watcher on the competitor's release-notes page detects a change → a
 - **2026-06-04 — v1.2** — Evidence redefined as **typed, immutable, append-only** (one `type` of observation/statement/decision/promise/change/relationship/activity), pointing to the new [evidence](evidence.md) spec. Added the **Inbox** term (ingestion staging buffer → [inbox](inbox.md)) and updated the pipeline ownership row. **OQ-CON-2 resolved** — two-layer dedup (signal fingerprint + Evidence reinforcement).
 - **2026-06-04 — v1.3** — Narrative redefined as the **editable synthesis at Space or Storyline scope** (`nar_`), pointing to the new [narrative](narrative.md) spec; the Storyline's Narrative is its `summary`. **OQ-CON-1 partly resolved** (sub-Space Narratives still open).
 - **2026-06-04 — v1.4** — Renamed the **"Memory Curator" agent role → the "Curator"** background state-maintenance engine (its own [curator](curator.md) spec); the Agent roles are now the user-task actors (Executive · Research · Browser · Ops). Added the Curator to the pipeline ownership row.
+- **2026-06-04 — v1.5** — Expanded the **Agent** definition (built-in + user-definable roles incl. Reviewer; full field set → [agents](agents.md)) and added the **Orchestrator** term (the task-execution control loop → [agent-orchestration](agent-orchestration.md)).

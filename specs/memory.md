@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-04
+> **Version:** 1.1   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The Memory feature end-to-end — durable distilled knowledge (`mem_`: facts, preferences, profiles, summaries), the **shared semantic index** and **recall** that the rest of the System retrieves by meaning, **distillation** of accumulated material into durable knowledge, and **retention/decay**.
 >
@@ -274,9 +274,7 @@ What higher-level, durable knowledge does this cluster support?
 
 ### 5.13 Recall in use
 
-> **REQ-MEM-16.** Recall is **context hydration, not a user surface**: agents and the pipeline pull the relevant items into **working context** at the moment they act, instead of loading everything (the context-compression payoff, REQ-MEM-04/06). It is consumed two ways:
-> - **Automatic pre-hydration** — the System recalls and injects relevant items when an agent or turn begins (a chat opens on a Storyline → its [Narrative](narrative.md) + top-K relevant [Insights](insights.md) + matching `preference`/`profile` Memory).
-> - **Agent-callable recall** — an [Agent](agents.md) issues an explicit recall query mid-task when it needs more (a Research agent searching prior work; Letta-style memory search).
+> **REQ-MEM-16.** Recall is **context hydration, not a user surface**, and it is **performed by the System/orchestrator, not by the acting agent**: relevant items are recalled and **injected into context before the consumer acts**, instead of loading everything or letting an agent query Memory itself (the context-compression payoff, REQ-MEM-04/06). The System **pre-hydrates** at the start of a turn or dispatch — a chat opening on a Storyline gets that [Narrative](narrative.md) + top-K relevant [Insights](insights.md) + matching `preference`/`profile` Memory injected; when the orchestrator dispatches a worker it recalls the relevant Memory/Evidence and packs it into the worker's **self-contained prompt** ([agents](agents.md) REQ-AGENT-13, [agent-orchestration](agent-orchestration.md) REQ-AORCH-04). **Agents do not issue their own recall queries** — a worker that needs more returns to the orchestrator, which recalls and re-dispatches.
 >
 > Recall also **populates the "existing items" context of every write-time contract** — `EXISTING INSIGHTS` ([insights](insights.md) REQ-INS-09), `EXISTING SIMILAR MEMORIES` (REQ-MEM-14), `OPEN SITUATIONS` ([situations](situations.md) REQ-SIT-14), Evidence reinforcement ([evidence](evidence.md) REQ-EV-10), Signal novelty ([signals](signals.md) REQ-SIG-14) — which is the substrate that makes **reinforce-don't-duplicate** possible System-wide. **Recall is not surfacing:** recalling into an agent's context is internal and liberal; pushing an item to the *user* is a separate, stricter decision gated by the relevance/urgency bar ([proactivity](proactivity.md), P4). High recall volume with quiet user-facing output is the correct, expected behavior.
 
@@ -436,7 +434,7 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - [ ] Retention/decay, recency bump, supersession-on-contradiction, and pin/forget are specified (REQ-MEM-06).
 - [ ] The Memory↔Evidence/Insight/Narrative boundary is stated by role and durability, with `context`-Insight graduation (REQ-MEM-07).
 - [ ] Provenance, editability with edit-preservation, and surfacing as substrate/settings/provenance are specified (REQ-MEM-08/09). Examples use the [constitution](constitution.md) §7 cast; no placeholders.
-- [ ] Recall-in-use is specified: context-hydration via automatic pre-hydration + agent-callable query, populating the dedup context of every write contract, distinct from surfacing (REQ-MEM-16).
+- [ ] Recall-in-use is specified: context-hydration via System/orchestrator **pre-hydration + prompt-injection** (no agent-issued recall), populating the dedup context of every write contract, distinct from surfacing (REQ-MEM-16).
 
 ## 12. Cross-References
 
@@ -456,3 +454,4 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - **2026-06-04 — v0.3** — Added §5.13 / REQ-MEM-16: **recall in use** — context-hydration via **automatic pre-hydration + agent-callable** query; recall populates the "existing items" dedup context of every write contract (the substrate for reinforce-don't-duplicate across the System); recall ≠ surfacing. Renumbered the implementation-stack note to §5.14.
 - **2026-06-04 — v1.0** — Approved.
 - **2026-06-04 — v1.0 (note)** — Retargeted "Memory-Curator ([agents])" → the [curator](curator.md) engine (the role was renamed to the Curator engine; editorial, no rule change).
+- **2026-06-04 — v1.1** — **Recall is orchestrator-injected, not agent-queried.** Removed the *agent-callable recall* mode from REQ-MEM-16: the System/orchestrator pre-hydrates and packs recalled Memory into an agent's self-contained prompt; agents no longer issue their own recall queries (aligns with worker isolation — [agents](agents.md) REQ-AGENT-13, [agent-orchestration](agent-orchestration.md) REQ-AORCH-04).
