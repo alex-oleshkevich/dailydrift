@@ -1,8 +1,8 @@
 # Evidence
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.1   ·   **Last updated:** 2026-06-04
+> **Version:** 1.0   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The Evidence feature end-to-end — what an Evidence item is, its type catalog, why it is immutable and append-only, how it is created from Signals, the provenance it carries, the evidence graph it forms, and how it makes every conclusion explainable. The source-of-truth layer of the knowledge pipeline.
 >
@@ -239,4 +239,5 @@ Three `activity` Signals — a Playwright bookmark, a `browser` visit, and a `ch
 
 ## 13. Changelog
 
-- **2026-06-04 — v0.1** — Initial draft. Evidence as the immutable, attributable, citable fact (REQ-EV-01); the type catalog disjoint from Situation/Insight vocabularies (REQ-EV-02); immutability/append-only with history-as-record (REQ-EV-03); propose-then-commit creation from Signals (REQ-EV-04); facts-not-conclusions (REQ-EV-05); provenance/attribution (REQ-EV-06); the evidence graph over Storylines and Entities (REQ-EV-07); the explainability contract (REQ-EV-08, P3); user-visibility as provenance (REQ-EV-09); dedup/reinforcement resolving OQ-CON-2 (REQ-EV-10). Accompanies the extended canonical Evidence shape in [data-model](data-model.md) v1.1 (REQ-DM-17). In Review.
+- **2026-06-04 — v0.1** — Initial draft. Evidence as the immutable, attributable, citable fact (REQ-EV-01); the type catalog disjoint from Situation/Insight vocabularies (REQ-EV-02); immutability/append-only with history-as-record (REQ-EV-03); propose-then-commit creation from Signals (REQ-EV-04); facts-not-conclusions (REQ-EV-05); provenance/attribution (REQ-EV-06); the evidence graph over Storylines and Entities (REQ-EV-07); the explainability contract (REQ-EV-08, P3); user-visibility as provenance (REQ-EV-09); dedup/reinforcement resolving OQ-CON-2 (REQ-EV-10). Accompanies the extended canonical Evidence shape in [data-model](data-model.md) v1.1 (REQ-DM-17).
+- **2026-06-04 — v1.0** — Approved.

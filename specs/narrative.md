@@ -1,8 +1,8 @@
 # Narrative
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.4   ·   **Last updated:** 2026-06-04
+> **Version:** 1.0   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The Narrative feature end-to-end — the System's continuously maintained synthesis of *what is going on*, at **Space** and **Storyline** scope: its structure, how the Curator generates and updates it, its human-editable form, how it is backed by Evidence, and how it surfaces as the briefing that opens Home, a Storyline, and a chat.
 >
@@ -312,3 +312,4 @@ The user edits the `friction` section to add *"and we've decided to defer multi-
 - **2026-06-04 — v0.2** — Formalized into the house spec format with Narrative at **Space and Storyline** scope (REQ-NAR-02): the Storyline-scoped Narrative is reframed as the Storyline `summary`; "global" = the root Space. Section structure (REQ-NAR-03); Curator generation downstream of the Inbox (REQ-NAR-04); three-speed cadence (REQ-NAR-05); human-editable + context-compression duality (REQ-NAR-06); Evidence-backing (REQ-NAR-07); Momentum/Status narrated-not-redefined (REQ-NAR-08); surfacing as Home/Storyline/chat/Digest briefing (REQ-NAR-09). Accompanies [data-model](data-model.md) (REQ-DM-16 extended) and [glossary](glossary.md) (OQ-CON-1 resolved). Promoted Draft → In Review.
 - **2026-06-04 — v0.3** — Added §5.10 / REQ-NAR-10: the **LLM generation contract** (system prompt + user template + output schema) for the Curator, enforcing explain-don't-summarize, Evidence-backing, human-edit preservation, and Momentum/Status consistency under the untrusted-data rule (P12).
 - **2026-06-04 — v0.4** — Refined "explain, don't summarize" to **"explain, then quantify"** (§3, REQ-NAR-01, REQ-NAR-10, REQ-NAR-09): precise figures are encouraged **in service of** the explanation; the anti-pattern is a bare count without interpretation, not numbers themselves.
+- **2026-06-04 — v1.0** — Approved.

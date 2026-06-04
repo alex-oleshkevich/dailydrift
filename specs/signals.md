@@ -1,8 +1,8 @@
 # Signals
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.2   ·   **Last updated:** 2026-06-04
+> **Version:** 1.0   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The Signal feature end-to-end — what a Signal is, the sources it comes from, how it is normalized, fingerprinted and deduped, scored, resolved to a Space/Storyline, and how it is distilled into Evidence. The raw-ingestion edge of the knowledge pipeline.
 >
@@ -278,4 +278,5 @@ A single `browser` Signal — *visited Playwright docs* — scores borderline an
 ## 13. Changelog
 
 - **2026-06-04 — v0.1** — Initial draft. Signal as the raw, internal, disposable ingestion unit (REQ-SIG-01); the source catalog (REQ-SIG-02); normalization and the untrusted-data rule (REQ-SIG-03/04); the authenticated, Space-scoped ingestion API (REQ-SIG-05); fingerprinting, dedup, and batching resolving OQ-CON-2 (REQ-SIG-06); two-axis scoring with disposition bands (REQ-SIG-07); the `received→normalized→scored→{converted|dropped|deferred}` lifecycle with the richer staging states deferred to [inbox](inbox.md) (REQ-SIG-08); resolution to Space/Storyline/Entities (REQ-SIG-09); propose-don't-write distillation into Evidence (REQ-SIG-10); internal visibility and temporary retention (REQ-SIG-11). In Review.
-- **2026-06-04 — v0.2** — Added §5.11 specifying how the derived fields are computed: fingerprint **normalize-then-hash** with a mandatory `source_ref` and **debounced** batch keys (REQ-SIG-12); **tiered**, non-binding resolution hints — config → entity-link → semantic — left `null` below threshold (REQ-SIG-13); **orthogonal** novelty/importance scoring, dropped only when both are low (REQ-SIG-14). Tunable windows, weights, and band cutoffs consolidated in [inbox](inbox.md). Still In Review.
+- **2026-06-04 — v0.2** — Added §5.11 specifying how the derived fields are computed: fingerprint **normalize-then-hash** with a mandatory `source_ref` and **debounced** batch keys (REQ-SIG-12); **tiered**, non-binding resolution hints — config → entity-link → semantic — left `null` below threshold (REQ-SIG-13); **orthogonal** novelty/importance scoring, dropped only when both are low (REQ-SIG-14). Tunable windows, weights, and band cutoffs consolidated in [inbox](inbox.md).
+- **2026-06-04 — v1.0** — Approved.
