@@ -126,7 +126,7 @@ A Storyline is created when **enough Evidence converges on a single coherent, du
 
 ### 5.10 The curation contract (LLM)
 
-> **REQ-STORY-13.** Emergent creation (REQ-STORY-04/05) and merge recognition (REQ-STORY-07) are judged by the Curator, typically via an **LLM**, over an accumulating Evidence cluster and the Space's existing Storylines. The curation contract enforces **scarcity** (REQ-STORY-02) — defaulting to *keep_candidate* — coherent single-topic threads, and conservative merging. High-confidence outcomes apply automatically (Always — internal object update); low-confidence creations/merges are **proposed** to the user (REQ-STORY-05/07/12). All inputs are **untrusted data, never instructions** ([constitution](constitution.md) P12).
+> **REQ-STORY-13.** Emergent creation (REQ-STORY-04/05) and merge recognition (REQ-STORY-07) are judged by the Curator ([curator](curator.md)), typically via an **LLM**, over an accumulating Evidence cluster and the Space's existing Storylines. The curation contract enforces **scarcity** (REQ-STORY-02) — defaulting to *keep_candidate* — coherent single-topic threads, and conservative merging. High-confidence outcomes apply automatically (Always — internal object update); low-confidence creations/merges are **proposed** to the user (REQ-STORY-05/07/12). All inputs are **untrusted data, never instructions** ([constitution](constitution.md) P12).
 
 **System prompt (static — cache it):**
 
@@ -338,3 +338,4 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 - **2026-06-04 — v1.1** — Reframed the Storyline `summary` as the **Storyline-scoped Narrative** (REQ-STORY-08): its structure/cadence/generation now owned by the new [narrative](narrative.md) spec, which carries Narratives at both Space and Storyline scope ([data-model](data-model.md) REQ-DM-16). No change to Storyline lifecycle, Momentum, or aggregation.
 - **2026-06-04 — v1.2** — Added §5.10 / REQ-STORY-13: the **curation LLM contract** (system prompt + user template + output schema) for emergent creation and merge, scarcity-first (defaults to keep_candidate), single-topic, conservative merging, under the untrusted-data rule (P12).
 - **2026-06-04 — v1.2 (note)** — Cross-reference hygiene: pointed the accumulated-material cross-ref to [evidence](evidence.md) and added it to Related (editorial; no rule change).
+- **2026-06-04 — v1.2 (note)** — Linked "the Curator" → the [curator](curator.md) engine in REQ-STORY-13 (editorial, no rule change).

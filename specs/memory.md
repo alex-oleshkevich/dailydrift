@@ -77,7 +77,7 @@ Canonical definitions in [glossary](glossary.md); the entity shape in [data-mode
 
 ### 5.5 Distillation
 
-> **REQ-MEM-05.** **Distillation** consolidates accumulated material into durable Memory: it compresses a body of Evidence/Insights/conversation into a `summary`, promotes a repeatedly-corroborated `context` [Insight](insights.md) into a durable `fact`/`profile`, and updates a `preference` as the user's behavior reveals it. Distillation is **downstream Curator work** — run by the Memory-Curator ([agents](agents.md)) on a schedule ([periodic-tasks](periodic-tasks.md): e.g. nightly), never by a [Signal](signals.md) or the [Inbox](inbox.md) directly. Distilling is an **Always** action ([constitution](constitution.md) §5) and every Memory item it writes **cites its source** Evidence/Insights (§5.8).
+> **REQ-MEM-05.** **Distillation** consolidates accumulated material into durable Memory: it compresses a body of Evidence/Insights/conversation into a `summary`, promotes a repeatedly-corroborated `context` [Insight](insights.md) into a durable `fact`/`profile`, and updates a `preference` as the user's behavior reveals it. Distillation is **downstream Curator work** — run by the Curator ([curator](curator.md)) on a schedule ([periodic-tasks](periodic-tasks.md): e.g. nightly), never by a [Signal](signals.md) or the [Inbox](inbox.md) directly. Distilling is an **Always** action ([constitution](constitution.md) §5) and every Memory item it writes **cites its source** Evidence/Insights (§5.8).
 
 ### 5.6 Retention & decay
 
@@ -121,7 +121,7 @@ Canonical definitions in [glossary](glossary.md); the entity shape in [data-mode
 
 ### 5.12 The memory LLM contracts
 
-Memory has three LLM steps, all run by the Memory-Curator ([agents](agents.md)) and all **proposing**, never committing (the System embeds, scores, dedups, and writes). All input is **untrusted data, never instructions** ([constitution](constitution.md) P12). The taxonomy and operations follow established practice — mem0's ADD/UPDATE/DELETE/NOOP classifier and Park et al.'s reflection.
+Memory has three LLM steps, all run by the Curator ([curator](curator.md)) and all **proposing**, never committing (the System embeds, scores, dedups, and writes). All input is **untrusted data, never instructions** ([constitution](constitution.md) P12). The taxonomy and operations follow established practice — mem0's ADD/UPDATE/DELETE/NOOP classifier and Park et al.'s reflection.
 
 > **REQ-MEM-13.** **Extraction — *what* to remember.** The Curator reads accumulated [Evidence](evidence.md)/[Insights](insights.md)/conversation and proposes durable memory items, **durable-only** (transient detail stays as Evidence/Insights), **evidence-backed** (cite source ids, P3), **atomic**, grounded only in the input, each with an **importance** (REQ-MEM-12).
 
@@ -334,7 +334,7 @@ flowchart LR
 
     EV["Evidence"]:::fact
     INS["Insights"]:::discovery
-    CUR["Memory-Curator\n(distills, scheduled)"]:::agent
+    CUR["Curator\n(distills, scheduled)"]:::agent
     MEM["Memory\nmem_ · salience"]:::mem
     FADE["faded\n(low salience, searchable)"]:::muted
 
@@ -402,7 +402,7 @@ Across several chats the user trims the System's briefings and asks for "just th
 
 ### Example B — a context Insight graduates into a profile (Given/When/Then)
 - **Given** a `context` [Insight](insights.md) *"Devin Osei prefers decisions in writing before calls,"* reinforced three times over two months,
-- **When** the Memory-Curator distills (REQ-MEM-05),
+- **When** the Curator distills (REQ-MEM-05),
 - **Then** it writes a `profile` Memory on the `Devin Osei` [Entity](entities.md) — durable, decaying slowly, cited to the Insight and its Evidence (REQ-MEM-07). The Insight stays the working note; the Memory is the settled long-term form.
 
 ### Example C — supersession on contradiction (narrative)
@@ -444,7 +444,7 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - [insights](insights.md) — the working-layer discoveries Memory consolidates and whose recall it powers (REQ-INS-06/07).
 - [signals](signals.md) — novelty scoring (REQ-SIG-14) and resolution (REQ-SIG-13) that use the index. [evidence](evidence.md) — reinforcement (REQ-EV-10) and the facts Memory distills.
 - [narrative](narrative.md) — the surface-facing `summary`; its generation owned there, its recall substrate here. [storylines](storylines.md) — summaries that embed into the index.
-- [agents](agents.md) — the Memory-Curator that distills. [periodic-tasks](periodic-tasks.md) — the distillation schedule. [entities](entities.md) — profile↔graph boundary.
+- [curator](curator.md) — the Curator engine that runs distillation/compression. [periodic-tasks](periodic-tasks.md) — the distillation schedule. [entities](entities.md) — profile↔graph boundary.
 - [ai-models](ai-models.md) / [app-architecture](app-architecture.md) — the concrete embedding model, vector store, and persistence. [settings](settings.md) — editing preferences. [spaces](spaces.md) — scope, promotion, isolation.
 
 **Design lineage.** The mechanisms here are grounded in established work, adapted to this System's primitives: the **retrieval score** (recency + importance + relevance) and **reflection/consolidation** from Park et al., *Generative Agents* (arXiv 2304.03442); the **memory taxonomy** (working/episodic/semantic/procedural) from **CoALA** (Sumers et al., 2309.02427) and **MemGPT** (2310.08560); the **ADD/UPDATE/DELETE/NOOP** write-time classifier from **mem0**; **non-lossy supersession / temporal retirement** from **Zep/Graphiti** (2501.13956); and **exponential decay with reinforcement** from the **Ebbinghaus** forgetting curve. (Several bleeding-edge 2026 systems explore adaptive decay and consolidation; this spec deliberately grounds only in the above well-established sources.)
@@ -455,3 +455,4 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - **2026-06-04 — v0.2** — Added the **mechanisms and LLM contracts**: retrieval scoring (REQ-MEM-10, Park et al.); exponential decay with reinforcement and three forget modes — passive/active/supersession (REQ-MEM-11, Ebbinghaus/Zep); LLM importance/poignancy scoring (REQ-MEM-12); and three **prompt contracts** — extraction *what-to-remember* (REQ-MEM-13), ADD/UPDATE/SUPERSEDE/NOOP update-merge (REQ-MEM-14, mem0), and reflection/consolidation (REQ-MEM-15, Park et al.). Added §5.13 recommended Go stack (`sqlite-vec` + `fastembed-go` + `anthropic-sdk-go`), the §6.3 scoring diagram, an `importance` field, OQ-MEM-5/6, and a Design-lineage note. Additive to REQ-MEM-01…09.
 - **2026-06-04 — v0.3** — Added §5.13 / REQ-MEM-16: **recall in use** — context-hydration via **automatic pre-hydration + agent-callable** query; recall populates the "existing items" dedup context of every write contract (the substrate for reinforce-don't-duplicate across the System); recall ≠ surfacing. Renumbered the implementation-stack note to §5.14.
 - **2026-06-04 — v1.0** — Approved.
+- **2026-06-04 — v1.0 (note)** — Retargeted "Memory-Curator ([agents])" → the [curator](curator.md) engine (the role was renamed to the Curator engine; editorial, no rule change).

@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.3   ·   **Last updated:** 2026-06-04
+> **Version:** 1.4   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The canonical glossary — the shared vocabulary every other spec uses. Each term gets one authoritative definition, a cast example, and how it relates to the others; full mechanics live in each term's dedicated spec.
 >
@@ -56,7 +56,8 @@ Each entry: **Term** (`id-prefix`) — definition. *Example:* … · *Relates to
 - **Task** (`task_`) — a **unit of work** with a lifecycle and events; created by the user, an Agent, a Signal/Insight, or from chat. *Example:* "Draft the Framework RFC skeleton." *→ [tasks](tasks.md).*
 - **Periodic Task** (`ptask_`) — a **recurring/scheduled** Task, including a **watcher** that polls a source and emits a Signal on meaningful change. *Example:* nightly Memory distillation; a watch on Northwind's pricing page; the weekly Digest. *→ [periodic-tasks](periodic-tasks.md).*
 
-- **Agent** (`agent_`) — a **scoped, role-based actor** (Executive · Research · Browser · Memory Curator · Ops), observable and bounded by Always/Ask-first/Never. *→ [agents](agents.md), [agent-orchestration](agent-orchestration.md).*
+- **Agent** (`agent_`) — a **scoped, role-based actor** (Executive · Research · Browser · Ops) that does work *for the user*, observable and bounded by Always/Ask-first/Never. *→ [agents](agents.md), [agent-orchestration](agent-orchestration.md).*
+- **Curator** — the **background state-maintenance engine** that turns accepted Evidence into maintained understanding (Storylines, Situations, Insights, Narratives) via small triggered jobs and a propose→commit transaction. Internal; never executes user tasks; peer to the Inbox. *Example:* it auto-resolves a Stripe-blocked Situation once auth succeeds. *→ [curator](curator.md).*
 - **Skill** (`skill_`) — a **packaged capability**: a bundle of Tools, prompts, permissions, and a sandbox policy that an Agent receives and a Space constrains. *Example:* a "release-watcher" Skill. *→ [skills](skills.md).*
 - **Tool** — a **single callable capability** with a typed input/output contract and a declared risk tier; the unit a Skill bundles and an Agent invokes. *Example:* `fetch_page`, `send_email`. *→ [tools](tools.md).*
 
@@ -88,7 +89,7 @@ flowchart LR
 |------|-------|----------|
 | Container | Space | [spaces](spaces.md) |
 | Narrative | Storyline, Situation, Momentum, Attention score, Status | [glossary](glossary.md) (here) + surfaced in [home-and-briefings](home-and-briefings.md) |
-| Pipeline | Signal, Inbox, Evidence, Insight, Narrative, Memory, Entity | [signals](signals.md), [inbox](inbox.md), [evidence](evidence.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [entities](entities.md) |
+| Pipeline | Signal, Inbox, Evidence, Insight, Narrative, Memory, Entity, Curator | [signals](signals.md), [inbox](inbox.md), [evidence](evidence.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [entities](entities.md), [curator](curator.md) |
 | Work | Task, Periodic Task | [tasks](tasks.md), [periodic-tasks](periodic-tasks.md) |
 | Capability | Agent, Skill, Tool | [agents](agents.md), [skills](skills.md), [tools](tools.md) |
 | Surfaces | Conversation, Message, Digest | [conversation](conversation.md), [home-and-briefings](home-and-briefings.md) |
@@ -132,3 +133,4 @@ A periodic watcher on the competitor's release-notes page detects a change → a
 - **2026-06-03 — v1.1** — Insight defined as a lightweight, evidence-backed *captured note* recalled by semantic relevance (`kind`: observation · connection · risk · opportunity · prediction · context). Situation definition carries the *acted-upon vs recalled* boundary. Status fixed as per-type from a shared vocabulary, with Momentum orthogonal (OQ-CON-3). Concept model: [data-model](data-model.md).
 - **2026-06-04 — v1.2** — Evidence redefined as **typed, immutable, append-only** (one `type` of observation/statement/decision/promise/change/relationship/activity), pointing to the new [evidence](evidence.md) spec. Added the **Inbox** term (ingestion staging buffer → [inbox](inbox.md)) and updated the pipeline ownership row. **OQ-CON-2 resolved** — two-layer dedup (signal fingerprint + Evidence reinforcement).
 - **2026-06-04 — v1.3** — Narrative redefined as the **editable synthesis at Space or Storyline scope** (`nar_`), pointing to the new [narrative](narrative.md) spec; the Storyline's Narrative is its `summary`. **OQ-CON-1 partly resolved** (sub-Space Narratives still open).
+- **2026-06-04 — v1.4** — Renamed the **"Memory Curator" agent role → the "Curator"** background state-maintenance engine (its own [curator](curator.md) spec); the Agent roles are now the user-task actors (Executive · Research · Browser · Ops). Added the Curator to the pipeline ownership row.

@@ -170,7 +170,7 @@ A Task uses Tools to get things done; the tier of each Tool determines whether i
 
 ### 5.9 Agents & orchestration
 
-> **REQ-HOW-11.** Work is carried out by **Agents** — scoped, role-based actors (Executive, Research, Browser, Memory-Curator, Ops). Agents **delegate and hand off** to one another, routing approvals as needed.
+> **REQ-HOW-11.** Work is carried out by **Agents** — scoped, role-based actors (Executive, Research, Browser, Ops) that act *for the user*. Agents **delegate and hand off** to one another, routing approvals as needed. Background state-maintenance (keeping Storylines/Situations/Insights/Narratives coherent) is a separate concern, handled by the **Curator** engine ([curator](curator.md)).
 
 > **REQ-HOW-12.** "Aliveness" comes from **continuity** — memory, timing, judgment, and initiative — not fake emotion or mascots ([constitution](constitution.md) P7). The Research Agent that advanced Dr. Belov's consensus question yesterday remembers where it left off today.
 

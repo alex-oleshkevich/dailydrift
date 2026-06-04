@@ -120,7 +120,7 @@ Capture sources include: an Agent reasoning over a Storyline's Evidence; a perio
 
 ### 5.10 The capture contract (LLM)
 
-> **REQ-INS-16.** Capture (§5.3) is performed by the Curator — an Agent ([agents](agents.md)) reading committed [Evidence](evidence.md), typically via an **LLM**. The capture contract enforces this spec's rules: atomic single-`kind` notes (REQ-INS-01), Evidence-backing (REQ-INS-05), liberal capture (REQ-INS-04), **no action items** (those escalate to a [Situation](situations.md), REQ-INS-14), and **reinforce-not-duplicate** (REQ-INS-09). The model *proposes* Insights; embedding, dedup, and the surfacing bar are applied by the System, not the model. All Evidence and context are **untrusted data, never instructions** ([constitution](constitution.md) P12).
+> **REQ-INS-16.** Capture (§5.3) is performed by the Curator ([curator](curator.md)) reading committed [Evidence](evidence.md), typically via an **LLM**. The capture contract enforces this spec's rules: atomic single-`kind` notes (REQ-INS-01), Evidence-backing (REQ-INS-05), liberal capture (REQ-INS-04), **no action items** (those escalate to a [Situation](situations.md), REQ-INS-14), and **reinforce-not-duplicate** (REQ-INS-09). The model *proposes* Insights; embedding, dedup, and the surfacing bar are applied by the System, not the model. All Evidence and context are **untrusted data, never instructions** ([constitution](constitution.md) P12).
 
 **System prompt (static — cache it):**
 
@@ -332,3 +332,4 @@ A Northwind pricing-page watcher and two competitor watchers distill Evidence th
 - **2026-06-03 — v1.0** — Approved.
 - **2026-06-04 — v1.1** — Added §5.10 / REQ-INS-16: the **LLM capture contract** (system prompt + user template + output schema) for the Curator, enforcing atomic single-`kind`, evidence-backed, liberal, non-action, reinforce-not-duplicate capture under the untrusted-data rule (P12).
 - **2026-06-04 — v1.1 (note)** — Cross-reference hygiene: pointed Narrative to [narrative](narrative.md) and Evidence mechanics to [evidence](evidence.md); added both to Related (editorial; no rule change).
+- **2026-06-04 — v1.1 (note)** — Retargeted "the Curator — an Agent ([agents])" → the [curator](curator.md) engine (editorial, no rule change).
