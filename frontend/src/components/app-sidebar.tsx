@@ -2,6 +2,7 @@ import {
     Calendar,
     Home,
     Inbox,
+    ListTodo,
     type LucideIcon,
     MessageSquare,
     Radar,
@@ -52,11 +53,11 @@ const mainItems: NavLeaf[] = [
     { id: "calendar", title: "Calendar", icon: Calendar },
 ];
 
-const settingsItem: NavLeaf = {
-    id: "settings",
-    title: "Settings",
-    icon: Settings,
-};
+// Pinned to the footer, next to Settings.
+const footerItems: NavLeaf[] = [
+    { id: "tasks", title: "Tasks", icon: ListTodo },
+    { id: "settings", title: "Settings", icon: Settings },
+];
 
 const SKELETON_KEYS = ["a", "b", "c"];
 
@@ -188,13 +189,15 @@ export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
             </SidebarContent>
             <SidebarFooter>
                 <SidebarMenu>
-                    <SidebarMenuItem>
-                        <NavButton
-                            item={settingsItem}
-                            activeId={activeId}
-                            onOpen={onOpen}
-                        />
-                    </SidebarMenuItem>
+                    {footerItems.map((item) => (
+                        <SidebarMenuItem key={item.id}>
+                            <NavButton
+                                item={item}
+                                activeId={activeId}
+                                onOpen={onOpen}
+                            />
+                        </SidebarMenuItem>
+                    ))}
                 </SidebarMenu>
             </SidebarFooter>
             <SidebarRail />

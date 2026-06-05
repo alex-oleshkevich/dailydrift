@@ -1,99 +1,81 @@
-import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 import { MomentumBadge } from "@/components/chat/messages/parts";
-import { HomeBlock } from "@/components/home/home-block";
+import { SituationCard } from "@/components/chat/messages/situation-card";
+import { NarrativeCard } from "@/components/narrative/narrative-card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { seedHome } from "@/lib/home";
+import { type HomeStoryline, seedHome } from "@/lib/home";
 
-const DIGESTS = ["Daily", "Weekly", "Space"];
+function SectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+            {children}
+        </h2>
+    );
+}
+
+function StorylineRow({ storyline }: { storyline: HomeStoryline }) {
+    return (
+        <div className="flex flex-col gap-1 rounded-md border px-3 py-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-sm">{storyline.title}</span>
+                <MomentumBadge momentum={storyline.momentum} />
+                <Badge variant="outline" className="capitalize">
+                    {storyline.status}
+                </Badge>
+            </div>
+            <span className="text-muted-foreground text-sm">
+                {storyline.line}
+            </span>
+        </div>
+    );
+}
 
 export function HomeView() {
     const [data, setData] = useState(seedHome);
-    const [digest, setDigest] = useState(DIGESTS[0]);
 
-    const resolveSituation = (id: string, action: string) =>
+    const resolve = (id: string, action: string) =>
         setData((prev) => ({
             ...prev,
-            groups: prev.groups.map((group) => ({
-                ...group,
-                blocks: group.blocks.map((block) =>
-                    block.kind === "situation" && block.situation.id === id
-                        ? {
-                              ...block,
-                              situation: {
-                                  ...block.situation,
-                                  resolved: action,
-                              },
-                          }
-                        : block,
-                ),
-            })),
+            attention: prev.attention.map((s) =>
+                s.id === id ? { ...s, resolved: action } : s,
+            ),
         }));
 
     return (
         <ScrollArea className="h-full">
-            <div className="mx-auto flex max-w-2xl flex-col gap-10 px-8 py-12">
-                <header className="flex flex-col gap-5">
-                    <div className="flex items-center gap-3">
+            <div className="mx-auto flex max-w-2xl flex-col gap-8 px-8 py-10">
+                <header className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        <h1 className="font-semibold text-xl tracking-tight">
+                            Home
+                        </h1>
                         <Badge variant="secondary">{data.space}</Badge>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger
-                                render={
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="ml-auto"
-                                    >
-                                        {digest} digest
-                                        <ChevronDown data-icon="inline-end" />
-                                    </Button>
-                                }
-                            />
-                            <DropdownMenuContent align="end">
-                                {DIGESTS.map((option) => (
-                                    <DropdownMenuItem
-                                        key={option}
-                                        onClick={() => setDigest(option)}
-                                    >
-                                        {option}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
                     </div>
-                    <p className="text-pretty font-medium text-xl leading-relaxed tracking-tight">
-                        {data.briefing}
-                    </p>
+                    <NarrativeCard narrative={data.narrative} />
                 </header>
 
-                {data.groups.map((group) => (
-                    <section key={group.id} className="flex flex-col gap-4">
-                        <div className="flex items-center gap-2">
-                            <h2 className="min-w-0 flex-1 truncate font-semibold text-base">
-                                {group.title}
-                            </h2>
-                            <MomentumBadge momentum={group.momentum} />
-                        </div>
-                        <div className="flex flex-col gap-4 border-border border-l pl-4">
-                            {group.blocks.map((block) => (
-                                <HomeBlock
-                                    key={block.id}
-                                    block={block}
-                                    onResolveSituation={resolveSituation}
-                                />
-                            ))}
-                        </div>
-                    </section>
-                ))}
+                <section className="flex flex-col gap-2">
+                    <SectionLabel>Needs attention</SectionLabel>
+                    {data.attention.map((situation) => (
+                        <SituationCard
+                            key={situation.id}
+                            message={situation}
+                            onResolve={resolve}
+                        />
+                    ))}
+                </section>
+
+                <section className="flex flex-col gap-2">
+                    <SectionLabel>Active Storylines</SectionLabel>
+                    {data.storylines.map((storyline) => (
+                        <StorylineRow
+                            key={storyline.id}
+                            storyline={storyline}
+                        />
+                    ))}
+                </section>
             </div>
         </ScrollArea>
     );

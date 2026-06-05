@@ -1,4 +1,4 @@
-import { TriangleAlert } from "lucide-react";
+import { ShieldAlert, TriangleAlert } from "lucide-react";
 
 import { SystemEvent } from "@/components/chat/messages/parts";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +12,22 @@ export function SituationCard({
     message: SituationMessage;
     onResolve: (id: string, action: string) => void;
 }) {
+    const isSecurity = message.category === "security";
     return (
         <SystemEvent
-            accent="warning"
+            accent={isSecurity ? "destructive" : "warning"}
             emphasis
-            icon={TriangleAlert}
-            label={`Situation · ${message.title}`}
+            icon={isSecurity ? ShieldAlert : TriangleAlert}
+            label={`${isSecurity ? "Security" : "Situation"} · ${message.title}`}
             time={message.time}
             badge={
-                <Badge className="bg-warning text-warning-foreground">
+                <Badge
+                    className={
+                        isSecurity
+                            ? "bg-destructive text-white"
+                            : "bg-warning text-warning-foreground"
+                    }
+                >
                     {message.attention}
                 </Badge>
             }

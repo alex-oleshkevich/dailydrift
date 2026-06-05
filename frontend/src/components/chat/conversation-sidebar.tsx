@@ -19,12 +19,15 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import type {
-    Agent,
-    AgentId,
-    FileRef,
-    StepStatus,
-    Task,
+import {
+    AGENTS,
+    type Agent,
+    type AgentId,
+    type FileRef,
+    type PlanNode,
+    type StepStatus,
+    type Task,
+    type TaskStatus,
 } from "@/lib/conversation";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +36,66 @@ const STEP_ICON = {
     current: CircleDot,
     pending: Circle,
 } as const;
+
+const TASK_STATUS_META: Record<
+    TaskStatus,
+    { label: string; className: string }
+> = {
+    pending: { label: "Pending", className: "text-muted-foreground" },
+    planning: { label: "Planning", className: "" },
+    running: { label: "Running", className: "" },
+    awaiting_approval: {
+        label: "Awaiting approval",
+        className: "border-warning/50 text-warning",
+    },
+    reviewing: { label: "Reviewing", className: "" },
+    done: { label: "Done", className: "border-primary/40 text-primary" },
+    failed: {
+        label: "Failed",
+        className: "border-destructive/40 text-destructive",
+    },
+    cancelled: { label: "Cancelled", className: "text-muted-foreground" },
+};
+
+const PLAN_DOT: Record<TaskStatus, string> = {
+    pending: "bg-border",
+    planning: "bg-muted-foreground",
+    running: "bg-warning animate-pulse",
+    awaiting_approval: "bg-warning",
+    reviewing: "bg-chart-1",
+    done: "bg-primary",
+    failed: "bg-destructive",
+    cancelled: "bg-muted-foreground",
+};
+
+function PlanRow({ node }: { node: PlanNode }) {
+    const role = AGENTS[node.role];
+    return (
+        <div className="flex items-start gap-2 text-xs">
+            <span
+                className={cn(
+                    "mt-1 size-1.5 shrink-0 rounded-full",
+                    PLAN_DOT[node.status],
+                )}
+            />
+            <span className="min-w-0 flex-1">
+                <span className="text-foreground">{node.goal}</span>
+                {node.dependsOn?.length ? (
+                    <span className="text-muted-foreground">
+                        {" "}
+                        · after {node.dependsOn.join(", ")}
+                    </span>
+                ) : null}
+            </span>
+            <Badge
+                variant="outline"
+                className={cn("shrink-0 px-1.5 py-0", role.tint)}
+            >
+                {role.name}
+            </Badge>
+        </div>
+    );
+}
 
 export interface ConversationSidebarProps {
     agents: Agent[];
@@ -112,6 +175,24 @@ function TaskItem({ task }: { task: Task }) {
                         {done}/{total}
                     </span>
                 </div>
+                {task.status ? (
+                    <div className="flex items-center gap-1.5 pl-5">
+                        <Badge
+                            variant="outline"
+                            className={cn(
+                                "px-1.5 py-0 text-xs",
+                                TASK_STATUS_META[task.status].className,
+                            )}
+                        >
+                            {TASK_STATUS_META[task.status].label}
+                        </Badge>
+                        {task.assignedRole ? (
+                            <span className="text-muted-foreground text-xs">
+                                → {AGENTS[task.assignedRole].name}
+                            </span>
+                        ) : null}
+                    </div>
+                ) : null}
                 <Progress value={(done / total) * 100} className="pl-5" />
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-1.5 flex flex-col gap-1 pl-5">
@@ -122,6 +203,16 @@ function TaskItem({ task }: { task: Task }) {
                         status={step.status}
                     />
                 ))}
+                {task.plan?.length ? (
+                    <div className="mt-1.5 flex flex-col gap-1 border-l pl-2.5">
+                        <span className="text-muted-foreground text-xs uppercase tracking-wide">
+                            Plan
+                        </span>
+                        {task.plan.map((node) => (
+                            <PlanRow key={node.id} node={node} />
+                        ))}
+                    </div>
+                ) : null}
             </CollapsibleContent>
         </Collapsible>
     );

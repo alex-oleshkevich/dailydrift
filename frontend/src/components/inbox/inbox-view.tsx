@@ -5,6 +5,7 @@ import {
     MousePointerClick,
     Plug,
     Radar,
+    ShieldAlert,
     Webhook,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -67,6 +68,16 @@ function SignalRow({ signal }: { signal: Signal }) {
                 ) : null}
                 <div className="mt-1 flex items-center gap-2">
                     <Badge variant="secondary">{signal.space}</Badge>
+                    {signal.flagged === "injection" ? (
+                        <Badge
+                            variant="outline"
+                            className="gap-1 border-destructive/40 text-destructive"
+                            title="Suspicious-pattern detector flagged a prompt-injection attempt — processed as data, never obeyed (P12)"
+                        >
+                            <ShieldAlert className="size-3" />
+                            Injection flagged
+                        </Badge>
+                    ) : null}
                     <span className="text-muted-foreground text-xs">
                         {signal.time}
                     </span>

@@ -1,4 +1,6 @@
-export type AgentId = "executive" | "research" | "browser" | "ops" | "memory";
+// Built-in roster, split on mode (primary vs subagent) and read-only-vs-acting.
+// A `Browser` agent is a user-defined Ops specialization, not a built-in (agents.md REQ-AGENT-09).
+export type AgentId = "executive" | "research" | "ops" | "reviewer";
 
 export interface Agent {
     id: AgentId;
@@ -21,38 +23,40 @@ export const AGENTS: Record<AgentId, Agent> = {
     research: {
         id: "research",
         name: "Research",
-        role: "researching",
+        role: "investigating (read-only)",
         initials: "Re",
         tint: "bg-chart-2/20 text-chart-2",
         status: "working",
     },
-    browser: {
-        id: "browser",
-        name: "Browser",
-        role: "browsing",
-        initials: "Br",
-        tint: "bg-chart-1/20 text-chart-1",
-        status: "idle",
-    },
     ops: {
         id: "ops",
         name: "Ops",
-        role: "operations",
+        role: "acting (exec, files, outbound)",
         initials: "Op",
         tint: "bg-chart-5/20 text-chart-5",
         status: "idle",
     },
-    memory: {
-        id: "memory",
-        name: "Memory Curator",
-        role: "curating",
-        initials: "Me",
-        tint: "bg-chart-3/20 text-chart-3",
+    reviewer: {
+        id: "reviewer",
+        name: "Reviewer",
+        role: "checking (fresh eyes)",
+        initials: "Rv",
+        tint: "bg-chart-1/20 text-chart-1",
         status: "idle",
     },
 };
 
 export const AGENT_LIST = Object.values(AGENTS);
+
+// The Curator is a background state-maintenance ENGINE, not an agent (curator.md).
+// Memory consolidation, Storyline/Situation upkeep, and recall-injection run here.
+export const CURATOR = {
+    id: "curator",
+    name: "Curator",
+    role: "background maintenance engine",
+    initials: "Cu",
+    tint: "bg-chart-3/20 text-chart-3",
+} as const;
 
 export type Decision = "allow-once" | "allow-run" | "allow-always" | "deny";
 
@@ -107,11 +111,36 @@ export interface TaskStep {
     status: StepStatus;
 }
 
+// tasks.md lifecycle (REQ-TASK): a Task is a goal, planned → routed → executed →
+// reviewed, with a dedicated `awaiting_approval` pause for mid-task user permission.
+export type TaskStatus =
+    | "pending"
+    | "planning"
+    | "running"
+    | "awaiting_approval"
+    | "reviewing"
+    | "done"
+    | "failed"
+    | "cancelled";
+
+// A leaf of the orchestrator's plan tree (agent-orchestration.md): a subtask routed
+// to one agent role, with its own status and sibling dependencies.
+export interface PlanNode {
+    id: string;
+    goal: string;
+    role: AgentId;
+    status: TaskStatus;
+    dependsOn?: string[];
+}
+
 export interface Task {
     id: string;
     title: string;
     agentId: AgentId;
+    status?: TaskStatus;
+    assignedRole?: AgentId;
     steps: TaskStep[];
+    plan?: PlanNode[];
 }
 
 interface BaseMessage {
@@ -150,11 +179,22 @@ export interface InsightMessage extends BaseMessage {
     evidence?: Evidence[];
 }
 
+// situations.md category catalog (REQ-SIT-02), plus `security` for detected
+// prompt-injection attempts (prompt-injection.md REQ-PINJ-14, OQ-PINJ-3).
+export type SituationCategory =
+    | "blocker"
+    | "decision"
+    | "deadline"
+    | "approval"
+    | "contradiction"
+    | "security";
+
 export interface SituationMessage extends BaseMessage {
     kind: "situation";
     title: string;
     detail: string;
     attention: number;
+    category?: SituationCategory;
     storyline?: string;
     actions: string[];
     resolved?: string;
@@ -408,22 +448,82 @@ const STORYLINES: Storyline[] = [
     },
 ];
 
-function seedTasks(): Task[] {
+export function seedTasks(): Task[] {
     return [
         {
             id: "task-sources",
             title: "Compile Belov sources",
-            agentId: "research",
+            agentId: "executive",
+            status: "running",
+            assignedRole: "research",
             steps: [
-                { label: "Search archives", status: "done" },
-                { label: "Read top results", status: "current" },
-                { label: "Summarize findings", status: "pending" },
+                { label: "Plan", status: "done" },
+                { label: "Dispatch research leaves", status: "current" },
+                { label: "Synthesize", status: "pending" },
+                { label: "Review (fresh eyes)", status: "pending" },
+            ],
+            plan: [
+                {
+                    id: "t1",
+                    goal: "Search archives for Belov papers",
+                    role: "research",
+                    status: "done",
+                },
+                {
+                    id: "t2",
+                    goal: "Read the three candidate papers",
+                    role: "research",
+                    status: "running",
+                    dependsOn: ["t1"],
+                },
+                {
+                    id: "t3",
+                    goal: "Draft a consensus summary",
+                    role: "research",
+                    status: "pending",
+                    dependsOn: ["t2"],
+                },
+                {
+                    id: "t4",
+                    goal: "Review the summary",
+                    role: "reviewer",
+                    status: "pending",
+                    dependsOn: ["t3"],
+                },
+            ],
+        },
+        {
+            id: "task-billing",
+            title: "Run the Q2 billing migration",
+            agentId: "executive",
+            status: "awaiting_approval",
+            assignedRole: "ops",
+            steps: [
+                { label: "Plan", status: "done" },
+                { label: "Re-authenticate Stripe", status: "current" },
+                { label: "Execute billing run", status: "pending" },
+            ],
+            plan: [
+                {
+                    id: "b1",
+                    goal: "Re-authenticate the Stripe session",
+                    role: "ops",
+                    status: "awaiting_approval",
+                },
+                {
+                    id: "b2",
+                    goal: "Run the billing migration",
+                    role: "ops",
+                    status: "pending",
+                    dependsOn: ["b1"],
+                },
             ],
         },
         {
             id: "task-email",
             title: "Draft Belov email",
             agentId: "executive",
+            status: "planning",
             steps: [
                 { label: "Gather context", status: "pending" },
                 { label: "Write draft", status: "pending" },
@@ -473,7 +573,7 @@ function bulkConversation(count: number): ConversationData {
                 id,
                 time,
                 kind: "permission",
-                agentId: "browser",
+                agentId: "ops",
                 action: perm.action,
                 detail: perm.detail,
                 decision: i % 2 === 0 ? "allow-once" : "deny",
@@ -496,7 +596,7 @@ function bulkConversation(count: number): ConversationData {
                 id,
                 time,
                 kind: "error",
-                body: "Couldn't reach the Browser Agent — request timed out.",
+                body: "Couldn't reach the Ops Agent — request timed out.",
             });
             continue;
         }
@@ -527,7 +627,7 @@ function bulkConversation(count: number): ConversationData {
                 id,
                 time,
                 kind: "storyline-started",
-                agentId: "memory",
+                agentId: "executive",
                 title: "Onboarding revamp",
                 detail: "Detected a recurring thread across recent messages; now tracking it.",
             });
@@ -597,7 +697,7 @@ function bulkConversation(count: number): ConversationData {
             id: "seed-permission",
             time: timeAt(base + 1),
             kind: "permission",
-            agentId: "browser",
+            agentId: "ops",
             action: "Submit the login form",
             detail: "on stripe.com/login",
         },
@@ -665,7 +765,7 @@ function showcaseConversation(): ConversationData {
             id: "sc-storyline-started",
             time: timeAt(5),
             kind: "storyline-started",
-            agentId: "memory",
+            agentId: "executive",
             title: "Belov consensus research",
             detail: "Detected a new recurring thread; now tracking it.",
         },
@@ -695,7 +795,7 @@ function showcaseConversation(): ConversationData {
             id: "sc-error",
             time: timeAt(9),
             kind: "error",
-            body: "Couldn't reach the Browser Agent — request timed out.",
+            body: "Couldn't reach the Ops Agent — request timed out.",
         },
         {
             id: "sc-situation",
@@ -711,7 +811,7 @@ function showcaseConversation(): ConversationData {
             id: "sc-permission",
             time: timeAt(11),
             kind: "permission",
-            agentId: "browser",
+            agentId: "ops",
             action: "Submit the login form",
             detail: "on stripe.com/login",
         },
@@ -720,7 +820,7 @@ function showcaseConversation(): ConversationData {
             time: timeAt(12),
             kind: "subagent-call",
             agentId: "research",
-            subagentId: "browser",
+            subagentId: "ops",
             task: "Fetch and summarize the three candidate Belov papers",
             status: "done",
             steps: THINKING.slice(0, 3),
@@ -731,7 +831,7 @@ function showcaseConversation(): ConversationData {
             time: timeAt(13),
             kind: "subagent-call",
             agentId: "executive",
-            subagentId: "memory",
+            subagentId: "research",
             task: "Distill the new sources into Evidence and attach to the storyline",
             status: "running",
         },

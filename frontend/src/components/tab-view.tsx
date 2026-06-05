@@ -11,7 +11,9 @@ import type { NavLeaf } from "@/components/app-sidebar";
 import { ChatView } from "@/components/chat/chat-view";
 import { HomeView } from "@/components/home/home-view";
 import { InboxView } from "@/components/inbox/inbox-view";
+import { SettingsView } from "@/components/settings/settings-view";
 import { StorylineView } from "@/components/storyline/storyline-view";
+import { TasksView } from "@/components/tasks/tasks-view";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -150,6 +152,10 @@ export function TabView({
                             <HomeView />
                         ) : tab.id === "inbox" ? (
                             <InboxView />
+                        ) : tab.id === "tasks" ? (
+                            <TasksView />
+                        ) : tab.id === "settings" ? (
+                            <SettingsView />
                         ) : tab.id.startsWith("story-") ? (
                             <StorylineView storylineId={tab.id} />
                         ) : (
