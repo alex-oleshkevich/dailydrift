@@ -2,7 +2,7 @@
 
 > **Status:** In Review
 >
-> **Version:** 0.2   ·   **Last updated:** 2026-06-04
+> **Version:** 0.3   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The Agent feature — the scoped, role-based **actors that do work for the user**: how an Agent is **defined** (the full field set), the **built-in roster** plus **user-definable** agents, the agent **run loop**, **sandbox/isolation**, and the **subagent/depth** policy.
 >
@@ -77,6 +77,18 @@ Every production agent system converges on the same shape for "what an agent is"
 
 > **REQ-AGENT-03.** Every Agent carries a `name`, a `role`, and a **`description`/`when_to_use`** — a short statement of *what this agent is for and when to pick it*. The **orchestrator routes on the description** (§[agent-orchestration](agent-orchestration.md) REQ-AORCH-03), so it must be specific about the agent's strengths **and** its non-uses (e.g. *"…use for X; do NOT use for code review or open-ended analysis"*), mirroring real subagent `whenToUse` fields.
 
+**◆ Source pattern — Claude Code subagents & opencode** (`code.claude.com/docs/en/sub-agents`; `opencode.ai/docs/agents`). Both route on the `description`, which is *required* and must say *when* to use the agent:
+> "Claude uses each subagent's description to decide when to delegate tasks. When you create a subagent, write a clear description so Claude knows when to use it." — Claude Code
+>
+> "Use the `description` option to provide a brief description of what the agent does and when to use it." (required) — opencode
+
+A real `description` exemplar (Claude Code) — note the explicit *when*:
+```text
+description: Expert code review specialist. Proactively reviews code for quality,
+security, and maintainability. Use immediately after writing or modifying code.
+```
+*Used here:* our `description`/`when_to_use` is the routing handle for REQ-AORCH-03; the "do NOT use for…" guidance just extends the same idea to the negative case.
+
 ### 5.4 `system_prompt` vs `personality`
 
 > **REQ-AGENT-04.** An Agent's **`system_prompt`** (operating instructions — *how it works*: its method, constraints, output expectations) is **separate from** its **`personality`** (*who it is*: voice and boundaries). Personality is represented as a **prose persona + structured guardrails**:
@@ -86,6 +98,24 @@ Every production agent system converges on the same shape for "what an agent is"
 >
 > Personality is the **consistent layer** — it persists across every Task the agent runs, while the system prompt may be task-shaped. (Per persona best practice, **anti-goals matter as much as goals** for preventing drift; this mirrors OpenClaw's `SOUL.md`/`IDENTITY.md` and CrewAI's `backstory`.)
 
+**◆ Source pattern — OpenClaw, `SOUL.md` vs `AGENTS.md`** (local: `docs/reference/templates/`). The two bootstrap files *are* our `personality` ÷ `system_prompt` — "who you are" kept apart from "how you work":
+```text
+# SOUL.md - Who You Are
+*You're not a chatbot. You're becoming someone.*
+
+**Have opinions.** You're allowed to disagree, prefer things, find stuff amusing or
+boring. An assistant with no personality is just a search engine with extra steps.
+```
+```text
+# AGENTS.md - Your Workspace
+## Every Session
+Before doing anything else:
+1. Read `SOUL.md` — this is who you are
+2. Read `USER.md` — this is who you're helping
+Don't ask permission. Just do it.
+```
+*Used here:* `SOUL.md` ⇒ `personality` (the consistent "who", incl. anti-goals); `AGENTS.md` ⇒ `system_prompt` (the operating "how"). CrewAI splits identically (`role`/`goal` vs `backstory`).
+
 ### 5.5 Skill set
 
 > **REQ-AGENT-05.** An Agent's `skill_set` lists the [Skills](skills.md) it carries (`skill_`); skills are **loaded into context on demand** (read the skill's instructions before applying it). Skills package reusable capability; the Agent references them, it does not define them.
@@ -93,6 +123,26 @@ Every production agent system converges on the same shape for "what an agent is"
 ### 5.6 Tool set & policy
 
 > **REQ-AGENT-06.** An Agent's `tool_set` lists the [Tools](tools.md) it may call (`tool_`), and `tool_policy` sets a **per-tool tier — `allow` / `ask` / `deny`** (after opencode's permission model). `ask` routes through the Ask-first gate ([permissions](permissions.md), [tasks](tasks.md) REQ-TASK-07). **Subagents get a restricted set** by a hard denylist (no spawning further agents, no admin/session tools), as in OpenClaw's subagent policy (§5.12).
+
+**◆ Source pattern — opencode, per-tool `permission`** (`opencode.ai/docs/agents`). `allow`/`deny` per tool, per agent — the shape our `tool_policy` extends with an `ask` tier:
+```json
+{
+  "agent": {
+    "build": {
+      "mode": "primary",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "prompt": "{file:./prompts/build.txt}",
+      "permission": { "edit": "allow", "bash": "allow" }
+    },
+    "plan": {
+      "mode": "primary",
+      "model": "anthropic/claude-haiku-4-20250514",
+      "permission": { "edit": "deny", "bash": "deny" }
+    }
+  }
+}
+```
+*Used here:* same allow/deny shape; our middle **`ask`** tier routes through the Ask-first gate (REQ-TASK-07). The subagent restriction itself is the OpenClaw denylist quoted at REQ-AGENT-12/13.
 
 ### 5.7 Model
 
@@ -123,13 +173,44 @@ Every production agent system converges on the same shape for "what an agent is"
 
 > **REQ-AGENT-11.** An Agent runs under a `sandbox` profile ([sandboxing](sandboxing.md)) scoping its filesystem/network/exec access. A **spawned subagent runs in isolated context** — it **cannot see the orchestrator's conversation** and receives only the self-contained prompt it was dispatched with ([agent-orchestration](agent-orchestration.md) REQ-AORCH-04). Per-agent sandboxing mirrors OpenClaw's per-agent Docker model.
 
+**◆ Source pattern — Claude Code subagents** (`code.claude.com/docs/en/sub-agents`). Verbatim on per-agent isolation:
+> "Each subagent runs in its own context window with a custom system prompt, specific tool access, and independent permissions."
+>
+> "the subagent does that work in its own context and returns only the summary"
+
+*Used here:* grounds REQ-AGENT-11 (isolated context) and REQ-AORCH-04/06 — a worker can't see the conversation and returns only a result the orchestrator synthesizes.
+
 ### 5.12 Subagent & depth policy
 
 > **REQ-AGENT-12.** By default, **only the orchestrator spawns agents**; an executing agent is a **leaf that does not spawn its own orchestration** (`subagent_policy.can_spawn = false`). This is **depth-1** — uniform across OpenClaw, Claude Code, Anthropic Managed Agents, and Hermes. **The recursion lives in the *plan*** (the orchestrator may decompose a goal into a deep subtask tree — [tasks](tasks.md) recursion), **not in agent-spawning.** An agent that legitimately needs sub-work returns a result that the orchestrator turns into further subtasks.
 
+**◆ Source pattern — OpenClaw, `DEFAULT_SUBAGENT_TOOL_DENY`** (local: `src/agents/pi-tools.policy.ts`). Subagents are *hard-denied* the spawn/session tools — depth-1 enforced in code, not by convention:
+```text
+const DEFAULT_SUBAGENT_TOOL_DENY = [
+  // Session management - main agent orchestrates
+  "sessions_list",
+  "sessions_history",
+  "sessions_send",
+  "sessions_spawn",
+  // System admin - dangerous from subagent
+  "gateway",
+  "agents_list",
+  ...
+];
+```
+*Used here:* `sessions_spawn` in the denylist *is* `subagent_policy.can_spawn = false` (REQ-AGENT-12) — recursion lives in the orchestrator's plan, never in agent-spawning.
+
 ### 5.13 Memory & continuity
 
 > **REQ-AGENT-13.** An Agent **does not recall from [Memory](memory.md) on its own.** Whatever durable knowledge an agent needs is **recalled by the orchestrator** (or by the System, for a user-facing turn) and **injected into the agent's prompt** ([agent-orchestration](agent-orchestration.md) REQ-AORCH-04, [memory](memory.md) REQ-MEM-16) — consistent with worker isolation (REQ-AGENT-11): a subagent receives only its self-contained prompt and never queries shared state. An agent's continuity therefore comes from its **persona** plus the **context it is handed**, not from a private memory of its own — *personality through continuity*, not per-agent state. (A `Research` agent may still *investigate the world* with its tools; that is tool use, not Memory recall.)
+
+**◆ Source pattern — OpenClaw, same denylist, the memory entries** (local: `src/agents/pi-tools.policy.ts`). Real production code denies a subagent the memory tools, with the rationale right in the comment — independent validation of "the orchestrator puts memory in the prompt":
+```text
+  // Memory - pass relevant info in spawn prompt instead
+  "memory_search",
+  "memory_get",
+```
+*Used here:* REQ-AGENT-13 verbatim-in-the-wild — a spawned worker cannot query Memory; whatever it needs is recalled by the orchestrator and packed into its prompt (REQ-MEM-16, REQ-AORCH-04).
 
 ### 5.14 Configuration — where agents are defined
 
@@ -256,3 +337,4 @@ A **`Browser`** agent — a user-defined `Ops` specialization (§5.14, REQ-AGENT
 
 - **2026-06-04 — v0.1** — Initial draft. The Agent as a user-task actor (REQ-AGENT-01); the full production definition field set (REQ-AGENT-02) with `description/when_to_use` routing handle (REQ-AGENT-03); `system_prompt` vs `personality` (persona + tone + anti-goals) as separate layers (REQ-AGENT-04); skills/tools+policy/mcp/model/mode (REQ-AGENT-05…-08); the **built-in + user-definable** roster (REQ-AGENT-09); the bounded run loop (REQ-AGENT-10); sandbox/isolation (REQ-AGENT-11) and **depth-1** subagent policy with recursion-in-the-plan (REQ-AGENT-12); memory/continuity (REQ-AGENT-13); config-defined agents (REQ-AGENT-14). Code-grounded (OpenClaw/opencode/Claude Code/Anthropic/CrewAI/Hermes). In Review.
 - **2026-06-04 — v0.2** — Removed two over-added fields — **`memory_scope`** (Space-scoping + downstream inheritance in [memory](memory.md) REQ-MEM-04 already govern recall) and **`builtin`** (provenance is derivable from where the agent is defined). **Collapsed the roster to four built-ins** — `Executive`/`Research`/`Ops`/`Reviewer` — splitting on **mode** (primary vs subagent) and **read-only-vs-acting**, not tool family; `Browser` is now the canonical **user-defined `Ops` specialization** (REQ-AGENT-09). **Agents are memory-stateless** — the orchestrator recalls and injects Memory into the agent's prompt; no per-agent recall (REQ-AGENT-13, [memory](memory.md) REQ-MEM-16).
+- **2026-06-04 — v0.3** — Added inline **◆ Source pattern** call-outs with **verbatim** excerpts from the grounding projects: persona÷instructions (OpenClaw `SOUL.md`/`AGENTS.md`), description-routing (Claude Code/opencode), per-tool `permission` (opencode), per-agent isolation (Claude Code), and the OpenClaw `DEFAULT_SUBAGENT_TOOL_DENY` that enforces depth-1 (`sessions_spawn` denied) and memory-in-prompt (`memory_search`/`memory_get` denied — "pass relevant info in spawn prompt instead") in real code.
