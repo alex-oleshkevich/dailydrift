@@ -1,8 +1,8 @@
 # Prompt Injection
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.1   ·   **Last updated:** 2026-06-05
+> **Version:** 1.0   ·   **Last updated:** 2026-06-05
 >
 > **Purpose:** The System-wide defense against **prompt injection** — the home of [constitution](constitution.md) P12 ("untrusted content is data, not instructions"). Owns the threat model (the *lethal trifecta*), the layered defenses, the **one canonical untrusted-content envelope** every LLM contract must use, the active defenses (detection, quarantine, budgets), and the backstop guarantees.
 >
@@ -270,3 +270,4 @@ Also: **OWASP Top-10 for LLM Applications — LLM01 Prompt Injection** & **LLM06
 ## 13. Changelog
 
 - **2026-06-05 — v0.1** — Initial draft, replacing the stub. Threat model as the **lethal trifecta** + OWASP LLM01/LLM06 (REQ-PINJ-01); P12 as the inherited invariant (REQ-PINJ-02); defense-in-depth (REQ-PINJ-03); the **canonical untrusted-content envelope** as the normative house standard (REQ-PINJ-04, §7.1) + trust separation (REQ-PINJ-05); trifecta-breaking (REQ-PINJ-06) with the §5 gates as the deterministic backstop (REQ-PINJ-07) and secrets-never-in-prompts (REQ-PINJ-08); the quarantine/reader-agent pattern (REQ-PINJ-09), tool blast-radius (REQ-PINJ-10), sandbox containment (REQ-PINJ-11), action budgets/rate limits (REQ-PINJ-12); advisory detection (REQ-PINJ-13) + surfacing as `statement` Evidence + a quiet `security` Situation (REQ-PINJ-14); model-strength posture (REQ-PINJ-15); ownership/non-duplication (REQ-PINJ-16). Code-grounded in OpenClaw (`external-content.ts`, `pi-tools.policy.ts`, security docs) with verbatim ◆ Source-pattern call-outs; cites OWASP LLM01/LLM06 and Willison's lethal trifecta. In Review.
+- **2026-06-05 — v1.0** — Approved.
