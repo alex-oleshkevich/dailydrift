@@ -1,8 +1,8 @@
 # Sandboxing
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.2   ·   **Last updated:** 2026-06-05
+> **Version:** 1.0   ·   **Last updated:** 2026-06-05
 >
 > **Purpose:** The execution-isolation substrate — how the System runs a Task's tools/code inside a confined **execution worker** so a hijacked or buggy worker cannot reach the host, the network, secrets, or other Spaces. Owns the **per-agent sandbox profile**, the **pluggable userspace backends** (native OS primitives by default; Docker optional), and the **best-effort enforcement** model. **Hard constraint: the System has no root — every default backend runs in user space.**
 >
@@ -321,3 +321,4 @@ if (cfg.network) args.push("--network", cfg.network);          // default "none"
 
 - **2026-06-05 — v0.1** — Initial draft. The sandboxed-worker / trusted-orchestrator model (REQ-SBX-01); the **no-root userspace** constraint (REQ-SBX-02); the **per-agent declarative profile** schema (REQ-SBX-03, §7.1); pluggable backends with auto-selection (REQ-SBX-04); the three **native unprivileged backends** — Linux Landlock+seccomp+`no_new_privs` (REQ-SBX-05), macOS Seatbelt/`sandbox-exec` (REQ-SBX-06), Windows restricted-token+ACL+Firewall+Job-Object (REQ-SBX-07); the **optional Docker** backend (REQ-SBX-08); **best-effort enforcement + warning** (REQ-SBX-09); per-agent egress (REQ-SBX-10), default-deny filesystem (REQ-SBX-11), resource/timeout caps (REQ-SBX-12), secrets-never-in-the-sandbox via a broker (REQ-SBX-13); the L4 containment role (REQ-SBX-14); observability (REQ-SBX-15); ownership/non-duplication (REQ-SBX-16). Code-grounded in OpenClaw (`types.sandbox.ts`/`docker.ts`) with verbatim ◆ Source-patterns; nanoclaw's whole-agent principle and the native-primitive literature (Codex/nono/OWASP) cited — no fabricated nanoclaw internals. In Review.
 - **2026-06-05 — v0.2** — Added **container backends** to REQ-SBX-08: **rootless Podman** (Linux, daemonless — default-capable) and **Apple `container`** (macOS, one-VM-per-container via Virtualization.framework) as no-root container runtimes, with Docker remaining daemon-only/optional. Added the **systemd backend** (REQ-SBX-17) — `systemd-run --user` mapping the profile to unit-hardening directives (`SystemCallFilter`/`ProtectSystem`/`RestrictAddressFamilies`/`MemoryMax`…) over the same primitives, unprivileged. Set the **target to current OS releases** (recent Linux kernel, macOS 26+ on Apple silicon, Windows 11) so the modern unprivileged primitives are the baseline. Updated §6.2 diagram, §7.2 mapping, concepts, and edge cases; ◆ Source pattern for Podman/Apple `container`.
+- **2026-06-05 — v1.0** — Approved.
