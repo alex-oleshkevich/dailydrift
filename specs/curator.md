@@ -1,8 +1,8 @@
 # Curator
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.1   ·   **Last updated:** 2026-06-04
+> **Version:** 1.0   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The Curator feature end-to-end — the background **state-maintenance engine** that turns accepted Evidence into maintained understanding: its triggers, its catalog of focused jobs, the propose→commit transaction, what it may and may not mutate, the deterministic+LLM split, and the guards that keep it from over-creating or drifting.
 >
@@ -475,3 +475,4 @@ A single visit to a docs page arrives with no corroboration. `storyline.update` 
 
 - **2026-06-04 — v0.1** — Initial draft. The Curator as a background, **level-triggered** state-maintenance engine (REQ-CUR-01/02); the seven-job catalog detailed (REQ-CUR-03…-10) — `storyline.update`/`merge_candidates`, `situation.update`, `insight.evaluate`, `narrative.refresh`, `memory.compress`, `cleanup` (Digests out of scope); hybrid deterministic+LLM reasoning (REQ-CUR-11); the propose→commit, idempotent patch transaction (REQ-CUR-12); the mutation boundary (REQ-CUR-13); auto-commit autonomy with confidence-gated merge/split proposals (REQ-CUR-14); the five failure-mode guards (REQ-CUR-15); and three new prompt contracts — merge/split, insight-evaluation, cleanup (§5.16–5.18). Reuses the approved primitive contracts. In Review.
 - **2026-06-04 — v0.1 (note)** — Hardened merge/split (REQ-CUR-05, §5.16): merge **only on shared Evidence/Entities/files, never name similarity**; added **over-merging** as an explicit failure mode (REQ-CUR-15, §9) — worse than over-creation since it destroys the distinction. Replaced the misleading name-based merge example.
+- **2026-06-04 — v1.0** — Approved.

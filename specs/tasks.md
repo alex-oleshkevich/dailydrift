@@ -1,8 +1,8 @@
 # Tasks
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.2   ·   **Last updated:** 2026-06-04
+> **Version:** 1.0   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The Task feature — an **agentic** unit of work: a *goal* given to an agent. A Task is **planned into subtasks**, each **routed** to the right agent and **executed**, then **reviewed**. Owns the (recursive) Task entity, its status, the plan→execute→review journey, the mid-task **approval** pause, and **cancellation**.
 >
@@ -81,11 +81,11 @@ A Task is also the **attempt to change a [Situation](situations.md)** (REQ-SIT-1
 
 ### 5.5 Routing & assignment
 
-> **REQ-TASK-05.** Each **leaf** subtask is **routed** to the one [agent](agents.md) role whose **skills/tools** ([skills](skills.md) / [tools](tools.md)) fit the subtask — deterministically when the required capability is obvious, by an LLM router when it is ambiguous. The chosen role is recorded as `assigned_role`.
+> **REQ-TASK-05.** Each **leaf** subtask is **routed** to the one [agent](agents.md) role whose **`description`/when-to-use + skills/tools** ([agents](agents.md) REQ-AGENT-03 / [skills](skills.md) / [tools](tools.md)) fit the subtask — deterministically when the required capability is obvious, by an LLM router (on the `description`) when it is ambiguous. The routing mechanism is owned by [agent-orchestration](agent-orchestration.md) REQ-AORCH-03; the chosen role is recorded as `assigned_role`.
 
 ### 5.6 Execution
 
-> **REQ-TASK-06.** The assigned agent executes a **leaf** via its own agent loop (its role, skills, tools, sandbox — [agents](agents.md)). A **parent** does not execute directly; it is `done` when its subtasks complete (and `failed`/surfaced if a required subtask fails — OQ-TASK-4). Subtasks run in `plan_order` (sequential by default; a dependency graph is deferred — OQ-TASK-2).
+> **REQ-TASK-06.** The assigned agent executes a **leaf** via its own agent loop (its role, skills, tools, sandbox — [agents](agents.md)). A **parent** does not execute directly; it is `done` when its subtasks complete (and `failed`/surfaced if a required subtask fails — OQ-TASK-4). Subtasks run respecting **`depends_on`** — independent subtasks run **in parallel** (up to a concurrency cap), dependent ones in order; the scheduling is owned by [agent-orchestration](agent-orchestration.md).
 
 ### 5.7 Mid-task approval
 
@@ -120,6 +120,10 @@ A Task is also the **attempt to change a [Situation](situations.md)** (REQ-SIT-1
 
 > **REQ-TASK-11.** A Task's **status**, its **review** outcomes, and every **approval decision** are observable and logged ([activity-log](activity-log.md)) with actor and time. A parent's subtasks are inspectable as its plan.
 
+### 5.12 Emitting a Signal
+
+> **REQ-TASK-12.** A Task **may emit a [Signal](signals.md)** into the [Inbox](inbox.md). This is the capability that **replaces the watcher primitive**: a Task scheduled by a [Periodic Task](periodic-tasks.md) (REQ-PTASK-04) that polls a source and detects a meaningful change simply **emits a Signal**, which then flows through ingestion ([signals](signals.md) / [inbox](inbox.md)) like any other. Emitting is internal; the Signal is **untrusted data** thereafter (P12), handled by the normal pipeline.
+
 ## 6. Visualizations
 
 ### 6.1 Task status
@@ -127,6 +131,13 @@ A Task is also the **attempt to change a [Situation](situations.md)** (REQ-SIT-1
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 stateDiagram-v2
+    classDef active fill:#4A90D9,stroke:#2C6FB5,color:#fff
+    classDef hold fill:#FFF3CD,stroke:#FFC107,color:#333
+    classDef review fill:#7B68EE,stroke:#6A5ACD,color:#fff
+    classDef good fill:#2ECC71,stroke:#27AE60,color:#fff
+    classDef bad fill:#E74C3C,stroke:#C0392B,color:#fff
+    classDef drop fill:#95A5A6,stroke:#7F8C8D,color:#fff
+
     [*] --> pending
     pending --> planning: orchestrator picks up
     planning --> running: subtasks created (or atomic leaf)
@@ -137,13 +148,21 @@ stateDiagram-v2
     reviewing --> done: reviewer approves
     reviewing --> running: changes requested (bounded)
     running --> failed: errored / review cap reached
-    running --> cancelled: cancelled
     done --> [*]
     failed --> [*]
     cancelled --> [*]
+
+    class pending active
+    class planning active
+    class running active
+    class awaiting_approval hold
+    class reviewing review
+    class done good
+    class failed bad
+    class cancelled drop
 ```
 
-*Any non-terminal state can go to `cancelled` (user / denied / timeout / parent cascade — §5.9); only `running` ↔ `awaiting_approval` / `reviewing` are shown for clarity.*
+*Blue = active (`pending`/`planning`/`running`), amber = `awaiting_approval` (the wait = the `approval` Situation), violet = `reviewing`, green/red = succeeded/errored, grey = `cancelled`. **Any non-terminal state can go to `cancelled`** (user / denied / timeout / parent cascade — §5.9); the cancel edges are omitted from the diagram for readability.*
 
 ### 6.2 Plan → execute → review
 
@@ -184,6 +203,7 @@ interface Task {              // agentic, recursive — a subtask is a Task
     | "reviewing" | "done" | "failed" | "cancelled";
   parent_task_id?: string;    // null = top-level; set = a subtask
   plan_order?: number;        // this subtask's place in the parent's plan
+  depends_on: string[];       // sibling subtask ids this one waits for (independent ones run in parallel)
   assigned_role?: string;     // the agent role routed to run a leaf (set by routing, §5.5)
   created_by: "user" | "agent" | "curator";
   situation_id?: string;      // the Situation it acts on; or the open `approval` Situation while awaiting permission
@@ -219,16 +239,16 @@ The user cancels the parent *"prepare the handoff."* Subtask 3 (still `running`)
 - **Runaway decomposition.** A planner that keeps splitting is bounded by a depth guard (OQ-TASK-1); a leaf is simply a Task the planner didn't split (REQ-TASK-04).
 - **Review never satisfied.** The bounded loop caps iterations, then escalates to the user / fails — it does not loop forever (REQ-TASK-08).
 - **Approval never answered.** The Task sits in `awaiting_approval`; the `approval` Situation keeps it visible; on the deadline it `cancelled`s (`permission_timeout`), or the user cancels first (REQ-TASK-07/09).
-- **Subtask fails.** A failed required subtask fails (or surfaces) the parent; whether the planner **replans** the remainder is deferred (OQ-TASK-4).
+- **Subtask fails.** The orchestrator **replans** the remaining work; only if unrecoverable does the parent fail/surface ([agent-orchestration](agent-orchestration.md) REQ-AORCH-08).
 - **Restart mid-flight.** Every Task is a persisted row; status, plan, and the `approval` Situation all survive — no engine needed.
 - **Self-review bias avoided.** Review is always a **separate** agent, never the worker grading itself (REQ-TASK-08).
 
 ## 10. Open Questions & Decisions
 
 - **OQ-TASK-1** — The **decomposition depth guard** (how deep recursive planning may go) and what makes a goal "atomic."
-- **OQ-TASK-2** — **Sequential vs dependency-graph** subtasks (a `depends_on` for parallelism). Sequential by `plan_order` for now.
+- **OQ-TASK-2 (resolved)** — Subtasks use a **`depends_on` dependency graph**; independent ones run in **parallel** (scheduling owned by [agent-orchestration](agent-orchestration.md)).
 - **OQ-TASK-3** — The **review iteration cap** and the **escalation** mechanism past it (a Situation vs `failed`).
-- **OQ-TASK-4** — On a subtask failure, **fail the parent vs replan** the remaining subtasks.
+- **OQ-TASK-4 (resolved)** — On a subtask failure the orchestrator **dynamically replans** the remaining work, escalating only when unrecoverable ([agent-orchestration](agent-orchestration.md) REQ-AORCH-08).
 - **OQ-TASK-5** — Whether review is **per-leaf always**, or risk-based (skip pure-internal leaves). The queue **runtime** is [app-architecture](app-architecture.md); the approval **deadline** default lives on the `approval` Situation.
 
 ## 11. Review & Acceptance Checklist
@@ -241,6 +261,7 @@ The user cancels the parent *"prepare the handoff."* Subtask 3 (still `running`)
 - [ ] Review is a **separate** reviewer agent, bounded, with reviewer-*quality* distinct from user-*permission* (REQ-TASK-08).
 - [ ] Cancellation is a terminal state from any non-terminal one, with `cancel_reason`, cascade to subtasks, cooperative, no compensation (REQ-TASK-09).
 - [ ] Situation relationship and observability/audit are specified (REQ-TASK-10/11). Examples use the [constitution](constitution.md) §7 cast; no enterprise machinery.
+- [ ] Subtasks carry `depends_on` (parallel where independent); a Task may **emit a Signal** (replaces the watcher) (REQ-TASK-06/12).
 
 ## 12. Cross-References
 
@@ -256,3 +277,6 @@ The user cancels the parent *"prepare the handoff."* Subtask 3 (still `running`)
 
 - **2026-06-04 — v0.1** — Initial draft. A deliberately simple, Celery-style Task (status/assignment/queue) with mid-task approval via the `approval` Situation and no waiting status.
 - **2026-06-04 — v0.2** — **Reframed as agentic.** A Task is now a **goal**, **recursive** (subtask = Task, `parent_task_id`), **planned-first** into ordered subtasks (REQ-TASK-04), **routed** to an agent role by skills/tools (REQ-TASK-05), executed (REQ-TASK-06), and **reviewed by a separate reviewer agent** in a bounded loop (REQ-TASK-08, reviewer-quality distinct from user-permission). Added the **dedicated `awaiting_approval` status** mirroring the `approval` Situation (REQ-TASK-07) and full **cancellation** with `cancel_reason` + cascade (REQ-TASK-09). Status set is now `pending/planning/running/awaiting_approval/reviewing/done/failed/cancelled`. Still no enterprise queue machinery.
+- **2026-06-04 — v0.3** — Added **`depends_on`** to subtasks (parallel where independent — resolves OQ-TASK-2) and noted **dynamic replanning** (resolves OQ-TASK-4, → [agent-orchestration](agent-orchestration.md)); added **REQ-TASK-12: a Task may emit a [Signal](signals.md)** (replaces the watcher primitive, [periodic-tasks](periodic-tasks.md) REQ-PTASK-04); **improved the §6.1 status diagram** (color-coded by state class).
+- **2026-06-04 — v0.4** — Aligned **REQ-TASK-05 routing** with [agent-orchestration](agent-orchestration.md) REQ-AORCH-03: routing is on an agent's **`description`/when-to-use + skills/tools** (deterministic-then-semantic), not skills/tools alone; the routing mechanism is owned by agent-orchestration.
+- **2026-06-04 — v1.0** — Approved.

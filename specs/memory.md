@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.1   ·   **Last updated:** 2026-06-04
+> **Version:** 1.2   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** The Memory feature end-to-end — durable distilled knowledge (`mem_`: facts, preferences, profiles, summaries), the **shared semantic index** and **recall** that the rest of the System retrieves by meaning, **distillation** of accumulated material into durable knowledge, and **retention/decay**.
 >
@@ -183,6 +183,20 @@ Propose the durable Memory worth keeping.
 
 > **REQ-MEM-14.** **Update / merge — *how* to remember.** Each proposed item is reconciled against its **vector-similar existing memories** by an LLM classifier choosing one operation (mem0's ADD/UPDATE/DELETE/NOOP, with Zep supersession): **ADD** (new), **UPDATE** (augment an existing item; prior value retained), **SUPERSEDE** (a contradiction — retire the old via `superseded_by`, REQ-MEM-11), or **NOOP** (already known). This is the write-time consolidation that keeps Memory deduplicated and current.
 
+**◆ Source pattern — mem0, `DEFAULT_UPDATE_MEMORY_PROMPT`** (`github.com/mem0ai/mem0`, `mem0/configs/prompts.py`). The four-operation contract REQ-MEM-14 is modeled on, verbatim:
+```text
+You are a smart memory manager which controls the memory of a system.
+You can perform four operations: (1) add into the memory, (2) update the memory,
+(3) delete from the memory, and (4) no change.
+
+Compare newly retrieved facts with the existing memory. For each new fact, decide whether to:
+- ADD: Add it to the memory as a new element
+- UPDATE: Update an existing memory element
+- DELETE: Delete an existing memory element
+- NONE: Make no change (if the fact is already present or irrelevant)
+```
+*Used here:* ADD/UPDATE/NOOP map one-to-one; mem0's **DELETE-on-contradiction** becomes our **SUPERSEDE** (retire via `superseded_by`, REQ-MEM-11) so history is retained, not destroyed.
+
 **System prompt (static — cache it):**
 
 ```text
@@ -231,6 +245,13 @@ Choose the operation.
 ```
 
 > **REQ-MEM-15.** **Consolidation / reflection.** Periodically (scheduled, [periodic-tasks](periodic-tasks.md)) the Curator synthesizes a **cluster** of related memories/Insights into higher-level durable Memory — a `summary` or generalized `fact` — **citing the source items** (Park et al. *reflection*). This turns many observations into institutional knowledge and keeps context compressed; it is **Always** internal work and **never deletes its sources** (they decay on their own).
+
+**◆ Source pattern — OpenClaw, `AGENTS.md` "Memory Maintenance"** (local: `docs/reference/templates/AGENTS.md`). The reflection-consolidation loop in plain words:
+> "1. Read through recent `memory/YYYY-MM-DD.md` files  2. Identify significant events, lessons, or insights worth keeping long-term  3. Update `MEMORY.md` with distilled learnings  4. Remove outdated info from MEMORY.md that's no longer relevant"
+>
+> "Daily files are raw notes; MEMORY.md is curated wisdom."
+
+*Used here:* the same move as REQ-MEM-15 — periodically synthesize raw observations into durable, curated knowledge; we differ only in that consolidation **never deletes its sources** (they decay on their own).
 
 **System prompt (static — cache it):**
 
@@ -455,3 +476,4 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - **2026-06-04 — v1.0** — Approved.
 - **2026-06-04 — v1.0 (note)** — Retargeted "Memory-Curator ([agents])" → the [curator](curator.md) engine (the role was renamed to the Curator engine; editorial, no rule change).
 - **2026-06-04 — v1.1** — **Recall is orchestrator-injected, not agent-queried.** Removed the *agent-callable recall* mode from REQ-MEM-16: the System/orchestrator pre-hydrates and packs recalled Memory into an agent's self-contained prompt; agents no longer issue their own recall queries (aligns with worker isolation — [agents](agents.md) REQ-AGENT-13, [agent-orchestration](agent-orchestration.md) REQ-AORCH-04).
+- **2026-06-04 — v1.2** — Added inline **◆ Source pattern** call-outs (verbatim): mem0 `DEFAULT_UPDATE_MEMORY_PROMPT` at REQ-MEM-14 (the ADD/UPDATE/DELETE/NONE contract this was modeled on — DELETE ⇒ our SUPERSEDE) and OpenClaw `AGENTS.md` Memory-Maintenance at REQ-MEM-15 (reflection/consolidation: "raw notes" → "curated wisdom").

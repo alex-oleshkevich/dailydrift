@@ -1,8 +1,8 @@
 # Periodic Tasks
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.2   ·   **Last updated:** 2026-06-04
+> **Version:** 1.0   ·   **Last updated:** 2026-06-04
 >
 > **Purpose:** Recurring/scheduled work — `ptask_`: a **cron schedule that enqueues a [Task](tasks.md)**. Nothing more.
 >
@@ -131,3 +131,4 @@ To watch Northwind's pricing, a Periodic Task fires each morning and enqueues a 
 
 - **2026-06-04 — v0.1** — Initial draft (Periodic Task + watcher + runs).
 - **2026-06-04 — v0.2** — **Gutted to the minimal model:** a Periodic Task is just **a cron schedule that enqueues a [Task](tasks.md)** (REQ-PTASK-01/03). **Removed the watcher primitive** — watching is a Task that emits a Signal (REQ-PTASK-04, [tasks](tasks.md) REQ-TASK-12) — and **removed runs / catch-up / overlap** machinery (REQ-PTASK-05).
+- **2026-06-04 — v1.0** — Approved.
