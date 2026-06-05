@@ -2,7 +2,7 @@
 
 > **Status:** In Review
 >
-> **Version:** 0.2   ·   **Last updated:** 2026-06-04
+> **Version:** 0.4   ·   **Last updated:** 2026-06-05
 >
 > **Purpose:** The task-execution **orchestration loop** — a deterministic control loop that drives a [Task](tasks.md) from goal to done: **plan → route → dispatch isolated workers → synthesize → review → replan / escalate**, calling LLM steps only for judgment. Owns the loop and its four LLM prompt contracts.
 >
@@ -98,6 +98,13 @@ Plan it.
 
 > **REQ-AORCH-03.** Each leaf subtask is **routed to one [agent](agents.md)**: **deterministically** when the required skill/tool capability obviously matches one agent, and via an **LLM routing step** on the agents' **`description`/`when_to_use`** ([agents](agents.md) REQ-AGENT-03) when it is ambiguous. If nothing fits, the loop escalates (§5.9, REQ-AORCH-11).
 
+**◆ Source pattern — Anthropic "Building Effective Agents" (Routing) & opencode invocation** (`anthropic.com/engineering/building-effective-agents`; `opencode.ai/docs/agents`).
+> "Routing classifies an input and directs it to a specialized followup task. This workflow allows for separation of concerns, and building more specialized prompts." — Anthropic
+>
+> Subagents are invoked "Automatically by primary agents for specialized tasks based on their descriptions" or "Manually by @ mentioning a subagent in your message." — opencode
+
+*Used here:* our deterministic-then-semantic route is the "automatic, by description" path; a user `@mention` would be the manual override.
+
 **System prompt (static — cache it):**
 
 ```text
@@ -144,6 +151,13 @@ Pick one.
 ### 5.6 Synthesize
 
 > **REQ-AORCH-06.** When dependent results arrive, the **orchestrator reads them and crafts the next step** — the next subtask's self-contained prompt, or the final answer. **Synthesis is the orchestrator's job, not a worker's**: workers are blind to each other and to the conversation, so only the orchestrator holds the whole picture (Claude Code coordinator discipline).
+
+**◆ Source pattern — Anthropic "Building Effective Agents" (Orchestrator-workers)** (`anthropic.com/engineering/building-effective-agents`). Our entire loop in one sentence:
+> "In the orchestrator-workers workflow, a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and synthesizes their results."
+>
+> "This workflow is well-suited for complex tasks where you can't predict the subtasks needed…"
+
+*Used here:* break down ⇒ plan (REQ-AORCH-02), delegate ⇒ dispatch (REQ-AORCH-04), **synthesize** ⇒ this REQ; "can't predict the subtasks" is exactly why we replan dynamically (REQ-AORCH-08).
 
 ### 5.7 Review — fresh reviewer (LLM)
 
@@ -277,20 +291,337 @@ flowchart LR
     REPLAN -.->|cannot recover| ESC
 ```
 
-## 7. Data Shapes
+## 7. Data Shapes & Go Interfaces
 
 The orchestration operates on [Task](tasks.md) rows (it creates child subtasks and updates status). The **plan step's output** (§5.2) is the only new shape, plus the per-step LLM schemas (§5.2/5.3/5.7/5.8). No new persisted entity.
 
+The Go below is a **non-normative reference** — the §5 REQs are the source of truth; this just shows the shape. It is a **single-threaded sketch**: in production the independent leaves of §5.4 dispatch in parallel under a concurrency cap, but the model reads the same.
+
+### 7.1 Enums & domain structs
+
+```go
+type WorkerStatus string
+
+const (
+    WorkerDone             WorkerStatus = "done"
+    WorkerFailed           WorkerStatus = "failed"
+    WorkerAwaitingApproval WorkerStatus = "awaiting_approval" // user permission (tasks.md REQ-TASK-07)
+)
+
+type ReviewOutcome string
+
+const (
+    ReviewApproved         ReviewOutcome = "approved"
+    ReviewChangesRequested ReviewOutcome = "changes_requested"
+)
+
+// Plan is the orchestrator's decomposition; its Subtasks are persisted as child Task rows.
+type Plan struct {
+    Goal     string
+    Atomic   bool // true → no decomposition; run the goal as a single leaf
+    Subtasks []Subtask
+}
+
+type Subtask struct {
+    ID            string   // task_ id of the child Task (tasks.md)
+    Goal          string
+    DependsOn     []string // sibling Subtask IDs that must finish first
+    SuggestedRole string   // the planner's hint; the Router makes the final call
+}
+```
+
+### 7.2 Typed hand-offs (REQ-AORCH-12 — state, not prose)
+
+```go
+type RouteDecision struct {
+    SubtaskID string
+    Role      string // assigned_role (agents.md)
+    Reason    string
+}
+
+// DispatchContext is recalled BY THE ORCHESTRATOR and injected into the prompt.
+// Workers never recall it themselves (agents.md REQ-AGENT-13, memory.md REQ-MEM-16).
+type DispatchContext struct {
+    Memory   []MemoryItem  // memory.md
+    Evidence []EvidenceRef // evidence.md
+}
+
+type Dispatch struct {
+    Subtask Subtask
+    Role    string
+    Prompt  string          // SELF-CONTAINED — the worker can't see the conversation (REQ-AORCH-04)
+    Context DispatchContext
+}
+
+type WorkerResult struct {
+    SubtaskID string
+    Status    WorkerStatus
+    Output    string           // the single result the worker returns (REQ-AORCH-05)
+    Approval  *ApprovalRequest // set iff Status == WorkerAwaitingApproval
+    Err       string           // set iff Status == WorkerFailed
+}
+
+type ReviewVerdict struct {
+    Outcome   ReviewOutcome
+    Feedback  string
+    Iteration int
+}
+
+type Replan struct {
+    Revised  []Subtask // the new / remaining subtasks
+    Escalate bool      // true → give up, raise a Situation (REQ-AORCH-11)
+    Reason   string
+}
+
+// AgentCard is the routing-relevant projection of an Agent the Router sees.
+type AgentCard struct {
+    Role        string
+    Description string   // when_to_use — the Router routes on this (agents.md REQ-AGENT-03)
+    Skills      []string
+    Tools       []string
+}
+```
+
+(`ApprovalRequest`, `MemoryItem`, and `EvidenceRef` are owned by [tasks](tasks.md), [memory](memory.md), and [evidence](evidence.md) respectively.)
+
+### 7.3 The four LLM steps & the runtime collaborators
+
+```go
+// Each of the four steps is backed by one prompt contract in §5; everything else is deterministic.
+type Planner   interface { Plan(ctx context.Context, goal string) (Plan, error) }                                // §5.2
+type Router    interface { Route(ctx context.Context, s Subtask, agents []AgentCard) (RouteDecision, error) }     // §5.3
+type Reviewer  interface { Review(ctx context.Context, s Subtask, r WorkerResult) (ReviewVerdict, error) }        // §5.7 — a FRESH agent
+type Replanner interface { Replan(ctx context.Context, p Plan, failed Subtask, reason string) (Replan, error) }   // §5.8
+
+type AgentRunner interface { // runs ONE leaf in an isolated worker, returns one result (§5.5)
+    Run(ctx context.Context, d Dispatch) (WorkerResult, error)
+}
+
+type MemoryRecaller interface { // orchestrator-only recall (REQ-AGENT-13, REQ-MEM-16)
+    Recall(ctx context.Context, s Subtask) (DispatchContext, error)
+}
+
+type AgentRegistry interface {
+    Cards() []AgentCard                                                  // candidates for routing
+    Compose(role string, s Subtask, c DispatchContext) (Dispatch, error) // builds the self-contained prompt
+}
+```
+
+### 7.4 The orchestrator & reference control loop (REQ-AORCH-01)
+
+```go
+type Orchestrator struct {
+    Planner   Planner
+    Router    Router
+    Reviewer  Reviewer
+    Replanner Replanner
+    Runner    AgentRunner
+    Memory    MemoryRecaller
+    Agents    AgentRegistry
+
+    MaxReviewIters int // bound on the review loop (REQ-AORCH-07)
+    MaxReplans     int // bound before escalation (REQ-AORCH-08)
+}
+
+// Outcome of running one Task.
+type Outcome struct {
+    Done      bool
+    Result    string
+    Paused    *ApprovalRequest // non-nil → parked in awaiting_approval (REQ-AORCH-05)
+    Escalated bool             // a Situation was raised (REQ-AORCH-11)
+}
+
+// Run is the deterministic control loop. LLM calls happen only inside
+// Planner/Router/Reviewer/Replanner. Independent leaves run in parallel in
+// production (REQ-AORCH-04); shown sequentially here.
+func (o *Orchestrator) Run(ctx context.Context, goal string) (Outcome, error) {
+    plan, err := o.Planner.Plan(ctx, goal) // §5.2
+    if err != nil {
+        return Outcome{}, err
+    }
+
+    done := map[string]WorkerResult{}
+    replans := 0
+
+    for len(done) < len(plan.Subtasks) {
+        progressed := false
+        for _, s := range plan.Subtasks {
+            if _, ok := done[s.ID]; ok || !ready(s, done) {
+                continue // already done, or an unmet depends_on → wait
+            }
+
+            res, err := o.execLeaf(ctx, s) // route → recall → dispatch → review
+            if err != nil {
+                return Outcome{}, err
+            }
+
+            switch res.Status {
+            case WorkerAwaitingApproval: // §5.5 — pause the whole Task
+                return Outcome{Paused: res.Approval}, nil
+            case WorkerFailed: // §5.8 — replan, or escalate when the budget is spent
+                if replans >= o.MaxReplans {
+                    return Outcome{Escalated: true}, nil
+                }
+                rp, err := o.Replanner.Replan(ctx, plan, s, res.Err)
+                if err != nil {
+                    return Outcome{}, err
+                }
+                if rp.Escalate {
+                    return Outcome{Escalated: true}, nil
+                }
+                plan.Subtasks = rp.Revised
+                replans++
+            default: // WorkerDone
+                done[s.ID] = res
+            }
+            progressed = true
+        }
+        if !progressed {
+            return Outcome{Escalated: true}, nil // nothing runnable → deadlock guard
+        }
+    }
+    return Outcome{Done: true, Result: o.synthesize(done)}, nil // §5.6
+}
+
+// execLeaf: route → orchestrator-recall → dispatch isolated worker → fresh-review loop.
+func (o *Orchestrator) execLeaf(ctx context.Context, s Subtask) (WorkerResult, error) {
+    rd, err := o.Router.Route(ctx, s, o.Agents.Cards()) // §5.3
+    if err != nil {
+        return WorkerResult{}, err
+    }
+    mc, err := o.Memory.Recall(ctx, s) // §5.4 — the ORCHESTRATOR recalls, not the worker
+    if err != nil {
+        return WorkerResult{}, err
+    }
+
+    for i := 0; i < o.MaxReviewIters; i++ {
+        d, err := o.Agents.Compose(rd.Role, s, mc) // build the self-contained prompt
+        if err != nil {
+            return WorkerResult{}, err
+        }
+        res, err := o.Runner.Run(ctx, d) // §5.5 — isolated worker
+        if err != nil {
+            return WorkerResult{}, err
+        }
+        if res.Status != WorkerDone {
+            return res, nil // failed / awaiting_approval bubble up to Run
+        }
+
+        v, err := o.Reviewer.Review(ctx, s, res) // §5.7 — a FRESH reviewer, never self-review
+        if err != nil {
+            return WorkerResult{}, err
+        }
+        if v.Outcome == ReviewApproved {
+            return res, nil
+        }
+        s.Goal += "\n\nReviewer feedback: " + v.Feedback // retry the leaf with the feedback
+    }
+    return WorkerResult{SubtaskID: s.ID, Status: WorkerFailed, Err: "review iterations exhausted"}, nil
+}
+
+func ready(s Subtask, done map[string]WorkerResult) bool {
+    for _, dep := range s.DependsOn {
+        if _, ok := done[dep]; !ok {
+            return false
+        }
+    }
+    return true
+}
+
+// synthesize folds the completed leaf results into the Task's final answer (§5.6).
+// It may itself call the model; kept off the four named prompt contracts for brevity.
+func (o *Orchestrator) synthesize(done map[string]WorkerResult) string { /* … */ return "" }
+```
+
 ## 8. Examples & Use Cases
 
-### Example A — parallel research → synthesize → implement → fresh verify (narrative)
-A Task *"prepare the Brightmoor handoff."* **Plan** → 3 subtasks: *(1) gather open items*, *(2) draft the note* (depends on 1), *(3) email Devin* (depends on 2). **Route**: 1→Research, 2→Research, 3→Ops. **Dispatch**: 1 runs; on its result the orchestrator **synthesizes** the spec for 2; 2 runs; 3 reaches the outbound-email step → `awaiting_approval` (user permission); on grant it sends. Each leaf is **reviewed** by a fresh Reviewer; all `approved` → Task `done`.
+Cast per [constitution](constitution.md) §7. The Go uses the §7 types.
 
-### Example B — failure triggers replan (narrative)
-Subtask *"fetch the pricing page"* fails (site changed). **Replan** revises the remaining plan to *"ask the user for the new URL"* instead of retrying the dead fetch (REQ-AORCH-08). If replanning returns `cannot_recover`, the loop escalates a `blocker` Situation (REQ-AORCH-11).
+### Example A — plan → parallel leaves → synthesize → fresh review
 
-### Example C — independent fan-out (narrative)
-A research Task with three independent questions plans three subtasks with **no `depends_on`** → dispatched **in parallel** to three Research workers; the orchestrator synthesizes once all return (REQ-AORCH-04).
+*"Prepare the Brightmoor handoff."* Two independent gathers run in parallel; the draft depends on both; the orchestrator synthesizes; the outbound email is the acting leaf.
+
+```go
+plan := Plan{Goal: "Prepare the Brightmoor handoff", Subtasks: []Subtask{
+    {ID: "t1", Goal: "Gather the open items",   SuggestedRole: "Research"},
+    {ID: "t2", Goal: "Pull recent decisions",   SuggestedRole: "Research"},
+    {ID: "t3", Goal: "Draft the handoff note",  DependsOn: []string{"t1", "t2"}, SuggestedRole: "Research"},
+    {ID: "t4", Goal: "Email the note to Devin", DependsOn: []string{"t3"},       SuggestedRole: "Ops"},
+}}
+// t1,t2 have no DependsOn → ready together; t3 waits for both; the orchestrator
+// synthesizes their results into t3's self-contained prompt (§5.6); each leaf is
+// checked by a fresh Reviewer (§5.7) before it counts as done.
+```
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant R as Research worker(s)
+    participant V as Reviewer (fresh)
+    participant Ops as Ops worker
+    O->>R: dispatch t1, t2 (parallel, self-contained)
+    R-->>O: results
+    O->>O: synthesize → t3 prompt (§5.6)
+    O->>R: dispatch t3
+    R-->>O: draft
+    O->>V: review t3
+    V-->>O: approved
+    O->>Ops: dispatch t4 (email Devin)
+    Ops-->>O: done
+```
+
+### Example B — failure → replan → escalate
+
+A leaf fails; the orchestrator revises the *remaining* plan rather than retrying blindly (REQ-AORCH-08). When the replan budget is spent, it escalates a Situation (REQ-AORCH-11).
+
+```go
+res := WorkerResult{SubtaskID: "t4", Status: WorkerFailed, Err: "smtp: relay refused"}
+// Run sees WorkerFailed → Replanner.Replan(plan, t4, res.Err):
+//   Replan{Revised: append(remaining, Subtask{ID: "t5", Goal: "Ask Devin for an alternate address"})}
+// If replans >= MaxReplans, or rp.Escalate == true → Outcome{Escalated: true}.
+```
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant Ops as Ops worker
+    participant RP as Replanner
+    O->>Ops: dispatch t4
+    Ops-->>O: failed (smtp relay refused)
+    O->>RP: replan(plan, t4, err)
+    RP-->>O: revised plan (t5) | escalate
+    alt within MaxReplans
+        O->>Ops: dispatch t5
+    else budget spent / cannot recover
+        O->>O: Outcome{Escalated} → blocker Situation
+    end
+```
+
+### Example C — awaiting approval (mid-task pause)
+
+An Ask-first action parks the whole Task on user permission — distinct from reviewer quality (REQ-AORCH-13).
+
+```go
+res := WorkerResult{SubtaskID: "t4", Status: WorkerAwaitingApproval,
+    Approval: &ApprovalRequest{Action: "send email to Devin"}}
+// Run returns Outcome{Paused: res.Approval} immediately — the Task parks in
+// awaiting_approval (tasks.md REQ-TASK-07). On grant the orchestrator resumes from t4;
+// on reject/timeout the Task is cancelled (tasks.md REQ-TASK-09).
+```
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant Ops as Ops worker
+    participant U as User
+    O->>Ops: dispatch t4 (outbound email = Ask-first)
+    Ops-->>O: awaiting_approval
+    O->>U: approval Situation
+    Note over O: Task parked (awaiting_approval)
+    U-->>O: grant
+    O->>Ops: resume t4
+    Ops-->>O: done
+```
 
 ## 9. Edge Cases & Failure Modes
 
@@ -316,6 +647,7 @@ A research Task with three independent questions plans three subtasks with **no 
 - [ ] Dynamic **replan** on failure with a guard; **escalation** never silent (REQ-AORCH-08/11).
 - [ ] Continue-vs-spawn and **depth-1** are specified (REQ-AORCH-09/10); hand-offs are typed (REQ-AORCH-12).
 - [ ] The **four prompt contracts** (plan/route/review/replan) are present in full. Examples use the [constitution](constitution.md) §7 cast; no placeholders.
+- [ ] §7 carries a **non-normative Go reference** — enums/structs, the four step interfaces + runtime collaborators, and the `Orchestrator` control loop — and §8 flows pair **Go snippets with Mermaid sequence diagrams**; every type maps to a REQ.
 
 ## 12. Cross-References
 
@@ -330,3 +662,5 @@ A research Task with three independent questions plans three subtasks with **no 
 
 - **2026-06-04 — v0.1** — Initial draft. The orchestration **control loop** (REQ-AORCH-01); **plan** (DAG, shallow, orchestrator-only — full prompt, REQ-AORCH-02); **route** deterministic-then-semantic on `description` (full prompt, REQ-AORCH-03); **dispatch** isolated parallel workers with self-contained prompts (REQ-AORCH-04/05); orchestrator **synthesis** (REQ-AORCH-06); **review** by a fresh default+domain Reviewer (full prompt, REQ-AORCH-07); dynamic **replan** with guard (full prompt, REQ-AORCH-08); continue-vs-spawn (REQ-AORCH-09); **depth-1** (REQ-AORCH-10); **escalation** to a Situation (REQ-AORCH-11); typed hand-offs (REQ-AORCH-12); reviewer-quality vs user-permission (REQ-AORCH-13). Code-grounded (Claude Code/Anthropic/OpenClaw/opencode/Hermes). In Review.
 - **2026-06-04 — v0.2** — Clarified that **the orchestrator performs all Memory recall** and injects it into the worker's self-contained prompt; workers never query Memory themselves (REQ-AORCH-04, [agents](agents.md) REQ-AGENT-13, [memory](memory.md) REQ-MEM-16). Dropped `Browser` from the plan-prompt role list — it is a user-defined `Ops` specialization, not a built-in role.
+- **2026-06-04 — v0.3** — Added inline **◆ Source pattern** call-outs (verbatim): Anthropic *"Building Effective Agents"* Routing + opencode invocation at the route step (REQ-AORCH-03), and Anthropic *Orchestrator-workers* (break-down → delegate → synthesize) at the synthesis step (REQ-AORCH-06).
+- **2026-06-05 — v0.4** — Made §7 a concrete **Go interface/struct reference** (non-normative): enums, domain structs, the four LLM steps + runtime collaborators (`Planner`/`Router`/`Reviewer`/`Replanner`, `AgentRunner`/`MemoryRecaller`/`AgentRegistry`), and the `Orchestrator` + single-threaded reference control loop (`Run`/`execLeaf`/`ready`). Rewrote §8 examples A/B/C as **Go snippets + Mermaid sequence diagrams** (parallel-leaves→synthesize→review; failure→replan→escalate; awaiting-approval pause). Each type maps to its REQ.
