@@ -6,8 +6,6 @@
 >
 > **Purpose:** The task-execution **orchestration loop** — a deterministic control loop that drives a [Task](tasks.md) from goal to done: **plan → route → dispatch isolated workers → synthesize → review → replan / escalate**, calling LLM steps only for judgment. Owns the loop and its four LLM prompt contracts.
 >
-> **Load this when:** Building or changing how Tasks are planned, how subtasks are routed to agents, dispatched, reviewed, or replanned.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [tasks](tasks.md), [agents](agents.md)   ·   **Related:** [situations](situations.md), [proactivity](proactivity.md), [memory](memory.md), [evidence](evidence.md), [skills](skills.md), [tools](tools.md), [app-architecture](app-architecture.md), [ai-models](ai-models.md), [curator](curator.md)
 
 > Requirement tag: **AORCH**

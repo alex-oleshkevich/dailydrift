@@ -6,8 +6,6 @@
 >
 > **Purpose:** Recurring/scheduled work — `ptask_`: a **cron schedule that enqueues a [Task](tasks.md)**. Nothing more.
 >
-> **Load this when:** Building or changing scheduled automation.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [tasks](tasks.md)   ·   **Related:** [signals](signals.md), [inbox](inbox.md), [curator](curator.md), [memory](memory.md), [app-architecture](app-architecture.md)
 
 > Requirement tag: **PTASK**

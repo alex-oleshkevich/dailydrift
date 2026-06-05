@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Storyline feature end-to-end — what a Storyline is, how it is created from accumulating Evidence and promoted, how its Status and Momentum move, how Storylines merge, and how the System surfaces them.
 >
-> **Load this when:** Building or changing how Storylines are created, promoted, merged, scored for movement, or surfaced.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [evidence](evidence.md), [situations](situations.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [entities](entities.md)
 
 > Requirement tag: **STORY**

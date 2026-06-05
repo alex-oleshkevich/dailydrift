@@ -5,8 +5,6 @@
 > **Version:** —   ·   **Last updated:** 2026-05-29
 >
 > **Purpose:** The map of the whole specification suite. For each spec: its path, what it defines, *when to load it*, and its current status. This is the **extended table of contents** — read it first, then load only the specs a task actually needs (per [constitution](constitution.md) §6.3).
->
-> **Load this when:** Always read first; it tells you which other specs to open.
 
 The product is a **self-hosted operational intelligence system** — a persistent chief-of-staff / research assistant / operations dashboard. **Only approved specs are placed in a structure below; every unapproved spec is an untiered backlog** pending drafting/approval (the tier taxonomy is being reworked). Read [constitution](constitution.md) before any spec.
 
@@ -51,6 +49,7 @@ Specs for every feature with overview, purpose, description, implementation deta
 | [periodic-tasks](periodic-tasks.md) | Periodic Tasks (`ptask_`): a UTC cron schedule that **enqueues a Task** — no watcher, no runs (watching = a Task that emits a Signal) | Working on scheduling | ✅ Approved |
 | [agents](agents.md) | Agents: the production-grade Agent definition (name/role/when-to-use/system_prompt/personality/skills/tools+policy/model/mode/sandbox/depth) + the built-in & user-definable roster | Working on agents, the agent definition, or the roster | 📝 In Review |
 | [agent-orchestration](agent-orchestration.md) | The task-execution loop: plan → route → dispatch isolated workers → synthesize → review → replan/escalate, with the plan/route/review/replan LLM prompts; depth-1 | Working on planning, routing, dispatch, review, or replanning | 📝 In Review |
+| [prompt-injection](prompt-injection.md) | System-wide injection defense (P12): the lethal-trifecta threat model, defense-in-depth, the canonical untrusted-content envelope, quarantine/reader-agent, detection→`statement` Evidence + `security` Situation, and the §5 gate backstop | Hardening any path that feeds external content into a model, or designing an LLM prompt contract | 📝 In Review |
 
 
 ## Untiered — unapproved backlog
@@ -76,7 +75,6 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 | [secrets](secrets.md) | Secret management; password-manager integration | Working on credential storage | ⬜ Planned |
 | [permissions](permissions.md) | Approval & permission system on Always/Ask-first/Never | Working on permissions/approvals | ⬜ Planned |
 | [sandboxing](sandboxing.md) | Execution isolation substrate for tools/skills/code | Working on sandboxed execution | ⬜ Planned |
-| [prompt-injection](prompt-injection.md) | Untrusted-content / prompt-injection defense (P12): data-not-instructions, detection, backstops | Any ingestion or agent-security decision | ⬜ Planned |
 | [activity-log](activity-log.md) | Audit/observability trail of agent/automation actions | Working on auditing/transparency | ⬜ Planned |
 | [ai-models](ai-models.md) | Supported models, provider abstraction, routing | Working on model selection/routing | ⬜ Planned |
 | [app-architecture](app-architecture.md) | Data flow, models, actors, orchestration, workers, server↔clients | Implementing the backend/architecture | ⬜ Planned |
@@ -98,6 +96,7 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 - **2026-06-04** — Drafted [curator](curator.md) (📝 In Review) — the background state-maintenance engine. Renamed the "Memory Curator" agent role → the **Curator** engine across [glossary](glossary.md), [agents](agents.md), and the approved primitive specs.
 - **2026-06-04** — Drafted [tasks](tasks.md) + [periodic-tasks](periodic-tasks.md) (📝 In Review) — a **deliberately simple** task queue (no retries/idempotency/DLQ/engine); mid-task approval modeled via the `approval` Situation, not a task status. Captured the shared queue/scheduler runtime in [app-architecture](app-architecture.md).
 - **2026-06-04** — Reframed Tasks as **agentic** (recursive plan-and-execute, `awaiting_approval` status, `depends_on`, emit-Signal); drafted [agents](agents.md) + [agent-orchestration](agent-orchestration.md) (📝 In Review, **code-grounded** in OpenClaw/opencode/Claude Code/Anthropic/CrewAI/Hermes); **gutted** periodic-tasks to "schedule enqueues a Task" (no watcher/runs).
+- **2026-06-05** — Authored [prompt-injection](prompt-injection.md) (📝 In Review, v0.1) — the System-wide injection-defense spec (P12's home): lethal-trifecta threat model + OWASP LLM01/LLM06, defense-in-depth, the **canonical untrusted-content envelope** as the normative house standard, quarantine/reader-agent, advisory detection → `statement` Evidence + a quiet `security` Situation, and the §5 gates as the deterministic backstop. Code-grounded in OpenClaw (`external-content.ts`/`pi-tools.policy.ts`/security docs) + Willison's lethal trifecta. Promoted from the Planned backlog into **Tier 3**. Also extended [agent-orchestration](agent-orchestration.md) → v0.4 (Go interface/struct reference + Mermaid example flows).
 - **2026-06-04** — **Approved** [curator](curator.md), [tasks](tasks.md), [periodic-tasks](periodic-tasks.md) (all v1.0). Self-review of the agent layer: dropped the `memory_scope` + `builtin` fields, **collapsed the roster** to `Executive`/`Research`/`Ops`/`Reviewer` (`Browser` → a user-defined `Ops` specialization), and made **agents memory-stateless** — the orchestrator injects recalled Memory ([memory](memory.md) v1.1, REQ-MEM-16). Added **inline verbatim "◆ Source pattern" call-outs** from the grounding projects (OpenClaw/opencode/Claude Code/Anthropic/mem0) to [agents](agents.md) v0.3, [agent-orchestration](agent-orchestration.md) v0.3, [memory](memory.md) v1.2.
 - **2026-05-29** — Converted all live spec links from `[[wiki-style]]` to standard Markdown `[name](name.md)` (constitution §6.3 updated); changelog references kept verbatim as historical record.
 - **2026-06-03** — Drafted [data-model](data-model.md) (narrative-layer concept model + capture-and-retrieve Insight) and placed it in **Tier 3: Features** (📝 In Review). Set the [insights](insights.md) row to the capture-and-retrieve scope. Registered feature specs [storylines](storylines.md) and [situations](situations.md) in the backlog. Drafted [insights](insights.md) (capture-and-retrieve mechanics) into **Tier 3** (📝 In Review).

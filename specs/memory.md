@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Memory feature end-to-end — durable distilled knowledge (`mem_`: facts, preferences, profiles, summaries), the **shared semantic index** and **recall** that the rest of the System retrieves by meaning, **distillation** of accumulated material into durable knowledge, and **retention/decay**.
 >
-> **Load this when:** Building or changing how the System remembers durably, embeds and recalls by meaning, distills accumulated material, or decays stale knowledge.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [insights](insights.md), [signals](signals.md), [evidence](evidence.md), [narrative](narrative.md), [storylines](storylines.md), [entities](entities.md), [agents](agents.md), [periodic-tasks](periodic-tasks.md), [ai-models](ai-models.md), [app-architecture](app-architecture.md), [spaces](spaces.md), [settings](settings.md)
 
 > Requirement tag: **MEM**

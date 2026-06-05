@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Situation feature end-to-end — what a Situation is, its category catalog, how it is detected, how its Attention score and Status move, the actions it suggests, how an Insight escalates into one, and how it surfaces.
 >
-> **Load this when:** Building or changing how Situations are detected, scored, resolved, or surfaced.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [insights](insights.md), [storylines](storylines.md), [signals](signals.md), [evidence](evidence.md), [tasks](tasks.md), [permissions](permissions.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md)
 
 > Requirement tag: **SIT**

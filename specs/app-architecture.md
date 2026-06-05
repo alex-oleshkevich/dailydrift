@@ -6,8 +6,6 @@
 >
 > **Purpose:** The concrete system architecture — the self-hosted server (the brain) and native clients, persistence, the ID format, queues, the vector store, and the model/embedding runtime that the conceptual specs abstract over.
 >
-> **Load this when:** Working on persistence, the concrete ID format, queues, the vector store, or the server/client split.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md)
 
 > Requirement tag: **ARCH**

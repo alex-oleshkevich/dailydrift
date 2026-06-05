@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Insight feature end-to-end — what an Insight is, how the System captures one, how it is embedded and recalled by semantic relevance, and how it is deduped, expired, and surfaced without becoming noise.
 >
-> **Load this when:** Building or changing how the System captures, stores, recalls, or surfaces Insights.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [evidence](evidence.md), [narrative](narrative.md), [memory](memory.md), [situations](situations.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md)
 
 > Requirement tag: **INS**

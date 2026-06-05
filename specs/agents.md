@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Agent feature — the scoped, role-based **actors that do work for the user**: how an Agent is **defined** (the full field set), the **built-in roster** plus **user-definable** agents, the agent **run loop**, **sandbox/isolation**, and the **subagent/depth** policy.
 >
-> **Load this when:** Building or changing how agents are defined, what fields they carry, the default roster, or how an agent runs / is isolated.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [agent-orchestration](agent-orchestration.md), [skills](skills.md), [tools](tools.md), [permissions](permissions.md), [sandboxing](sandboxing.md), [mcp](mcp.md), [ai-models](ai-models.md), [memory](memory.md), [tasks](tasks.md), [situations](situations.md), [curator](curator.md), [activity-log](activity-log.md)
 
 > Requirement tag: **AGENT**

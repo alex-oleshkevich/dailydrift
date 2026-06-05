@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Curator feature end-to-end — the background **state-maintenance engine** that turns accepted Evidence into maintained understanding: its triggers, its catalog of focused jobs, the propose→commit transaction, what it may and may not mutate, the deterministic+LLM split, and the guards that keep it from over-creating or drifting.
 >
-> **Load this when:** Building or changing how the System keeps Storylines, Situations, Insights, and Narratives coherent in the background — triggers, jobs, the reconciliation/transaction model, or the Curator's autonomy.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [evidence](evidence.md)   ·   **Related:** [inbox](inbox.md), [storylines](storylines.md), [situations](situations.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [agents](agents.md), [proactivity](proactivity.md), [periodic-tasks](periodic-tasks.md), [app-architecture](app-architecture.md), [entities](entities.md)
 
 > Requirement tag: **CUR**

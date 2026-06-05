@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Task feature — an **agentic** unit of work: a *goal* given to an agent. A Task is **planned into subtasks**, each **routed** to the right agent and **executed**, then **reviewed**. Owns the (recursive) Task entity, its status, the plan→execute→review journey, the mid-task **approval** pause, and **cancellation**.
 >
-> **Load this when:** Building or changing how work is enqueued, planned/decomposed, assigned, executed, reviewed, paused for the user's permission, or cancelled.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [agents](agents.md), [agent-orchestration](agent-orchestration.md), [situations](situations.md), [curator](curator.md), [permissions](permissions.md), [proactivity](proactivity.md), [skills](skills.md), [tools](tools.md), [periodic-tasks](periodic-tasks.md), [app-architecture](app-architecture.md), [activity-log](activity-log.md)
 
 > Requirement tag: **TASK**

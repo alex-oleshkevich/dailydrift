@@ -6,8 +6,6 @@
 >
 > **Purpose:** The product north-star — what the System is, who it's for, what it deliberately is *not*, the goals, the headline use cases, and what success feels like. The no-tech vision every other spec deepens.
 >
-> **Load this when:** Onboarding to the project, aligning on what/why, or sanity-checking that a feature serves the vision.
->
 > **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [how-it-works](how-it-works.md), [home-and-briefings](home-and-briefings.md)
 
 > Requirement tag: **OVR**

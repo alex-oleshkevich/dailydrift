@@ -6,8 +6,6 @@
 >
 > **Purpose:** The end-to-end story of how the System works, plus its full feature catalog — written for an investor or a new user, not an engineer. It explains *what every feature does and how they connect*; the deep mechanics of each live in that feature's own spec.
 >
-> **Load this when:** You want the whole picture in one read — what the product does, how a signal becomes understanding, how work gets done, and how it reaches you.
->
 > **Depends on:** [constitution](constitution.md), [overview](overview.md), [glossary](glossary.md)   ·   **Related:** [spaces](spaces.md), [tasks](tasks.md), [periodic-tasks](periodic-tasks.md), [signals](signals.md), [agents](agents.md), [agent-orchestration](agent-orchestration.md), [tools](tools.md), [skills](skills.md), [permissions](permissions.md), [memory](memory.md), [insights](insights.md), [entities](entities.md), [home-and-briefings](home-and-briefings.md), [proactivity](proactivity.md), [conversation](conversation.md), [calendar](calendar.md), [browser-automation](browser-automation.md), [filesystem](filesystem.md), [mcp](mcp.md), [activity-log](activity-log.md), [privacy-security](privacy-security.md), [ai-models](ai-models.md), [ui-shell](ui-shell.md), [settings](settings.md), [data-model](data-model.md)
 
 > Requirement tag: **HOW**

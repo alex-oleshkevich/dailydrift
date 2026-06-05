@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Signal feature end-to-end — what a Signal is, the sources it comes from, how it is normalized, fingerprinted and deduped, scored, resolved to a Space/Storyline, and how it is distilled into Evidence. The raw-ingestion edge of the knowledge pipeline.
 >
-> **Load this when:** Building or changing how the System ingests raw input, scores it, dedupes it, or hands it off to be turned into Evidence.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [evidence](evidence.md), [inbox](inbox.md), [situations](situations.md), [storylines](storylines.md), [insights](insights.md), [how-it-works](how-it-works.md), [entities](entities.md), [spaces](spaces.md), [proactivity](proactivity.md)
 
 > Requirement tag: **SIG**

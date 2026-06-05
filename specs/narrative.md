@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Narrative feature end-to-end — the System's continuously maintained synthesis of *what is going on*, at **Space** and **Storyline** scope: its structure, how the Curator generates and updates it, its human-editable form, how it is backed by Evidence, and how it surfaces as the briefing that opens Home, a Storyline, and a chat.
 >
-> **Load this when:** Building or changing how the System synthesizes a Space's or Storyline's current state into a readable, editable summary, or how that summary is generated, updated, or surfaced.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [evidence](evidence.md)   ·   **Related:** [memory](memory.md), [storylines](storylines.md), [situations](situations.md), [insights](insights.md), [spaces](spaces.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md), [agents](agents.md)
 
 > Requirement tag: **NAR**

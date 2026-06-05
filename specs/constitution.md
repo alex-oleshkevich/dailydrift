@@ -6,8 +6,6 @@
 >
 > **Purpose:** The governing document for the entire specification suite and the eventual build. It fixes the product/engineering principles, the autonomy model, the example world, and the authoring conventions that every other spec inherits.
 >
-> **Load this when:** Starting *any* spec (read first), reviewing a spec for consistency, or making a decision that affects more than one subsystem.
->
 > **Depends on:** —   ·   **Related:** [index](index.md), [overview](overview.md), [permissions](permissions.md), [privacy-security](privacy-security.md)
 
 ---
@@ -170,8 +168,6 @@ Every spec follows this canonical template. Sections marked *(optional)* appear 
 > **Version:** 0.1   ·   **Last updated:** YYYY-MM-DD
 >
 > **Purpose:** <one or two sentences — what this spec defines>
->
-> **Load this when:** <the trigger that makes this spec relevant to read>
 >
 > **Depends on:** [spec-name](spec-name.md)   ·   **Related:** [spec-name](spec-name.md)
 

@@ -6,8 +6,6 @@
 >
 > **Purpose:** The canonical conceptual entity-relationship model for the System — how the narrative-layer primitives (Space, Storyline, Situation, Insight, Evidence, Narrative) relate, what each owns, and how they are identified. It fixes the **Situation ↔ Insight boundary** and the **capture-and-retrieve Insight**.
 >
-> **Load this when:** Checking how entities relate or are identified, or before defining/changing any narrative-layer primitive in its own feature spec.
->
 > **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [signals](signals.md), [insights](insights.md), [memory](memory.md), [entities](entities.md), [home-and-briefings](home-and-briefings.md)
 
 > Requirement tag: **DM**

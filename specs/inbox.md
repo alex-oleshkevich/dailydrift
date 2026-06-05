@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Signal Inbox feature end-to-end — the staging buffer between Signals and Evidence: the `InboxItem` and its state machine, the processing pipeline (batch → dedup → noise-filter → resolve → extract → propose → reduce → commit), the LLM extraction contract, the processor tiers, atomic commit, retention, and observability.
 >
-> **Load this when:** Building or changing how ingested Signals are batched, deduped, scored, deferred, turned into Evidence, or committed — the machinery of the Signal → Evidence step.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [signals](signals.md), [evidence](evidence.md)   ·   **Related:** [situations](situations.md), [insights](insights.md), [storylines](storylines.md), [memory](memory.md), [entities](entities.md), [permissions](permissions.md), [periodic-tasks](periodic-tasks.md), [agents](agents.md), [proactivity](proactivity.md)
 
 > Requirement tag: **INBOX**

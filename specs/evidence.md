@@ -6,8 +6,6 @@
 >
 > **Purpose:** The Evidence feature end-to-end — what an Evidence item is, its type catalog, why it is immutable and append-only, how it is created from Signals, the provenance it carries, the evidence graph it forms, and how it makes every conclusion explainable. The source-of-truth layer of the knowledge pipeline.
 >
-> **Load this when:** Building or changing how facts are recorded, typed, attributed, made immutable, linked into the graph, or cited as the basis for any Insight, Situation, or surfaced claim.
->
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [inbox](inbox.md), [storylines](storylines.md), [situations](situations.md), [insights](insights.md), [entities](entities.md), [memory](memory.md)
 
 > Requirement tag: **EV**
