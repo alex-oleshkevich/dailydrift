@@ -8,26 +8,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { type HomeStoryline, seedHome } from "@/lib/home";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-    return (
-        <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-            {children}
-        </h2>
-    );
+    return <h2 className="font-semibold text-sm tracking-tight">{children}</h2>;
 }
 
 function StorylineRow({ storyline }: { storyline: HomeStoryline }) {
     return (
-        <div className="flex flex-col gap-1 rounded-md border px-3 py-2.5">
+        <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-sm">{storyline.title}</span>
                 <MomentumBadge momentum={storyline.momentum} />
-                <Badge variant="outline" className="capitalize">
+                <span className="text-muted-foreground text-xs capitalize">
                     {storyline.status}
-                </Badge>
+                </span>
             </div>
-            <span className="text-muted-foreground text-sm">
-                {storyline.line}
-            </span>
+            <span className="text-sm leading-relaxed">{storyline.line}</span>
         </div>
     );
 }
@@ -67,14 +61,16 @@ export function HomeView() {
                     ))}
                 </section>
 
-                <section className="flex flex-col gap-2">
+                <section className="flex flex-col gap-3">
                     <SectionLabel>Active Storylines</SectionLabel>
-                    {data.storylines.map((storyline) => (
-                        <StorylineRow
-                            key={storyline.id}
-                            storyline={storyline}
-                        />
-                    ))}
+                    <div className="flex flex-col gap-4">
+                        {data.storylines.map((storyline) => (
+                            <StorylineRow
+                                key={storyline.id}
+                                storyline={storyline}
+                            />
+                        ))}
+                    </div>
                 </section>
             </div>
         </ScrollArea>

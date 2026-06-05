@@ -28,11 +28,7 @@ const READONLY_ACTIONS: MessageActions = {
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-    return (
-        <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-            {children}
-        </h2>
-    );
+    return <h2 className="font-semibold text-sm tracking-tight">{children}</h2>;
 }
 
 function StatusBadge({ status }: { status: StorylineStatus }) {
