@@ -1,8 +1,8 @@
 # Agent Orchestration
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.4   ·   **Last updated:** 2026-06-05
+> **Version:** 1.0   ·   **Last updated:** 2026-06-08
 >
 > **Purpose:** The task-execution **orchestration loop** — a deterministic control loop that drives a [Task](tasks.md) from goal to done: **plan → route → dispatch isolated workers → synthesize → review → replan / escalate**, calling LLM steps only for judgment. Owns the loop and its four LLM prompt contracts.
 >
@@ -662,3 +662,4 @@ sequenceDiagram
 - **2026-06-04 — v0.2** — Clarified that **the orchestrator performs all Memory recall** and injects it into the worker's self-contained prompt; workers never query Memory themselves (REQ-AORCH-04, [agents](agents.md) REQ-AGENT-13, [memory](memory.md) REQ-MEM-16). Dropped `Browser` from the plan-prompt role list — it is a user-defined `Ops` specialization, not a built-in role.
 - **2026-06-04 — v0.3** — Added inline **◆ Source pattern** call-outs (verbatim): Anthropic *"Building Effective Agents"* Routing + opencode invocation at the route step (REQ-AORCH-03), and Anthropic *Orchestrator-workers* (break-down → delegate → synthesize) at the synthesis step (REQ-AORCH-06).
 - **2026-06-05 — v0.4** — Made §7 a concrete **Go interface/struct reference** (non-normative): enums, domain structs, the four LLM steps + runtime collaborators (`Planner`/`Router`/`Reviewer`/`Replanner`, `AgentRunner`/`MemoryRecaller`/`AgentRegistry`), and the `Orchestrator` + single-threaded reference control loop (`Run`/`execLeaf`/`ready`). Rewrote §8 examples A/B/C as **Go snippets + Mermaid sequence diagrams** (parallel-leaves→synthesize→review; failure→replan→escalate; awaiting-approval pause). Each type maps to its REQ.
+- **2026-06-08 — v1.0** — **Approved.** No material change from v0.4; the deterministic control loop, the four LLM prompt contracts, depth-1 isolated dispatch, and the reviewer-quality-vs-user-permission boundary (REQ-AORCH-13) are stable and consumed by the approved [tools](tools.md) / [permissions](permissions.md).

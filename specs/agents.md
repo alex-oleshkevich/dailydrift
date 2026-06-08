@@ -1,8 +1,8 @@
 # Agents
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.3   ·   **Last updated:** 2026-06-04
+> **Version:** 1.0   ·   **Last updated:** 2026-06-08
 >
 > **Purpose:** The Agent feature — the scoped, role-based **actors that do work for the user**: how an Agent is **defined** (the full field set), the **built-in roster** plus **user-definable** agents, the agent **run loop**, **sandbox/isolation**, and the **subagent/depth** policy.
 >
@@ -336,3 +336,4 @@ A **`Browser`** agent — a user-defined `Ops` specialization (§5.14, REQ-AGENT
 - **2026-06-04 — v0.1** — Initial draft. The Agent as a user-task actor (REQ-AGENT-01); the full production definition field set (REQ-AGENT-02) with `description/when_to_use` routing handle (REQ-AGENT-03); `system_prompt` vs `personality` (persona + tone + anti-goals) as separate layers (REQ-AGENT-04); skills/tools+policy/mcp/model/mode (REQ-AGENT-05…-08); the **built-in + user-definable** roster (REQ-AGENT-09); the bounded run loop (REQ-AGENT-10); sandbox/isolation (REQ-AGENT-11) and **depth-1** subagent policy with recursion-in-the-plan (REQ-AGENT-12); memory/continuity (REQ-AGENT-13); config-defined agents (REQ-AGENT-14). Code-grounded (OpenClaw/opencode/Claude Code/Anthropic/CrewAI/Hermes). In Review.
 - **2026-06-04 — v0.2** — Removed two over-added fields — **`memory_scope`** (Space-scoping + downstream inheritance in [memory](memory.md) REQ-MEM-04 already govern recall) and **`builtin`** (provenance is derivable from where the agent is defined). **Collapsed the roster to four built-ins** — `Executive`/`Research`/`Ops`/`Reviewer` — splitting on **mode** (primary vs subagent) and **read-only-vs-acting**, not tool family; `Browser` is now the canonical **user-defined `Ops` specialization** (REQ-AGENT-09). **Agents are memory-stateless** — the orchestrator recalls and injects Memory into the agent's prompt; no per-agent recall (REQ-AGENT-13, [memory](memory.md) REQ-MEM-16).
 - **2026-06-04 — v0.3** — Added inline **◆ Source pattern** call-outs with **verbatim** excerpts from the grounding projects: persona÷instructions (OpenClaw `SOUL.md`/`AGENTS.md`), description-routing (Claude Code/opencode), per-tool `permission` (opencode), per-agent isolation (Claude Code), and the OpenClaw `DEFAULT_SUBAGENT_TOOL_DENY` that enforces depth-1 (`sessions_spawn` denied) and memory-in-prompt (`memory_search`/`memory_get` denied — "pass relevant info in spawn prompt instead") in real code.
+- **2026-06-08 — v1.0** — **Approved.** No material change from v0.3; the agent definition (`skill_set`/`tool_set`+`tool_policy`/`mcp_servers`/`sandbox`/`mode`/`model`), four-built-in roster, bounded loop, and depth-1 memory-stateless subagent policy are stable and now consumed by the approved [tools](tools.md), [permissions](permissions.md), [skills](skills.md), and [mcp](mcp.md).
