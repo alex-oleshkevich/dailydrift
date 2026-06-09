@@ -3,6 +3,7 @@ module github.com/starfrontventures/dailydrift
 go 1.23
 
 require (
+	github.com/go-chi/chi/v5 v5.3.0
 	github.com/urfave/cli/v3 v3.9.0
 	github.com/wailsapp/wails/v2 v2.11.0
 	golang.org/x/sync v0.11.0

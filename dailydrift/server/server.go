@@ -38,12 +38,10 @@ type Deps struct {
 }
 
 func NewServer(deps Deps) *Server {
-	mux := http.NewServeMux()
-
 	return &Server{
 		http: &http.Server{
 			Addr:              deps.Config.Addr(),
-			Handler:           mux,
+			Handler:           newRouter(),
 			ReadHeaderTimeout: 10 * time.Second,
 			IdleTimeout:       120 * time.Second,
 		},
