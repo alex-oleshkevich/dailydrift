@@ -5,6 +5,7 @@ import (
 
 	"github.com/starfrontventures/dailydrift/dailydrift/app"
 	"github.com/starfrontventures/dailydrift/dailydrift/config"
+	"github.com/starfrontventures/dailydrift/dailydrift/logger"
 	"github.com/urfave/cli/v3"
 )
 
@@ -37,6 +38,9 @@ func Command() *cli.Command {
 				Host:     cmd.String("host"),
 				Port:     cmd.Int("port"),
 				LogLevel: cmd.String("log-level"),
+			}
+			if err := logger.Setup(cfg.LogLevel); err != nil {
+				return err
 			}
 			return app.NewApp(cfg).Run(ctx)
 		},
