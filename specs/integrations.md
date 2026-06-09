@@ -1,8 +1,8 @@
 # Integrations
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.1   ·   **Last updated:** 2026-06-09
+> **Version:** 1.0   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The **inbound integration** layer — how an authorized connection to an external service (email, calendar, task-tracking, chat, code-host) becomes a stream of **[Signals](signals.md)**. It defines the **Integration** (`int_`), its **pull-first sync** on the existing scheduler, the **event→Signal normalization contract** per category, and connector **health/lifecycle** — reusing the ingestion, credential, permission, and injection-defense rails rather than rebuilding them. **Outbound** actions are out of scope (owned by [skills](skills.md) / [mcp](mcp.md)).
 >
@@ -92,7 +92,7 @@ Canonical definitions are in [glossary](glossary.md); terms this spec owns or le
 > | `email` | `connector` | `email_received` | `from · to · subject · thread_id · message_id` | sender + recipients → `person` |
 > | `calendar` | `calendar` | `event_created · event_changed · event_cancelled` | `attendees · start · end · title · location` | attendees → `person` |
 > | `task-tracking` | `connector` | `issue_created · issue_updated · issue_closed` | `key · title · assignee · status · project/repo` | assignee → `person`, project → entity |
-> | `chat` | `connector` | `message_received · mention` | `channel · author · thread_ts` | author → `person`, channel → entity |
+> | `chat` | `connector` | `message_received · mention` | `channel · author · thread_id` | author → `person`, channel → entity |
 > | `code-host` | `connector` | `pr_opened · issue_opened · commit_pushed · release` | `repo · number · author · ref` | author → `person`, repo → entity |
 > | `generic` | `connector` | `<declared>` | `<declared>` | `<declared>` |
 >
@@ -108,7 +108,7 @@ Canonical definitions are in [glossary](glossary.md); terms this spec owns or le
 
 ### 5.9 Health & lifecycle
 
-> **REQ-INT-09.** An Integration moves through `connecting → authorized → backfilling → incremental → error → disconnected | revoked`. A **failed or stuck** Integration (auth expired, repeated provider errors, revoked scope) enters `error` and **raises a [Situation](situations.md)** — a `blocker`/`watch` such as *"Gmail needs re-authentication"* — surfaced by [proactivity](proactivity.md) for the user to fix; it **never silently stops sensing without surfacing**. Recovery (re-auth) returns it to `incremental` **without losing the cursor** (§5.10). `disconnected`/`revoked` are terminal until re-enabled; the credential handle is released to [secrets](secrets.md) on revoke.
+> **REQ-INT-09.** An Integration moves through `connecting → authorized → backfilling → incremental → error → disconnected | revoked`. A **failed or stuck** Integration (auth expired, repeated provider errors, revoked scope) enters `error` and **raises a [Situation](situations.md)** — a `blocker`/`watch` such as *"Gmail needs re-authentication"* — surfaced by [proactivity](proactivity.md) for the user to fix; it **never silently stops sensing without surfacing**. A connector that simply **stops returning data past a per-category max-staleness threshold** (no items for materially longer than its cadence allows) is treated as stuck — it enters `error` and surfaces, so absence is never assumed-healthy (§9). Recovery (re-auth) returns it to `incremental` **without losing the cursor** (§5.10). `disconnected`/`revoked` are terminal until re-enabled; the credential handle is released to [secrets](secrets.md) on revoke.
 
 ### 5.10 Rate-limit & backoff
 
@@ -232,11 +232,14 @@ The user wants the System to *notice* Slack mentions and *also* be able to *post
 
 ## 10. Open Questions & Decisions
 
+- **OQ-INT-0 — OAuth-app registration & verification (blocking, pre-build).** A self-hosted deployment has **no shared OAuth app**: each user must register their own provider app (e.g. a Google Cloud project) and consent to its scopes. For restricted scopes (Gmail read), Google requires **CASA verification** of a *production* app; an unverified "testing" app expires refresh tokens roughly **every 7 days** — which would force weekly re-auth on the #1 table-stakes connector. The strategy per provider is unresolved: (a) ship **own-app setup instructions** (user creates + verifies their own app), (b) a **device-authorization-grant** / client-brokered flow against a vendor-neutral app, or (c) a **lower-scope fallback** (IMAP + app-password for email, ICS feed for calendar) that avoids OAuth entirely. This must be settled before any connector is built; reuse [secrets](secrets.md) for handle storage but the *registration/consent topology* is owned here.
 - **OQ-INT-1 — Webhook receiver (deferred).** v1 is pull-only. A future push path (`POST /webhook/<int_>` with HMAC validation + subscription management) would cut latency for providers that support it, at the cost of a reachable endpoint + more infra. Until then, `POST /ingest` is the push escape hatch.
 - **OQ-INT-2 — `calendar` source vs `connector`.** `calendar` is its own [Signal](signals.md) source today; whether a calendar Integration should keep emitting `source: calendar` or fold under `connector` (distinguished by `kind`) is open — coordinate with [signals](signals.md) REQ-SIG-02 and [calendar](calendar.md).
 - **OQ-INT-3 — Cadence & backoff defaults.** Per-category polling cadence (email ~1–5 min, calendar ~5–15 min, code-host ~5 min, …) and the backoff curve are starting points to tune against real volume and provider limits, jointly with [periodic-tasks](periodic-tasks.md)/[proactivity](proactivity.md).
 - **OQ-INT-4 — `int_` as a glossary primitive.** This spec proposes **Integration** as a first-class [glossary](glossary.md) term (done in v1.7) — confirm on approval.
-- **OQ-INT-5 — Local edges vs integrations.** [filesystem](filesystem.md) (watched files → `file`), [browser-automation](browser-automation.md) (→ `browser`), and [calendar](calendar.md) (local) are **siblings** that also produce Signals from *local* surfaces; this spec owns *external authorized accounts*. The boundary (and whether they should share any "source connection" vocabulary) is to be reconciled when those specs are written/approved.
+- **OQ-INT-5 — Local edges vs integrations.** Watched files (→ `file`) and browser activity (→ `browser`) are **local-surface** siblings that also produce Signals — both **out of v1 scope** (not on the index roadmap); [calendar](calendar.md) (local) remains a planned sibling. This spec owns *external authorized accounts*. The boundary (and whether local edges should share any "source connection" vocabulary) is reconciled if/when those surfaces are specced.
+- **OQ-INT-6 — `generic` category mapping mechanism.** The `generic` category's "user-declared mapping" (the answer to "provider doesn't fit a category") is named but unspecified: there is no mapping language, validation contract, or authoring surface for declaring how a polled record's fields map to `kind`/`metadata`/`source_ref`/`entity_hints`. Either spec the declaration mechanism or treat `generic` as deferred until it exists.
+- **OQ-INT-7 — Per-category latency budget (product commitment).** Pull-only polling (cadence 1–5 min, OQ-INT-3) trades real-time for self-hostability, but the **max-staleness a user should expect** per category is not stated as a commitment — users will compare "Slack pinged me instantly" to "the System noticed 4 minutes later." Set per-category max-staleness targets so the expectation is owned, not emergent (feeds the REQ-INT-09 threshold).
 
 ## 11. Review & Acceptance Checklist
 
@@ -260,4 +263,5 @@ The user wants the System to *notice* Slack mentions and *also* be able to *post
 
 ## 13. Changelog
 
+- **2026-06-09 — v1.0** — **Approved.** Review-pass fixes applied at approval: added **OQ-INT-0** (OAuth-app registration & verification — the blocking pre-build question for self-hosted connectors, since there is no shared OAuth app and unverified Google apps expire refresh tokens weekly); added **OQ-INT-6** (`generic` category mapping mechanism) and **OQ-INT-7** (per-category latency budget as a product commitment); extended **REQ-INT-09** with a per-category **max-staleness threshold** so the §9 "silent stall" is an actual requirement; corrected the chat metadata field `thread_ts`→`thread_id` (provider-agnostic). Scoped **OQ-INT-5** to note watched-files/browser local edges are out of v1 scope. Deeper coupled findings (extend the [user-workflows](user_workflows.md) trigger catalog to all connector categories; fully spec the `generic` mapping) tracked separately.
 - **2026-06-09 — v0.1** — Initial draft. The **Integration** (`int_`) as a Space-scoped, **inbound-only**, polling connection that emits Signals and never writes Evidence or acts (REQ-INT-01, -11). Closed category taxonomy mapping onto the [Signal](signals.md) source catalog (REQ-INT-02). Credentials as `secret://` handles with broker refresh (REQ-INT-03); Ask-first, Space-scoped, downstream-only enablement (REQ-INT-04). **Pull-first** sync on `ptask_ → task_ → emit Signal` with bounded backfill then incremental, **webhooks deferred** (REQ-INT-05). The per-category event→Signal **normalization contract** with stable `source_ref` (REQ-INT-06); cursor + dedup **idempotency** (REQ-INT-07); untrusted-content fencing (REQ-INT-08; P12); **health lifecycle** raising a Situation and preserving the cursor (REQ-INT-09); rate-limit/backoff (REQ-INT-10); the inbound-only boundary vs [mcp](mcp.md)/[skills](skills.md) (REQ-INT-11); ownership (REQ-INT-12). §7 conceptual TS shape; two Zed-safe diagrams. Reuses signals/inbox/periodic-tasks/tasks/secrets/permissions/prompt-injection rather than restating them. In Review; stays in the untiered backlog pending approval, with the **Integration** glossary term added ([glossary](glossary.md) v1.7).

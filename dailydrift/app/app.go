@@ -11,7 +11,6 @@ import (
 )
 
 type App struct {
-	cfg     *config.Config
 	server  *server.Server
 	curator *curator.Curator
 }
@@ -36,7 +35,6 @@ func NewApp(cfg *config.Config) *App {
 		Config: cfg,
 	})
 	return &App{
-		cfg:     cfg,
 		server:  server,
 		curator: curator,
 	}
