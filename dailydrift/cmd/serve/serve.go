@@ -1,22 +1,44 @@
-// Package serve provides the `serve` subcommand: run the always-on server
-// (the brain). Stub for now — see specs/app-architecture.md.
 package serve
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/starfrontventures/dailydrift/dailydrift/app"
+	"github.com/starfrontventures/dailydrift/dailydrift/config"
 	"github.com/urfave/cli/v3"
 )
 
-// Command returns the `serve` subcommand.
 func Command() *cli.Command {
 	return &cli.Command{
 		Name:  "serve",
 		Usage: "Run the dailydrift server (the always-on brain)",
-		Action: func(_ context.Context, _ *cli.Command) error {
-			fmt.Println("serve: not implemented yet")
-			return nil
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "host",
+				Value:   config.DefaultHost,
+				Usage:   "host/interface to bind the server to",
+				Sources: cli.EnvVars("DAILYDRIFT_HOST"),
+			},
+			&cli.IntFlag{
+				Name:    "port",
+				Value:   config.DefaultPort,
+				Usage:   "port to listen on",
+				Sources: cli.EnvVars("DAILYDRIFT_PORT"),
+			},
+			&cli.StringFlag{
+				Name:    "log-level",
+				Value:   config.DefaultLogLevel,
+				Usage:   "log level (debug, info, warn, error)",
+				Sources: cli.EnvVars("DAILYDRIFT_LOG_LEVEL"),
+			},
+		},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			cfg := &config.Config{
+				Host:     cmd.String("host"),
+				Port:     cmd.Int("port"),
+				LogLevel: cmd.String("log-level"),
+			}
+			return app.NewApp(cfg).Run(ctx)
 		},
 	}
 }

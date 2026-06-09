@@ -17,14 +17,6 @@ type Config struct {
 	LogLevel string
 }
 
-func New(host string, port int, logLevel string) *Config {
-	return &Config{Host: host, Port: port, LogLevel: logLevel}
-}
-
-func NewConfig() *Config {
-	return New(DefaultHost, DefaultPort, DefaultLogLevel)
-}
-
 func (c *Config) Addr() string {
 	return net.JoinHostPort(c.Host, strconv.Itoa(c.Port))
 }
