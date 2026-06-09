@@ -1,8 +1,8 @@
 # Situations
 
-> **Status:** Approved
+> **Status:** In Review
 >
-> **Version:** 1.1   ·   **Last updated:** 2026-06-04
+> **Version:** 1.2   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The Situation feature end-to-end — what a Situation is, its category catalog, how it is detected, how its Attention score and Status move, the actions it suggests, how an Insight escalates into one, and how it surfaces.
 >
@@ -61,8 +61,9 @@ Canonical definitions are in [glossary](glossary.md); relationships in [data-mod
 | `contradiction` | facts or plans conflict and must be reconciled | *Plan is local-first but now requires Northwind Cloud.* |
 | `approval` | a parked task awaits the user's approval | *Background task blocked awaiting approval to email Devin.* |
 | `watch` | a monitored condition has crossed a line and may need action | *Northwind Cloud bill spiked unexpectedly.* |
+| `security` | a security-relevant event needs attention (an injection attempt, a sandbox denial, an auth/exfiltration anomaly) | *A quarantined email tried to instruct the System to forward credentials.* |
 
-A discovered *risk* or *opportunity* lives as an [Insight](insights.md); it becomes a Situation only when it turns actionable, taking whichever category above fits the action needed (§5.7).
+A discovered *risk* or *opportunity* lives as an [Insight](insights.md); it becomes a Situation only when it turns actionable, taking whichever category above fits the action needed (§5.7). The `security` category is the landing point for the security-telemetry the defense layers emit — an indirect-injection attempt ([prompt-injection](prompt-injection.md) REQ-PINJ-14), a sandbox denial ([sandboxing](sandboxing.md) REQ-SBX-09), an exfiltration/auth anomaly — and is **typically low-Attention/advisory** (logged for the audit trail, P9) unless the condition genuinely needs the user now.
 
 ### 5.3 Detection
 
@@ -126,7 +127,7 @@ rule-detectors; you catch the conditions only judgment can see.
 not a fact (Evidence). If the right response is "remember this," it is NOT a Situation.
 
 ## category — choose exactly one
-  blocker · decision · dependency · overdue · contradiction · approval · watch
+  blocker · decision · dependency · overdue · contradiction · approval · watch · security
 
 ## Rules
 1. EVIDENCE-BACKED. Cite the evidence_ids that establish the condition. No condition without Evidence.
@@ -163,7 +164,7 @@ Identify the Situations this Evidence raises.
 {
   "situations": [
     {
-      "category": "blocker|decision|dependency|overdue|contradiction|approval|watch",
+      "category": "blocker|decision|dependency|overdue|contradiction|approval|watch|security",
       "title": "short",
       "summary": "the condition + why it needs action",
       "evidence_ids": ["ev_..."],
@@ -326,3 +327,4 @@ A background Task needs to email Devin to unblock the Brightmoor portal — an *
 - **2026-06-04 — v1.0** — Approved.
 - **2026-06-04 — v1.1** — Added §5.10 / REQ-SIT-14: the **reasoning-detector LLM contract** (system prompt + user template + output schema), evidence-backed, single-category, tier-aware, deduped, proposing (not committing) Situations under the untrusted-data rule (P12).
 - **2026-06-04 — v1.1 (note)** — Cross-reference hygiene: pointed the detection-input cross-ref to [evidence](evidence.md) and added it to Related (editorial; no rule change).
+- **2026-06-09 — v1.2** — Added the **`security`** category to the catalog (REQ-SIT-02, the ascii catalog, and the detector output schema) — the landing point for security-telemetry from [prompt-injection](prompt-injection.md) REQ-PINJ-14 and [sandboxing](sandboxing.md) REQ-SBX-09, typically low-Attention/advisory. **Resolves OQ-PINJ-3** (where the `security` Situation lives) and removes the dangling-category gap those approved specs depended on. *Material change — header and index status set to In Review pending re-approval.*

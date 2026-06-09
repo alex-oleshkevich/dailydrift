@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.2   ·   **Last updated:** 2026-05-29
+> **Version:** 1.3   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The governing document for the entire specification suite and the eventual build. It fixes the product/engineering principles, the autonomy model, the example world, and the authoring conventions that every other spec inherits.
 >
@@ -203,10 +203,12 @@ Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug
 | Auth profile | `auth_` | Memory | `mem_` |
 | Secret (handle) | `secret_` | Entity (graph) | `ent_` |
 | Conversation | `conv_` | Message | `msg_` |
+| Integration | `int_` | User Workflow | `wf_` |
+| Workflow Run | `wfr_` | Notification | `notif_` |
 
 - **Requirement IDs:** `REQ-<SPEC>-NN`, where `<SPEC>` is a short uppercase tag (e.g. `CONV`, `MEM`, `PERM`) and `NN` is zero-padded and **stable** (never renumbered). Each spec declares its tag in §1.
 - **File names:** lowercase kebab-case, `.md`, matching the spec's tag domain.
-- **Canonical capitalization of domain terms:** **Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Entity, Agent, Skill, Task, Digest.** Use the capitalized form when referring to the concept; lowercase only in generic prose.
+- **Canonical capitalization of domain terms:** **Space, Storyline, Situation, Signal, Evidence, Insight, Narrative, Memory, Entity, Agent, Skill, Tool, Task, Periodic Task, Integration, User Workflow, Workflow Run, Conversation, Digest.** Use the capitalized form when referring to the concept; lowercase only in generic prose.
 
 ### 6.3 Cross-linking & the index rule
 - Link related specs with standard Markdown links: `[spec-name](spec-name.md)` (renders clickable on GitHub and any Markdown viewer).
@@ -321,3 +323,4 @@ This spec is satisfied when:
 - **2026-05-29 — v1.0** — Approved.
 - **2026-05-29 — v1.1** — Architecture shift to client-server / self-hosted with space-sharing. Amended P1 (local-first → self-hosted & user-owned), P10 (isolation now by space **and** person; sharing flows downstream-only), added P11 (the Space is the only primitive — no roles/orgs/teams) and P12 (untrusted content is data, not instructions — prompt-injection defense). Added a "share a Space" row to the §5 table and Sam Rivera to the cast. Re-approved.
 - **2026-05-29 — v1.2** — Removed **Monitor** (folded into Periodic Task — a Monitor is a recurring watcher task), **Note**, and **Bookmark** as primitives: dropped their `mon_`/`note_`/`bm_` ID prefixes (§6.2), the Monitor capitalization entry, and the Notes/Monitors action references; reworked the cast's Monitors into recurring watchers. Fixed a stale `arcs` cast reference (→ storylines).
+- **2026-06-09 — v1.3** — ID/vocabulary alignment: added `int_`, `wf_`, `wfr_`, and `notif_` prefixes now owned by the Integration, User Workflow, and Proactivity specs, and refreshed canonical capitalization for Tool, Periodic Task, Integration, User Workflow, Workflow Run, and Conversation. No autonomy-model change.

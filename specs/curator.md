@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-04
+> **Version:** 1.1   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The Curator feature end-to-end — the background **state-maintenance engine** that turns accepted Evidence into maintained understanding: its triggers, its catalog of focused jobs, the propose→commit transaction, what it may and may not mutate, the deterministic+LLM split, and the guards that keep it from over-creating or drifting.
 >
@@ -25,7 +25,7 @@ It operates only on **already-accepted facts** ([Evidence](evidence.md)), runs a
 ## 2. Non-Goals / Out of Scope
 
 - **Not ingestion.** Signal→Evidence is owned by [inbox](inbox.md); the Curator starts after Evidence is committed.
-- **Not user-task execution.** Doing things *for* the user (research, browsing, drafting, ops) is the job of the [agents](agents.md) (Executive/Research/Browser/Ops). The Curator only maintains internal state.
+- **Not user-task execution.** Doing things *for* the user (research, browsing, drafting, ops) is the job of the [agents](agents.md) (Executive/Research/Ops/Reviewer). The Curator only maintains internal state.
 - **Not the primitive contracts.** *How* a Storyline is curated, a Situation detected, an Insight captured, a Narrative generated, a Memory consolidated is owned by [storylines](storylines.md)/[situations](situations.md)/[insights](insights.md)/[narrative](narrative.md)/[memory](memory.md); the Curator **invokes** those contracts.
 - **Not surfacing.** Whether the user is shown anything is owned by [proactivity](proactivity.md) (the relevance/urgency bar).
 - **Not the runtime.** The concrete job queue, workers, and scheduler are owned by [app-architecture](app-architecture.md).
@@ -64,7 +64,7 @@ Canonical definitions in [glossary](glossary.md). Terms this spec uses:
 > | **Scheduled** | periodic cadence (fixed defaults, OQ-CUR-1) | ~minutes: active `situation.update`; hourly: `storyline` hygiene; daily: `narrative.refresh`; weekly: `cleanup` |
 > | **Manual** | the user acts | "refresh understanding", edits a Narrative, merges Storylines, dismisses an Insight, asks "what's going on with X?" |
 >
-> Trigger model: `Evidence created → enqueue job for affected Space/Storyline`; `Task failed → enqueue situation.update`; `Monitor changed → enqueue evidence-review + situation.update`; `User opens Space → refresh narrative if stale`.
+> Trigger model: `Evidence created → enqueue job for affected Space/Storyline`; `Task failed → enqueue situation.update`; `watcher change → enqueue evidence-review + situation.update`; `User opens Space → refresh narrative if stale`.
 
 ### 5.3 The job catalog
 
@@ -84,16 +84,16 @@ Canonical definitions in [glossary](glossary.md). Terms this spec uses:
 
 ### 5.4 Job — `storyline.update`
 
-> **REQ-CUR-04.** **Purpose:** keep a long-running thread accurate. **Trigger:** immediate (new Evidence in a Storyline's scope) or delayed (settled batch). **Inputs:** the new Evidence, the existing Storyline, related notes/files/tasks/bookmarks, active Situations, recent decisions. **Steps:**
-> 1. **Resolve belonging** (deterministic-first): explicit links → folder mount → note location → bookmark Space → entity match → semantic similarity → recent activity.
+> **REQ-CUR-04.** **Purpose:** keep a long-running thread accurate. **Trigger:** immediate (new Evidence in a Storyline's scope) or delayed (settled batch). **Inputs:** the new Evidence, the existing Storyline, related files/tasks, active Situations, recent decisions. **Steps:**
+> 1. **Resolve belonging** (deterministic-first): explicit links → folder mount → entity match → semantic similarity → recent activity.
 > 2. **Reconcile the Storyline** via [storylines](storylines.md) **REQ-STORY-13** (the curation contract): update summary, momentum, open questions, linked Evidence, recent activity.
 > 3. **Restraint:** a weak single signal does **not** create a Storyline — it creates a **candidate** that waits for reinforcement (REQ-STORY-04/05).
 >
-> **Patches:** `update_storyline`, `create_candidate`. *Example:* Evidence — *created `browser-worker.md`, bookmarked Playwright docs, discussed browser profiles* → `update_storyline(Daily Dispatch Product)`: direction "browser automation becoming central", momentum `rising`, open question "sandbox/auth model".
+> **Patches:** `update_storyline`, `create_candidate`. *Example:* Evidence — *created `browser-worker.md`, browsed the Playwright docs, discussed browser profiles* → `update_storyline(Framework)`: direction "browser-based e2e automation becoming central", momentum `advancing`, open question "sandbox/auth model".
 
 ### 5.5 Job — `storyline.merge_candidates` (merge / split)
 
-> **REQ-CUR-05.** **Purpose:** prevent Storyline explosion. **Trigger:** scheduled (hourly hygiene) or manual. **Inputs:** the Space's Storylines with names, entities, Evidence, files, bookmarks. **Steps:** an LLM ([§5.16 merge/split contract](#516-the-mergesplit-contract-llm)) detects **merge** (Storylines that demonstrably share the **same Evidence, Entities, and files** — *not* merely similar names) and **split** (one Storyline whose Evidence has clearly diverged into two unrelated threads). **Name similarity is only a cue to investigate, never grounds to merge** — over-merging two real threads destroys information and is hard to undo. Each carries a **confidence**. **Autonomy (§5.14):** high-confidence changes **auto-execute**; below the threshold the Curator emits a **proposal** (Create / Merge / Ignore, [storylines](storylines.md) REQ-STORY-12) rather than forcing it.
+> **REQ-CUR-05.** **Purpose:** prevent Storyline explosion. **Trigger:** scheduled (hourly hygiene) or manual. **Inputs:** the Space's Storylines with names, entities, Evidence, files. **Steps:** an LLM ([§5.16 merge/split contract](#516-the-mergesplit-contract-llm)) detects **merge** (Storylines that demonstrably share the **same Evidence, Entities, and files** — *not* merely similar names) and **split** (one Storyline whose Evidence has clearly diverged into two unrelated threads). **Name similarity is only a cue to investigate, never grounds to merge** — over-merging two real threads destroys information and is hard to undo. Each carries a **confidence**. **Autonomy (§5.14):** high-confidence changes **auto-execute**; below the threshold the Curator emits a **proposal** (Create / Merge / Ignore, [storylines](storylines.md) REQ-STORY-12) rather than forcing it.
 >
 > **Patches:** `merge_storylines`, `split_storyline`, `propose_merge`.
 
@@ -119,7 +119,7 @@ Canonical definitions in [glossary](glossary.md). Terms this spec uses:
 
 > **REQ-CUR-09.** **Purpose:** stop the System drowning in Evidence. **Trigger:** scheduled (e.g. nightly) or manual. **Inputs:** clusters of related Evidence/Insights. **Steps:** distill into higher-level durable Memory via [memory](memory.md) **REQ-MEM-15** (reflection) and **REQ-MEM-13/14** (extract / update-merge). **It does NOT delete Evidence** — it **creates higher-level summaries** (Evidence is history). Compression outputs feed prompts, search, and Narratives.
 >
-> **Patch:** `create_memory`. *Example:* 42 Evidence records about Daily Dispatch architecture → one `summary` Memory: *"a local-first contextual-intelligence OS organized around Spaces, Storylines, Situations, Evidence, Insights, Narratives."*
+> **Patch:** `create_memory`. *Example:* 42 Evidence records about the Framework architecture → one `summary` Memory: *"a component-based web UI framework with file-based routing and a reactive rendering core."*
 
 ### 5.10 Job — `cleanup`
 
@@ -151,7 +151,7 @@ Canonical definitions in [glossary](glossary.md). Terms this spec uses:
 >
 > | May mutate | May **not** mutate |
 > |------------|--------------------|
-> | Storylines, Situations, Insights, Narratives, Memory summaries, relationships between objects | Evidence, raw notes, source files, original bookmarks, raw Signals, user-authored text |
+> | Storylines, Situations, Insights, Narratives, Memory summaries, relationships between objects | Evidence, source files, raw Signals, user-authored text |
 >
 > [Evidence](evidence.md) is the immutable record; the Curator only ever derives understanding from it (REQ-EV-03).
 
@@ -180,14 +180,14 @@ Canonical definitions in [glossary](glossary.md). Terms this spec uses:
 
 ```text
 You are the Storyline Curator (merge/split). Storylines must stay SCARCE and each must be ONE coherent
-thread over time. Given the Space's Storylines (names, entities, evidence, files, bookmarks), find:
+thread over time. Given the Space's Storylines (names, entities, evidence, files), find:
   MERGE — two+ Storylines that are the SAME underlying effort. Propose the canonical survivor.
   SPLIT — one Storyline that has become TWO unrelated threads.
   (Most of the time the answer is: nothing to do.)
 
 ## Rules
 1. MERGE ONLY ON SHARED EVIDENCE. Similar names prove NOTHING — two distinct projects can sound alike.
-   Merge only when storylines share the same Evidence / Entities / files / bookmarks. If they don't,
+   Merge only when storylines share the same Evidence / Entities / files. If they don't,
    they are different threads — leave them apart.
 2. DEFAULT TO LEAVING THEM ALONE. Over-merging collapses two real threads into one, destroys the
    distinction, and is hard to undo — it is worse than a leftover duplicate. When in doubt, do nothing.
@@ -418,9 +418,9 @@ type Patch =
 ## 8. Examples & Use Cases
 
 ### Example A — a folder burst becomes one Storyline update (Given/When/Then)
-- **Given** 20 saves of files under `~/Projects/daily-dispatch` plus a Playwright bookmark and a chat about browser profiles,
+- **Given** 20 saves of files under `~/Projects/framework` plus a Playwright docs visit and a chat about browser profiles,
 - **When** the **delayed** trigger waits for the batch to settle and enqueues one `storyline.update` for that scope,
-- **Then** the job reconciles via REQ-STORY-13 and commits `update_storyline(Daily Dispatch)`: direction "browser automation becoming central", momentum `rising`, open question "sandbox/auth model" — **one** update, not 20 (REQ-CUR-02, -04).
+- **Then** the job reconciles via REQ-STORY-13 and commits `update_storyline(Framework)`: direction "browser-based e2e automation becoming central", momentum `advancing`, open question "sandbox/auth model" — **one** update, not 20 (REQ-CUR-02, -04).
 
 ### Example B — a blocker raised then auto-resolved (narrative)
 A `task failed` immediate trigger enqueues `situation.update`; deterministic rule *(auth failure)* + REQ-SIT-14 create a `blocker` Situation *"Stripe automation blocked"* (`create_situation`). Days later Evidence shows the Stripe session reconnected; the next `situation.update` **auto-resolves** it (`resolve_situation`) — no lingering stale condition (REQ-CUR-06).
@@ -464,7 +464,7 @@ A single visit to a docs page arrives with no corroboration. `storyline.update` 
 
 - [inbox](inbox.md) — the upstream engine (Signals→Evidence); the Curator is its downstream peer (Evidence→understanding), triggered at commit (REQ-INBOX-12).
 - [storylines](storylines.md) / [situations](situations.md) / [insights](insights.md) / [narrative](narrative.md) / [memory](memory.md) — the primitive contracts the Curator's jobs **invoke** (REQ-STORY-13, REQ-SIT-14, REQ-INS-16, REQ-NAR-10, REQ-MEM-15).
-- [agents](agents.md) — the user-task agents (Executive/Research/Browser/Ops); the Curator is **not** one of them. [proactivity](proactivity.md) — the surfacing bar over Curator output.
+- [agents](agents.md) — the user-task agents (Executive/Research/Ops/Reviewer); the Curator is **not** one of them. [proactivity](proactivity.md) — the surfacing bar over Curator output.
 - [periodic-tasks](periodic-tasks.md) — the scheduler behind scheduled triggers. [app-architecture](app-architecture.md) — the job queue, workers, and patch-commit runtime. [evidence](evidence.md) — the immutable record the Curator never mutates.
 
 **Design lineage.** The engine is grounded in established patterns: the **reconciliation loop** (level-triggered, work-queue-of-keys, idempotent declarative compare) from **Kubernetes controllers/operators**; **propose→commit** from **Terraform** (`plan`→`apply`); **debounced refresh of derived state** from **incremental materialized views** ("freshness is a correctness property"); **background consolidation cadence** from **Letta sleeptime agents** (every-N-steps), **mem0** (idle-before-consolidate), and **Zep/Graphiti** (async tiered enrichment + fact invalidation); **Situations-as-incidents** (state-gated auto-resolve, run-conditions-as-guards) from **incident.io / PagerDuty / Rootly**; and **event+scheduled, human-in-loop** background operation from **LangChain ambient agents**. Thread-maintenance and resurfacing behaviors echo **Mem** (collections), **Tana** (live views), **mymind** (Smart Spaces), **Readwise** (spaced-repetition resurfacing), **Khoj** (cron automations), and **Limitless** (daily rollup).
@@ -474,3 +474,4 @@ A single visit to a docs page arrives with no corroboration. `storyline.update` 
 - **2026-06-04 — v0.1** — Initial draft. The Curator as a background, **level-triggered** state-maintenance engine (REQ-CUR-01/02); the seven-job catalog detailed (REQ-CUR-03…-10) — `storyline.update`/`merge_candidates`, `situation.update`, `insight.evaluate`, `narrative.refresh`, `memory.compress`, `cleanup` (Digests out of scope); hybrid deterministic+LLM reasoning (REQ-CUR-11); the propose→commit, idempotent patch transaction (REQ-CUR-12); the mutation boundary (REQ-CUR-13); auto-commit autonomy with confidence-gated merge/split proposals (REQ-CUR-14); the five failure-mode guards (REQ-CUR-15); and three new prompt contracts — merge/split, insight-evaluation, cleanup (§5.16–5.18). Reuses the approved primitive contracts. In Review.
 - **2026-06-04 — v0.1 (note)** — Hardened merge/split (REQ-CUR-05, §5.16): merge **only on shared Evidence/Entities/files, never name similarity**; added **over-merging** as an explicit failure mode (REQ-CUR-15, §9) — worse than over-creation since it destroys the distinction. Replaced the misleading name-based merge example.
 - **2026-06-04 — v1.0** — Approved.
+- **2026-06-09 — v1.1** — Stale-vocabulary & cast hygiene (no rule change): invalid Momentum `rising` → **`advancing`** (REQ-CUR-04 example + Example A); the `Monitor changed` trigger → **`watcher change`** (§5.2); dropped removed-primitive `note`/`bookmark` references from job inputs and the mutation-boundary table (REQ-CUR-04/05, §5.13, §5.16); the **`Browser`** built-in agent role → the canonical roster **Executive/Research/Ops/Reviewer** (§2, §12); and the off-cast **"Daily Dispatch"** product/path → the cast's **Framework** ([constitution](constitution.md) §7).

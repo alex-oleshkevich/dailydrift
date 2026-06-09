@@ -2,15 +2,15 @@
 
 > **Status:** Living (continuously maintained)
 >
-> **Version:** —   ·   **Last updated:** 2026-05-29
+> **Version:** —   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The map of the whole specification suite. For each spec: its path, what it defines, *when to load it*, and its current status. This is the **extended table of contents** — read it first, then load only the specs a task actually needs (per [constitution](constitution.md) §6.3).
 
-The product is a **self-hosted operational intelligence system** — a persistent chief-of-staff / research assistant / operations dashboard. **Only approved specs are placed in a structure below; every unapproved spec is an untiered backlog** pending drafting/approval (the tier taxonomy is being reworked). Read [constitution](constitution.md) before any spec.
+The product is a **self-hosted operational intelligence system** — a persistent chief-of-staff / research assistant / operations dashboard. **Approved specs and active in-review specs that anchor downstream work are placed in the structure below; planned or unstructured specs stay in the untiered backlog** pending drafting/approval. Read [constitution](constitution.md) before any spec.
 
 **Status legend:** ✅ Approved · 📝 In Review · ⬜ Planned (not yet drafted) · ♻ Deprecated
 
-## Approved & meta
+## Structured specs
 
 ### Tier 1: Meta
 
@@ -38,8 +38,8 @@ Specs for every feature with overview, purpose, description, implementation deta
 | [data-model](data-model.md) | Canonical conceptual entity-relationship model for the narrative layer (Space, Storyline, Situation, Insight, Evidence, Narrative); the Situation↔Insight boundary; the capture-and-retrieve Insight | Checking how entities relate / IDs, or before changing any narrative-layer primitive | ✅ Approved |
 | [insights](insights.md) | Insight capture-and-retrieve mechanics: capture path, `kind` catalog, embedding/semantic recall, dedup/reinforcement, lifecycle, surfacing & anti-spam | Working on Insight capture, recall, or surfacing | ✅ Approved |
 | [storylines](storylines.md) | Storyline mechanics: scarcity, creation (enough Evidence on one topic, any source), Status lifecycle, Momentum, merging, the Storyline summary, surfacing | Working on Storyline creation, lifecycle, or surfacing | ✅ Approved |
-| [situations](situations.md) | Situation mechanics: category catalog, detection, Attention score, Status lifecycle, suggested actions, escalation from an Insight, surfacing | Working on Situation detection, scoring, or surfacing | ✅ Approved |
-| [signals](signals.md) | Signal mechanics: source catalog, normalization, fingerprint/dedup, two-axis scoring, lifecycle, ingestion API, distillation to Evidence | Working on ingestion, scoring, or how raw input becomes Evidence | ✅ Approved |
+| [situations](situations.md) | Situation mechanics: category catalog, detection, Attention score, Status lifecycle, suggested actions, escalation from an Insight, surfacing | Working on Situation detection, scoring, or surfacing | 📝 In Review |
+| [signals](signals.md) | Signal mechanics: source catalog, normalization, fingerprint/dedup, two-axis scoring, lifecycle, ingestion API, distillation to Evidence | Working on ingestion, scoring, or how raw input becomes Evidence | 📝 In Review |
 | [evidence](evidence.md) | Evidence mechanics: the type catalog, immutability/append-only, creation from Signals, provenance, the evidence graph, explainability, visibility | Working on how facts are recorded, typed, linked, or cited | ✅ Approved |
 | [inbox](inbox.md) | Signal Inbox: the `InboxItem` state machine, the batch→dedup→noise→resolve→extract→propose→reduce→commit pipeline, the LLM extraction contract, processor tiers, retention | Working on the ingestion pipeline that turns Signals into Evidence | ✅ Approved |
 | [narrative](narrative.md) | Narrative mechanics: Space + Storyline scope, the section structure, Curator generation, update cadence, editability, Evidence-backing, surfacing as the briefing | Working on Narrative synthesis, generation, or surfacing | ✅ Approved |
@@ -63,7 +63,7 @@ Specs for every feature with overview, purpose, description, implementation deta
 | [spaces](spaces.md) | The Space primitive (P11: the only primitive, no roles): single-parent hierarchy, downstream-only inheritance, nearest-scope-wins precedence + per-dimension merge/replace, the hard per-Space isolation boundary, item→Space resolution, lifecycle; sharing deferred | Working on hierarchy, scoping, inheritance, or isolation | ✅ Approved |
 | [token-cost-management](token-cost-management.md) | Token accounting + cost control: the per-call usage record (4 token buckets), cost (remote money / local token-metered), attribution per Space/Task/Agent/model/purpose, hierarchical budgets + hard/soft caps, token-bucket rate ceiling, pre-flight enforcement (Always/degrade/Ask-first/fail-closed), the degradation menu, showback + burn-rate alerts | Working on token/cost budgeting, metering, attribution, or spend enforcement | ✅ Approved |
 | [context-management](context-management.md) | Working-context assembly: the deterministic assembler between recall and the model call — zoned window + budget/output-headroom, selection reusing recall scores, packing for cache-stability & against lost-in-the-middle, progressive compaction (reusing the Narrative), lowest-value-first eviction with pinning, the inspectable context contract, single-Space isolation + envelope fencing | Working on prompt/context assembly, packing, or compaction | ✅ Approved |
-| [user-workflows](user_workflows.md) | User Workflows (`wf_`): user-authored "WHEN &lt;real-world event&gt; THEN &lt;instruction&gt;" rules — the event-triggered sibling of periodic-tasks; concrete per-source triggers, force-promotion past the noise funnel, instruction→Task, inherited governance | Working on user automations / event-triggered handling | ✅ Approved |
+| [user-workflows](user_workflows.md) | User Workflows (`wf_`): user-authored "WHEN &lt;real-world event&gt; THEN &lt;instruction&gt;" rules — the event-triggered sibling of periodic-tasks; concrete per-source triggers, force-promotion past the noise funnel, instruction→Task, inherited governance | Working on user automations / event-triggered handling | 📝 In Review |
 
 
 ## Untiered — unapproved backlog
@@ -75,9 +75,13 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 | [ui-shell](ui-shell.md) | Global app shell: nav, command palette, search, layout, keyboard — **plus** the Home surface (the Attention-Needed list) and Digest rendering (absorbed from the removed `home-and-briefings`); Digest *policy* stays in [proactivity](proactivity.md), briefing *content* in [narrative](narrative.md) | Building navigation, the Home surface, or digests | ⬜ Planned |
 | [settings](settings.md) | Global + per-space configuration & preferences | Working on settings / configuration | ⬜ Planned |
 | [conversation](conversation.md) | Chat surface: message types, bg-task spawn+embed, threads, streaming | Building chat or message handling | ⬜ Planned |
-| [calendar](calendar.md) | Calendar of tasks, periodic tasks, watcher runs, deadlines, events | Building the calendar surface | ⬜ Planned || [browser-automation](browser-automation.md) | Playwright workers, isolated browser profiles, approval-gating | Working on browser automation | ⬜ Planned |
-| [filesystem](filesystem.md) | Local filesystem access: scoped mounts, indexing, file→signal | Working on file access | ⬜ Planned || [privacy-security](privacy-security.md) | Security posture, isolation, 3-layer auth, local models | Any security-sensitive decision | ⬜ Planned || [activity-log](activity-log.md) | Audit/observability trail of agent/automation actions | Working on auditing/transparency | ⬜ Planned |
+| [calendar](calendar.md) | Calendar of tasks, periodic tasks, watcher runs, deadlines, events | Building the calendar surface | ⬜ Planned |
+| [browser-automation](browser-automation.md) | Playwright workers, isolated browser profiles, approval-gating | Working on browser automation | ⬜ Planned |
+| [filesystem](filesystem.md) | Local filesystem access: scoped mounts, indexing, file→signal | Working on file access | ⬜ Planned |
+| [privacy-security](privacy-security.md) | Security posture, isolation, 3-layer auth, local models | Any security-sensitive decision | ⬜ Planned |
+| [activity-log](activity-log.md) | Audit/observability trail of agent/automation actions | Working on auditing/transparency | ⬜ Planned |
 | [stack](stack.md) | Go server + native clients: structure, build, libraries, rationale | Setting up the project / build | ⬜ Planned |
+| [integrations](integrations.md) | Inbound integration layer (`int_`): authorized, Space-scoped, **pull-first** connections (email · calendar · task-tracking · chat · code-host) that emit Signals — the event→Signal normalization contract, sync cursor + idempotency, OAuth-handle auth, health lifecycle; outbound stays with mcp/skills | Working on inbound connectors / external sources feeding Signals | 📝 In Review |
 
 ---
 
@@ -120,3 +124,5 @@ Not yet placed in a structure: these are drafted/in-review or planned, and will 
 - **2026-06-08** — **Approved** [proactivity](proactivity.md), [ai-models](ai-models.md), [app-architecture](app-architecture.md) (all v1.0). Moved [proactivity](proactivity.md) and [app-architecture](app-architecture.md) from the untiered backlog into **Tier 3: Features** per §6.3; [ai-models](ai-models.md) was already in Tier 3 (status flipped). The inference layer, the backbone runtime architecture, and the proactive-surfacing policy are now approved.
 - **2026-06-09** — **Removed `home-and-briefings`** (obsolete): deleted the spec file and its backlog row, and **retargeted all inbound references → [ui-shell](ui-shell.md)**, which now owns the **Home surface (Attention-Needed list)** and **Digest rendering**. Digest *policy* remains in [proactivity](proactivity.md); briefing *content* in [narrative](narrative.md). Retargeted across [constitution](constitution.md), [glossary](glossary.md), [overview](overview.md), [how-it-works](how-it-works.md), [data-model](data-model.md), [evidence](evidence.md), [insights](insights.md), [situations](situations.md), [storylines](storylines.md), [narrative](narrative.md), [proactivity](proactivity.md), [curator](curator.md). Historical changelog mentions left intact.
 - **2026-06-09** — **Approved** [user-workflows](user_workflows.md), [token-cost-management](token-cost-management.md), [context-management](context-management.md), [spaces](spaces.md) (all v1.0) and **moved them from the untiered backlog into Tier 3: Features** (§6.3). The user-facing automation primitive, the token/cost governance layer, the working-context assembler, and the Space primitive are now approved.
+- **2026-06-09** — Authored [integrations](integrations.md) (📝 In Review, v0.1) — the **inbound integration** framework (`int_`): authorized, Space-scoped, **pull-first** polling connections that emit [Signals](signals.md), deliberately separate from the outbound [mcp](mcp.md)/[skills](skills.md) layer. Category taxonomy (email · calendar · task-tracking · chat · code-host · generic), the event→Signal normalization contract, cursor + `source_ref` idempotency, OAuth-handle auth (reuse [secrets](secrets.md)), Ask-first per-Space enable (reuse [permissions](permissions.md)), untrusted-content fencing (P12), and connector health → Situations. Webhooks deferred (OQ-INT-1). Added the **Integration** [glossary](glossary.md) term (v1.7). Stays in the untiered backlog until approved. (bd `project-aiassistant-0sx`)
+- **2026-06-09** — Review fix pass: moved [signals](signals.md), [situations](situations.md), and [user-workflows](user_workflows.md) back to 📝 In Review because their latest changelog entries require re-approval/re-confirmation; fixed malformed backlog table rows; reconciled [how-it-works](how-it-works.md) with current Integration, Agent, Periodic Task, and Proactivity mechanics; expanded ID catalogs for `int_`, `wf_`, and `wfr_`.

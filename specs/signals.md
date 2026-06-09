@@ -1,8 +1,8 @@
 # Signals
 
-> **Status:** Approved
+> **Status:** In Review
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-04
+> **Version:** 1.1   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The Signal feature end-to-end — what a Signal is, the sources it comes from, how it is normalized, fingerprinted and deduped, scored, resolved to a Space/Storyline, and how it is distilled into Evidence. The raw-ingestion edge of the knowledge pipeline.
 >
@@ -14,7 +14,7 @@
 
 ## 1. Purpose & Scope
 
-A **Signal** is the **raw input unit** of the System — a meaningful change entering from a source: a message, a file change, a web/page change, browser activity, a watcher run, a bookmark, a connector event, or a POST to the ingestion API. It answers only *"what just happened?"* — never *"what do we know?"*
+A **Signal** is the **raw input unit** of the System — a meaningful change entering from a source: a message, a file change, a web/page change, browser activity, a watcher run, a connector event, or a POST to the ingestion API. It answers only *"what just happened?"* — never *"what do we know?"*
 
 This spec owns the Signal's **mechanics**: the **source catalog**, **normalization** into a common shape, **fingerprinting and dedup**, **scoring** (novelty + importance), the Signal **lifecycle**, **resolution** to a Space/Storyline/Entities, and the hand-off where Signals are **distilled into Evidence**. It is the ingestion edge that protects everything downstream from the noise of reality.
 
@@ -58,11 +58,9 @@ Canonical definitions are in [glossary](glossary.md); relationships in [data-mod
 |----------|-------------|--------------|
 | `chat` | the user or an Agent says something in conversation | *"Let's build a Postman clone in Rust."* |
 | `file` | a watched file is created/modified/removed | `components.md` modified in `~/Projects/framework` |
-| `note` | a note is created or edited | a new design note on context hierarchy |
-| `bookmark` | a page is saved for later | saved an article on capability-based security |
 | `browser` | meaningful browser activity occurs | repeated visits to one GitHub repo |
 | `task` | a Task changes state (completed, failed) | a credentialed automation Task fails |
-| `monitor` | a watcher/periodic task detects change ([glossary](glossary.md) `ptask_`) | Northwind Cloud's pricing page changed overnight |
+| `watcher` | a recurring watcher Task detects a change at a polled source ([periodic-tasks](periodic-tasks.md), `ptask_`) | Northwind Cloud's pricing page changed overnight |
 | `connector` | an external integration emits an event | an email arrives from Talia |
 | `calendar` | a calendar event is created/changed | a demo with Talia scheduled for Friday |
 | `ingestion_api` | an external tool POSTs a Signal (§5.4) | a CI run posts a build-failed event |
@@ -81,7 +79,7 @@ This aligns with the Signal sources in [glossary](glossary.md) and [how-it-works
 
 ### 5.5 Fingerprinting & dedup
 
-> **REQ-SIG-06.** Every Signal carries a **fingerprint** = `source + kind + normalized-content-hash + source-reference`. Signals with an identical fingerprint are **duplicates** and collapsed at ingestion (same file hash, same email, same page content, a repeated sync/monitor result). A **batch key** groups related-but-distinct Signals (same file, note, email thread, browser domain, monitor, Storyline, or time window) so they can be analyzed together rather than one at a time. *Example:* `components.md` saved twelve times in a minute → one batch, one analysis. The batching **windows** and the merge that produces a single Evidence record are owned by [inbox](inbox.md) and [evidence](evidence.md); together they **resolve** [glossary](glossary.md) OQ-CON-2.
+> **REQ-SIG-06.** Every Signal carries a **fingerprint** = `source + kind + normalized-content-hash + source-reference`. Signals with an identical fingerprint are **duplicates** and collapsed at ingestion (same file hash, same email, same page content, a repeated sync/watcher result). A **batch key** groups related-but-distinct Signals (same file, email thread, browser domain, watcher, Storyline, or time window) so they can be analyzed together rather than one at a time. *Example:* `components.md` saved twelve times in a minute → one batch, one analysis. The batching **windows** and the merge that produces a single Evidence record are owned by [inbox](inbox.md) and [evidence](evidence.md); together they **resolve** [glossary](glossary.md) OQ-CON-2.
 
 ### 5.6 Scoring
 
@@ -104,13 +102,13 @@ This aligns with the Signal sources in [glossary](glossary.md) and [how-it-works
 > - **scored** — novelty/importance computed (§5.6).
 > - **converted** — successfully distilled into Evidence and/or a state update (§5.9); terminal.
 > - **dropped** — judged useless; terminal.
-> - **deferred** — kept temporarily to wait for context; re-enters scoring when related Signals arrive. *Example:* a single visit to Playwright docs is deferred; days later a bookmark, a `browser-worker.md` file, and a chat about browser automation make it meaningful.
+> - **deferred** — kept temporarily to wait for context; re-enters scoring when related Signals arrive. *Example:* a single visit to Playwright docs is deferred; days later a `browser-worker.md` file and a chat about browser automation make it meaningful.
 >
 > **Most Signals should die.** The richer staging state machine (`pending · processing · needs_review` and the dashboards over it) is owned by [inbox](inbox.md); this spec fixes only the states the Signal itself moves through.
 
 ### 5.8 Resolution
 
-> **REQ-SIG-09.** Before distillation a Signal is **resolved** to its owning **Space** (required), a candidate **Storyline** (optional hint), and related **Entities**. Resolution draws on folder ownership, browser profile, email account, note location, bookmark assignment, semantic similarity, and the Entity graph. *Example:* a file change under `~/Projects/framework` resolves to the `Business` Space → `Framework` Storyline. Resolution is a **hint** carried into processing; the binding Space/Storyline links are written on the resulting [Evidence](evidence.md), not the Signal.
+> **REQ-SIG-09.** Before distillation a Signal is **resolved** to its owning **Space** (required), a candidate **Storyline** (optional hint), and related **Entities**. Resolution draws on folder ownership, browser profile, email account, semantic similarity, and the Entity graph. *Example:* a file change under `~/Projects/framework` resolves to the `Business` Space → `Framework` Storyline. Resolution is a **hint** carried into processing; the binding Space/Storyline links are written on the resulting [Evidence](evidence.md), not the Signal.
 
 ### 5.9 From Signal to Evidence
 
@@ -124,10 +122,10 @@ This aligns with the Signal sources in [glossary](glossary.md) and [how-it-works
 
 The Signal carries five derived fields — `fingerprint`, `batch_key`, `storyline_hint`/`entity_hints`, `novelty_score`, `importance_score` (§7). This section fixes **how** each is computed; the **methods** live here, while the tunable **constants** (windows, weights, cutoffs) are owned by [inbox](inbox.md) (OQ-SIG-1/2). The fields are computed in a **funnel of widening cost** — a hash, then a config lookup, and only then an embedding or model pass — so the cheap stages discard noise before the expensive ones run.
 
-> **REQ-SIG-12.** The **fingerprint** (REQ-SIG-06) is computed **normalize-then-hash**: `sha256(source ‖ kind ‖ source_ref ‖ content_hash)`, where `content_hash` is taken over the **normalized** payload (REQ-SIG-03) — never the raw bytes — so volatile noise (whitespace, tracking parameters, rotating page furniture) cannot defeat dedup, and `source_ref` is the **stable id of the origin object** (file path, email `Message-ID`, URL, `ptask_` id, `conversation#message`). `source_ref` is **mandatory**: identical content from two distinct origins must not collapse to one fingerprint (§9). The **batch key** groups a Signal by *the thing it is about* — `scope_type:scope_id` (e.g. `file:<repo+path>`, `email_thread:<thread_id>`, `browser_domain:<domain>`, `monitor:<ptask_id>`, `conversation:<id>`) — and the batch is flushed by a **debounce / quiet-period timer**: a batch opens on the first Signal for a key, extends while related Signals keep arriving, and flushes after a window of silence capped by a maximum, so a burst of edits settles into **one** analysis instead of splitting on a fixed clock boundary. Fingerprint dedup is **exact only**; semantic near-duplicates are consolidated downstream at the Evidence layer ([evidence](evidence.md) REQ-EV-10), not here.
+> **REQ-SIG-12.** The **fingerprint** (REQ-SIG-06) is computed **normalize-then-hash**: `sha256(source ‖ kind ‖ source_ref ‖ content_hash)`, where `content_hash` is taken over the **normalized** payload (REQ-SIG-03) — never the raw bytes — so volatile noise (whitespace, tracking parameters, rotating page furniture) cannot defeat dedup, and `source_ref` is the **stable id of the origin object** (file path, email `Message-ID`, URL, `ptask_` id, `conversation#message`). `source_ref` is **mandatory**: identical content from two distinct origins must not collapse to one fingerprint (§9). The **batch key** groups a Signal by *the thing it is about* — `scope_type:scope_id` (e.g. `file:<repo+path>`, `email_thread:<thread_id>`, `browser_domain:<domain>`, `watcher:<ptask_id>`, `conversation:<id>`) — and the batch is flushed by a **debounce / quiet-period timer**: a batch opens on the first Signal for a key, extends while related Signals keep arriving, and flushes after a window of silence capped by a maximum, so a burst of edits settles into **one** analysis instead of splitting on a fixed clock boundary. Fingerprint dedup is **exact only**; semantic near-duplicates are consolidated downstream at the Evidence layer ([evidence](evidence.md) REQ-EV-10), not here.
 
 > **REQ-SIG-13.** **Resolution** (REQ-SIG-09) is **tiered, cheapest-first**, and yields **non-binding hints**:
-> 1. **Deterministic config** — folder ownership, browser profile, email account, note/bookmark location, a monitor's configured Storyline; plus structured fields (email `From`/`To`, calendar attendees, git author, file path) that yield high-precision Entity hints directly.
+> 1. **Deterministic config** — folder ownership, browser profile, email account, a watcher's configured Storyline; plus structured fields (email `From`/`To`, calendar attendees, git author, file path) that yield high-precision Entity hints directly.
 > 2. **Entity linking** — extract mentions from the normalized content and link them to existing `ent_` records ([entities](entities.md)); unmatched mentions become candidate (unlinked) Entity hints.
 > 3. **Semantic match** — only when tiers 1–2 are weak: embed the content and take the nearest **active / high-Momentum** Storyline summary ([storylines](storylines.md)) above a similarity threshold.
 >
@@ -181,7 +179,7 @@ flowchart LR
     classDef stage fill:#34495E,stroke:#2C3E50,color:#fff
     classDef fact fill:#2ECC71,stroke:#27AE60,color:#fff
 
-    SRC["Sources\nchat · file · browser ·\nmonitor · connector · API"]:::input
+    SRC["Sources\nchat · file · browser ·\nwatcher · connector · API"]:::input
     SIG["Signal\nsig_ · normalized · scored"]:::input
     BOX["Inbox\nbatch · dedup · filter · score\n(→ inbox.md)"]:::stage
     EV["Evidence\nev_ · immutable\n(→ evidence.md)"]:::fact
@@ -204,8 +202,8 @@ interface Signal {            // internal ingestion primitive — not user-facin
   id: string;                 // sig_
   space_id: string;           // resolved owning Space (REQ-SIG-09)
   source:
-    | "chat" | "file" | "note" | "bookmark" | "browser"
-    | "task" | "monitor" | "connector" | "calendar" | "ingestion_api";
+    | "chat" | "file" | "browser" | "task"
+    | "watcher" | "connector" | "calendar" | "ingestion_api";
   kind: string;               // source-specific event type, e.g. "file_modified"
   title: string;
   content?: string;
@@ -229,10 +227,10 @@ interface Signal {            // internal ingestion primitive — not user-facin
 - **Then** eleven are collapsed as duplicates/noise and the batch is analyzed once, resolving to `Business → Framework` (REQ-SIG-09) and proposing a single [Evidence](evidence.md) item — not twelve.
 
 ### Example B — a stakeholder reply, fast-pathed (narrative)
-A `connector` Signal *"email received from Talia"* arrives after a two-month gap. Scoring marks it high-importance (stakeholder, long-overdue, Storyline-relevant), so it is **processed now** (REQ-SIT-07 band *high*) and distilled into Evidence that Talia requested churn metrics before Friday — which downstream raises an `overdue`/`promise` condition. The Signal itself is internal and never shown.
+A `connector` Signal *"email received from Talia"* arrives after a two-month gap. Scoring marks it high-importance (stakeholder, long-overdue, Storyline-relevant), so it is **processed now** (REQ-SIG-07 band *high*) and distilled into Evidence that Talia requested churn metrics before Friday — which downstream raises an `overdue`/`promise` condition. The Signal itself is internal and never shown.
 
 ### Example C — a deferred Signal matures (narrative)
-A single `browser` Signal — *visited Playwright docs* — scores borderline and is **deferred** (REQ-SIG-08). Days later a `bookmark` of the same docs, a new `file` `browser-worker.md`, and a `chat` about browser automation arrive in the same batch window. The deferred Signal re-enters scoring, now clearly relevant, and the group is distilled into Evidence that the user is exploring a browser-automation project.
+A single `browser` Signal — *visited Playwright docs* — scores borderline and is **deferred** (REQ-SIG-08). Days later a second `browser` visit to the same docs, a new `file` `browser-worker.md`, and a `chat` about browser automation arrive in the same batch window. The deferred Signal re-enters scoring, now clearly relevant, and the group is distilled into Evidence that the user is exploring a browser-automation project.
 
 ## 9. Edge Cases & Failure Modes
 
@@ -245,7 +243,7 @@ A single `browser` Signal — *visited Playwright docs* — scores borderline an
 
 ## 10. Open Questions & Decisions
 
-- **OQ-SIG-1** — Exact batching **windows** per source (files 30–120s, browser 5–15m, bookmarks ~5m, emails thread-level, notes 2–5m are starting points). Tune in [inbox](inbox.md) against real volume.
+- **OQ-SIG-1** — Exact batching **windows** per source (files 30–120s, browser 5–15m, watcher per-cadence, emails thread-level are starting points). Tune in [inbox](inbox.md) against real volume.
 - **OQ-SIG-2** — The concrete novelty/importance **formula**, weights, and band thresholds (§5.6). Coordinate with [inbox](inbox.md) and [proactivity](proactivity.md).
 - **OQ-SIG-3** — Where the line sits between **signal-level fingerprint dedup** and **Evidence-level merge/reinforce** (jointly resolving [glossary](glossary.md) OQ-CON-2 with [evidence](evidence.md)).
 - **OQ-SIG-4** — Retention windows for dropped/deferred/converted Signals and raw payloads (owned by [inbox](inbox.md)).
@@ -278,3 +276,4 @@ A single `browser` Signal — *visited Playwright docs* — scores borderline an
 - **2026-06-04 — v0.1** — Initial draft. Signal as the raw, internal, disposable ingestion unit (REQ-SIG-01); the source catalog (REQ-SIG-02); normalization and the untrusted-data rule (REQ-SIG-03/04); the authenticated, Space-scoped ingestion API (REQ-SIG-05); fingerprinting, dedup, and batching resolving OQ-CON-2 (REQ-SIG-06); two-axis scoring with disposition bands (REQ-SIG-07); the `received→normalized→scored→{converted|dropped|deferred}` lifecycle with the richer staging states deferred to [inbox](inbox.md) (REQ-SIG-08); resolution to Space/Storyline/Entities (REQ-SIG-09); propose-don't-write distillation into Evidence (REQ-SIG-10); internal visibility and temporary retention (REQ-SIG-11). In Review.
 - **2026-06-04 — v0.2** — Added §5.11 specifying how the derived fields are computed: fingerprint **normalize-then-hash** with a mandatory `source_ref` and **debounced** batch keys (REQ-SIG-12); **tiered**, non-binding resolution hints — config → entity-link → semantic — left `null` below threshold (REQ-SIG-13); **orthogonal** novelty/importance scoring, dropped only when both are low (REQ-SIG-14). Tunable windows, weights, and band cutoffs consolidated in [inbox](inbox.md).
 - **2026-06-04 — v1.0** — Approved.
+- **2026-06-09 — v1.1** — **Purged removed primitives from the source catalog.** Dropped the `note` and `bookmark` sources (Note/Bookmark were removed as primitives in constitution v1.2 / glossary v1.0; such captures now enter via `file`/`browser`/`connector`) and renamed the `monitor` source → **`watcher`** (the glossary's "no Monitor primitive" rule — a watcher is a recurring `ptask_`-driven Task). Updated REQ-SIG-02/06/09/12/13, the `Signal.source` enum (§7), both diagrams, Examples B/C, and OQ-SIG-1. Fixed Example B's mis-citation `REQ-SIT-07` → `REQ-SIG-07`. *Material change (source enum) — header and index status set to In Review pending re-approval.*

@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.2   ·   **Last updated:** 2026-06-04
+> **Version:** 1.3   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The canonical conceptual entity-relationship model for the System — how the narrative-layer primitives (Space, Storyline, Situation, Insight, Evidence, Narrative) relate, what each owns, and how they are identified. It fixes the **Situation ↔ Insight boundary** and the **capture-and-retrieve Insight**.
 >
@@ -65,6 +65,21 @@ Canonical definitions live in [glossary](glossary.md); this spec uses them and r
 | Signal | `sig_` | [signals](signals.md) | upstream (relationship only) |
 | Entity (graph) | `ent_` | [entities](entities.md) | cross-link (relationship only) |
 | Task | `task_` | [tasks](tasks.md) | relationship only |
+| Periodic Task | `ptask_` | [periodic-tasks](periodic-tasks.md) | relationship only |
+| Agent | `agent_` | [agents](agents.md) | infrastructure (not modeled) |
+| Skill | `skill_` | [skills](skills.md) | infrastructure (not modeled) |
+| Tool | `tool_` | [tools](tools.md) | infrastructure (not modeled) |
+| Grant | `grant_` | [permissions](permissions.md) | infrastructure (not modeled) |
+| Auth profile | `auth_` | [secrets](secrets.md) / [permissions](permissions.md) | infrastructure (not modeled) |
+| Secret (handle) | `secret_` | [secrets](secrets.md) | infrastructure (not modeled) |
+| MCP server | `mcp_` | [mcp](mcp.md) | infrastructure (not modeled) |
+| Conversation | `conv_` | [conversation](conversation.md) | surface (not modeled) |
+| Message | `msg_` | [conversation](conversation.md) | surface (not modeled) |
+| Notification | `notif_` | [proactivity](proactivity.md) | surface (not modeled) |
+| Curator job | `cjob_` | [curator](curator.md) | infrastructure (not modeled) |
+| Integration | `int_` | [integrations](integrations.md) | upstream source (not modeled) |
+| User Workflow | `wf_` | [user-workflows](user_workflows.md) | automation source (not modeled) |
+| Workflow run | `wfr_` | [user-workflows](user_workflows.md) | audit/run history (not modeled) |
 | Memory | `mem_` | [memory](memory.md) | relationship only |
 
 > **REQ-DM-02.** Every entity except Space belongs to **exactly one** Space (`space_id`). Context, Evidence, Situations, and Insights never leak across Spaces except via explicit **downstream inheritance** ([spaces](spaces.md), P10).
@@ -339,7 +354,7 @@ A watcher on Northwind Cloud's pricing page and two competitor pages distills **
 
 ## 11. Review & Acceptance Checklist
 
-- [ ] Every narrative-layer entity has an ID prefix (§5.1), belongs to a Space (REQ-DM-02), and an owning feature spec.
+- [ ] Every entity has an ID prefix (§5.1), and every Space-scoped entity belongs to a Space (REQ-DM-02) with an owning feature spec.
 - [ ] The containment hierarchy and the pipeline restate the glossary invariants without contradicting them (REQ-DM-03, -04).
 - [ ] The Situation ↔ Insight boundary is stated by **role**, with **no shared category enum**, and the escalation path is one-way and recorded (REQ-DM-05, -06).
 - [ ] The Insight is fully specified: atomic single-kind note, Always/liberal capture, `kind` taxonomy, embedding-based read-time recall, Space scope, lightweight lifecycle, capture-cheap/surface-selective (REQ-DM-07…-13).
@@ -363,3 +378,4 @@ A watcher on Northwind Cloud's pricing page and two competitor pages distills **
 - **2026-06-03 — v1.0 (note)** — Clarified the Situation `category` examples to the action-shaped catalog owned by [situations](situations.md), disjoint from Insight `kind`s per REQ-DM-05 (editorial; the rule is unchanged).
 - **2026-06-04 — v1.1** — Extended Evidence to a **typed, append-only** fact: added the `type` enum and `storyline_ids`/`entity_ids`/`metadata` to the Evidence shape (§7), added §5.8 / REQ-DM-17, and moved Evidence ownership to the new [evidence](evidence.md) feature spec (with [signals](signals.md) owning the Signal). The conceptual pipeline (REQ-DM-04) is unchanged — the new [inbox](inbox.md) is the *mechanism* of the Signal → Evidence arrow, not a new node.
 - **2026-06-04 — v1.2** — Extended the **Narrative** to **Space *or* Storyline** scope (REQ-DM-16): gave it a `nar_` id and a structured, scoped shape (§7), moved ownership to the new [narrative](narrative.md) feature spec, and reframed the Storyline `summary` as the Storyline-scoped Narrative ([storylines](storylines.md) REQ-STORY-08). "Global" = the root Space's Narrative; sub-Space Narratives remain open (OQ-CON-1 / OQ-NAR-3).
+- **2026-06-09 — v1.3** — Expanded the ID catalog to include infrastructure, surface, Integration, and User Workflow prefixes (`ptask_`, `agent_`, `skill_`, `tool_`, `grant_`, `auth_`, `secret_`, `mcp_`, `conv_`, `msg_`, `notif_`, `cjob_`, `int_`, `wf_`, `wfr_`) so [app-architecture](app-architecture.md) REQ-ARCH-02 has a complete canonical source.

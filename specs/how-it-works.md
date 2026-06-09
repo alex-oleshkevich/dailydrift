@@ -2,7 +2,7 @@
 
 > **Status:** In Review
 >
-> **Version:** 0.1   ·   **Last updated:** 2026-05-29
+> **Version:** 0.2   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The end-to-end story of how the System works, plus its full feature catalog — written for an investor or a new user, not an engineer. It explains *what every feature does and how they connect*; the deep mechanics of each live in that feature's own spec.
 >
@@ -103,14 +103,14 @@ You organize work as Spaces — e.g. `Business/Framework`, `Business/Brightmoor`
 
 *Example:* a competitor's release-notes page changes overnight (a watcher run); your CI posts a build failure through the API; an email arrives via a connector — each becomes a Signal in the right Space. *See [signals](signals.md).*
 
-### 5.4 Integrations / connectors
+### 5.4 Integrations, local sources, and outbound connectors
 
 > **REQ-HOW-05.** The System connects to external systems under **least privilege** — every integration is granted narrowly and visibly, never silently broadened.
 
 - **Browser automation** — isolated browser profiles that log in, fill forms, extract data, and watch pages; state-changing actions are approval-gated. *See [browser-automation](browser-automation.md).*
 - **Filesystem** — scoped folder mounts; files become Signals; the System never scans the whole disk. *See [filesystem](filesystem.md).*
-- **MCP / connectors** — the connector layer that brings external tools and services in as Tools/Skills, scoped per Space. *See [mcp](mcp.md).*
-- **Comms connectors** — email / calendar / chat as typical first integrations.
+- **Inbound Integrations** — email, calendar, chat, task-tracking, and code-host accounts that poll external services and emit Signals into one Space. *See [integrations](integrations.md).*
+- **Outbound Tools / MCP / Skills** — capabilities the System calls to act on the world, scoped per Space and gated by permissions. *See [tools](tools.md), [mcp](mcp.md), [skills](skills.md).*
 - **Ingestion API** — the open door of §5.3 for anything else.
 
 ### 5.5 From signal to understanding
@@ -168,9 +168,9 @@ A Task uses Tools to get things done; the tier of each Tool determines whether i
 
 ### 5.9 Agents & orchestration
 
-> **REQ-HOW-11.** Work is carried out by **Agents** — scoped, role-based actors (Executive, Research, Browser, Ops) that act *for the user*. Agents **delegate and hand off** to one another, routing approvals as needed. Background state-maintenance (keeping Storylines/Situations/Insights/Narratives coherent) is a separate concern, handled by the **Curator** engine ([curator](curator.md)).
+> **REQ-HOW-11.** Work is carried out by **Agents** — scoped, role-based actors (`Executive`, `Research`, `Ops`, `Reviewer`, plus user-defined specializations such as a browser-focused `Ops`) that act *for the user*. Agents **delegate and hand off** to one another, routing approvals as needed. Background state-maintenance (keeping Storylines/Situations/Insights/Narratives coherent) is a separate concern, handled by the **Curator** engine ([curator](curator.md)).
 
-> **REQ-HOW-12.** "Aliveness" comes from **continuity** — memory, timing, judgment, and initiative — not fake emotion or mascots ([constitution](constitution.md) P7). The Research Agent that advanced Dr. Belov's consensus question yesterday remembers where it left off today.
+> **REQ-HOW-12.** "Aliveness" comes from **continuity** — memory, timing, judgment, and initiative — not fake emotion or mascots ([constitution](constitution.md) P7). The Research Agent that advanced Dr. Belov's consensus question yesterday receives the relevant remembered context when it resumes today.
 
 *See [agents](agents.md), [agent-orchestration](agent-orchestration.md).*
 
@@ -204,31 +204,30 @@ sequenceDiagram
 
 ### 5.11 Periodic tasks & watchers
 
-> **REQ-HOW-15.** A **Periodic Task** is a recurring/scheduled Task. A **watcher** is a periodic task that polls a source and emits a Signal on meaningful change. Periodic tasks support catch-up if the server was offline.
+> **REQ-HOW-15.** A **Periodic Task** is a UTC schedule that enqueues a Task. A **watcher** is a scheduled Task that polls a source and emits a Signal on meaningful change. Periodic Tasks do **not** replay missed fires after downtime; the schedule resumes at the next due time.
 
 *Examples:* nightly Memory distillation; the weekly Digest; a watcher on Northwind Cloud's pricing page; a watcher on the `framework`'s key npm dependency. *See [periodic-tasks](periodic-tasks.md).*
 
 ### 5.12 The Surfacing Model
 
-> **REQ-HOW-16.** Every output the System produces reaches you through exactly one of five channels — there is no sixth place for things to hide:
+> **REQ-HOW-16.** Every output the System actively surfaces reaches you through exactly one of four v1 channels — there is no hidden delivery path:
 
 | Channel | Used for |
 |---------|----------|
 | **Conversation** | direct replies, in-flight enrichment, agent-initiated threads (§5.13) |
 | **Home → Attention-Needed** | Situations and parked approvals that need you now |
-| **Storyline / Situation update** | quiet state changes you'll see when you look |
 | **Digest** | batched, non-urgent roll-ups (daily/weekly) |
 | **Push notification** | the urgent subset, to your device |
 
-Which channel a result takes is decided by urgency and your proactivity settings (§5.16), never by the feature that produced it.
+Quiet Storyline and Situation changes are state updates, not delivery channels; you see them when opening the relevant surface. Which active channel a result takes is decided by urgency and your proactivity settings (§5.16), never by the feature that produced it.
 
 ### 5.13 Conversation / chat (the primary surface)
 
 > **REQ-HOW-17.** Chat is the **primary** way you interact with the System. The other surfaces (Home, Calendar, Search, Settings, Activity log) open *from* chat on demand — the System lives in the conversation.
 
 > **REQ-HOW-18.** A Conversation is a **living channel**, not a request/response box:
-> - Agents converse like **human participants**.
-> - Mid-conversation, a background agent can **spawn a Task** (e.g. a web search) and **fold the result into the reply** or post it as a special **"reads-your-mind"** message.
+> - Agents appear as named, bounded participants.
+> - Mid-conversation, a background agent can **spawn a Task** (e.g. a web search) and **fold the result into the reply** or post it as a contextual result.
 > - Agents can **start a new Conversation** when they observe a need.
 
 > **REQ-HOW-19.** This respects anti-spam (§5.16): inside a conversation you're already engaged in, agents act freely; **starting a new conversation or sending a push** must clear the urgency bar and respect quiet hours.
@@ -350,4 +349,5 @@ You ask in chat, *"Where's the Brightmoor portal?"* While the assistant answers,
 
 ## 13. Changelog
 
+- **2026-06-09 — v0.2** — Reconciled the product-altitude tour with approved mechanics: inbound Integrations are separate from outbound Tools/MCP/Skills, the built-in Agent roster is `Executive`/`Research`/`Ops`/`Reviewer` with `Browser` as an `Ops` specialization, Periodic Tasks do not replay missed fires, and v1 active surfacing uses the four [proactivity](proactivity.md) channels.
 - **2026-05-29 — v0.1** — Initial draft. Built via the interview → gaps → contradictions → expand process: full feature catalog at product altitude; operating-loop + data-flow + task-lifecycle + approval + living-channel diagrams (mermaid-skill compliant); Markdown links; chat-first positioning; public Signal-ingestion API; Monitor folded into watcher Periodic Tasks; sharing/onboarding/undo out of scope.

@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-08
+> **Version:** 1.1   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The concrete runtime architecture — the always-on self-hosted **Go server (the brain)** and its native clients: identity, persistence, the background runtime, the AI/vector/worker runtimes, the server↔client protocol, and the opinionated Go technology stack that realizes every conceptual spec.
 >
@@ -52,7 +52,7 @@ The patterns are drawn from how comparable systems are built. Single-binary self
 
 ### 5.2 Identity: `prefix_ULID`
 
-> **REQ-ARCH-02.** Every entity id is **`<prefix>_<ULID>`** — the `prefix` from the [data-model](data-model.md) §5.1 catalog (`space_ story_ sit_ ins_ ev_ nar_ sig_ ent_ task_ mem_ ptask_ agent_ skill_ tool_ grant_ auth_ secret_ mcp_ conv_ msg_ notif_ cjob_`), and a **ULID** (26-char Crockford base32). ULIDs are **lexicographically/time-sortable** (so primary-key order is creation order, enabling efficient range scans and pagination), URL-safe, and globally unique without coordination. This resolves the "ULID vs slug" deferral fixed here per [data-model](data-model.md) §5.1.
+> **REQ-ARCH-02.** Every entity id is **`<prefix>_<ULID>`** — the `prefix` from the [data-model](data-model.md) §5.1 catalog (`space_ story_ sit_ ins_ ev_ nar_ sig_ ent_ task_ mem_ ptask_ agent_ skill_ tool_ grant_ auth_ secret_ mcp_ conv_ msg_ notif_ cjob_ int_ wf_ wfr_`), and a **ULID** (26-char Crockford base32). ULIDs are **lexicographically/time-sortable** (so primary-key order is creation order, enabling efficient range scans and pagination), URL-safe, and globally unique without coordination. This resolves the "ULID vs slug" deferral fixed here per [data-model](data-model.md) §5.1.
 
 ### 5.3 Persistence: per-Space SQLite + a System DB, pure-Go
 
@@ -308,5 +308,6 @@ A Northwind Cloud pricing-page watcher calls `POST /ingest` (Space-scoped, token
 ## 13. Changelog
 
 - **2026-06-08 — v1.0** — **Approved.** The backbone runtime architecture + opinionated Go stack finalized; no requirement changes from v0.1. Moved from the untiered backlog into **Tier 3: Features** (§6.3); the §6.4 technology table remains the living record with upgrade paths.
+- **2026-06-09 — v1.1** — ID-catalog alignment: added `int_`, `wf_`, and `wfr_` to REQ-ARCH-02 after Integrations and User Workflows introduced those prefixes. No runtime architecture change.
 - **2026-06-08 — v0.1** — Initial full draft. Server-brain topology + single binary (REQ-ARCH-01); `prefix_ULID` identity (REQ-ARCH-02); per-Space + System SQLite, pure-Go `modernc` (REQ-ARCH-03); **embedded** (`go:embed`) Atlas migrations + runtime DDL (REQ-ARCH-04); **chromem-go** semantic index — *revising the stub's CGo sqlite-vec lean to pure-Go* (REQ-ARCH-05); the SQLite **`tasks`-table** queue (REQ-ARCH-06) + `gocron` (REQ-ARCH-07); concurrency cap (REQ-ARCH-08); orchestrator (REQ-ARCH-09) and confined-subprocess worker + secrets-outside-worker runtime (REQ-ARCH-10, -18); eino/Ollama model runtime (REQ-ARCH-11); event bus + transactional outbox (REQ-ARCH-12); level-triggered Curator reconciliation (REQ-ARCH-13); CQRS read models (REQ-ARCH-14); REST+SSE protocol (REQ-ARCH-15) and `POST /ingest` (REQ-ARCH-16); config/definition files (REQ-ARCH-17); observability/lifecycle/build/backup (REQ-ARCH-19); the opinionated technology table (REQ-ARCH-20); ownership (REQ-ARCH-21). Research-grounded (Go library survey + AnythingLLM/Onyx/Khoj/Hermes/eino). In Review.
 - **2026-06-04 — v0.0** — Stub created (Planned); captured the vector-store and background-runtime decisions (since revised: vector store → pure-Go chromem-go).

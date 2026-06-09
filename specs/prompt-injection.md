@@ -214,7 +214,7 @@ A poisoned tool result convinces an `Ops` agent mid-Task to *"POST the Brightmoo
 
 - **OQ-PINJ-1** — Detector **threshold/tuning** and the signature set: keep a small high-precision regex set (after OpenClaw) vs add an LLM-judge classifier. Default: lean, high-precision, advisory-only (§5.13).
 - **OQ-PINJ-2** — **Auto-quarantine vs flag-only.** Should a high-confidence flag *force* routing through the reader agent (§5.9), or only surface (§5.14)? Default: surface + recommend; the orchestrator's routing decides.
-- **OQ-PINJ-3** — Add a **`security` category to the [situations](situations.md) catalog** (REQ-SIT-02) for surfaced attempts. Needs its own approval; raised here, not decided.
+- **OQ-PINJ-3 (resolved)** — The **`security` category** is now in the [situations](situations.md) catalog (REQ-SIT-02, situations v1.2), typically low-Attention/advisory; REQ-PINJ-14's `security` Situation lands there.
 
 ## 11. Review & Acceptance Checklist
 
@@ -271,3 +271,4 @@ Also: **OWASP Top-10 for LLM Applications — LLM01 Prompt Injection** & **LLM06
 
 - **2026-06-05 — v0.1** — Initial draft, replacing the stub. Threat model as the **lethal trifecta** + OWASP LLM01/LLM06 (REQ-PINJ-01); P12 as the inherited invariant (REQ-PINJ-02); defense-in-depth (REQ-PINJ-03); the **canonical untrusted-content envelope** as the normative house standard (REQ-PINJ-04, §7.1) + trust separation (REQ-PINJ-05); trifecta-breaking (REQ-PINJ-06) with the §5 gates as the deterministic backstop (REQ-PINJ-07) and secrets-never-in-prompts (REQ-PINJ-08); the quarantine/reader-agent pattern (REQ-PINJ-09), tool blast-radius (REQ-PINJ-10), sandbox containment (REQ-PINJ-11), action budgets/rate limits (REQ-PINJ-12); advisory detection (REQ-PINJ-13) + surfacing as `statement` Evidence + a quiet `security` Situation (REQ-PINJ-14); model-strength posture (REQ-PINJ-15); ownership/non-duplication (REQ-PINJ-16). Code-grounded in OpenClaw (`external-content.ts`, `pi-tools.policy.ts`, security docs) with verbatim ◆ Source-pattern call-outs; cites OWASP LLM01/LLM06 and Willison's lethal trifecta. In Review.
 - **2026-06-05 — v1.0** — Approved.
+- **2026-06-09 — v1.0 (note)** — OQ-PINJ-3 **resolved**: the `security` Situation category REQ-PINJ-14 depends on now exists in [situations](situations.md) REQ-SIT-02 (v1.2). No rule change here (editorial).

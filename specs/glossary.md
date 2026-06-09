@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.6   ·   **Last updated:** 2026-06-05
+> **Version:** 1.7   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The canonical glossary — the shared vocabulary every other spec uses. Each term gets one authoritative definition, a cast example, and how it relates to the others; full mechanics live in each term's dedicated spec.
 >
@@ -53,6 +53,7 @@ Each entry: **Term** (`id-prefix`) — definition. *Example:* … · *Relates to
 
 - **Task** (`task_`) — a **unit of work** with a lifecycle and events; created by the user, an Agent, a Signal/Insight, or from chat. *Example:* "Draft the Framework RFC skeleton." *→ [tasks](tasks.md).*
 - **Periodic Task** (`ptask_`) — a **cron schedule that enqueues a [Task](tasks.md)** when it fires; **no watcher primitive** (watching = a Task that polls a source and **emits a Signal** on a meaningful change). *Example:* nightly Memory distillation; a scheduled Task that watches Northwind's pricing page. *→ [periodic-tasks](periodic-tasks.md).*
+- **Integration** (`int_`) — a **Space-scoped, authorized, polling connection to an external service** (email · calendar · task-tracking · chat · code-host) that emits inbound **[Signals](signals.md)** — the System's *inbound* edge. **Outbound** actions are owned by [skills](skills.md)/[mcp](mcp.md), not here. *Example:* a Gmail Integration that polls and emits a Signal when Talia replies. *→ [integrations](integrations.md).*
 
 - **Agent** (`agent_`) — a **scoped, role-based actor** that does work *for the user* (built-in roles: Executive · Research · Ops · Reviewer, split on mode + read-only-vs-acting; plus **user-definable** agents, e.g. a Browser agent as an Ops specialization), defined by name/role/when-to-use/system_prompt/personality/skills/tools/model/mode; observable and bounded by Always/Ask-first/Never. Agents are **memory-stateless** — the orchestrator injects recalled Memory. *→ [agents](agents.md).*
 - **Orchestrator** — the **task-execution control loop** (not an agent) that plans a [Task](tasks.md) into subtasks, routes each to an Agent (on its when-to-use), dispatches **isolated** workers, **synthesizes** their results, **reviews** with a fresh agent, and **replans**. Depth-1. *→ [agent-orchestration](agent-orchestration.md).*
@@ -93,7 +94,7 @@ flowchart LR
 |------|-------|----------|
 | Container | Space | [spaces](spaces.md) |
 | Narrative | Storyline, Situation, Momentum, Attention score, Status | [glossary](glossary.md) (here) + surfaced in [ui-shell](ui-shell.md) |
-| Pipeline | Signal, Inbox, Evidence, Insight, Narrative, Memory, Entity, Curator | [signals](signals.md), [inbox](inbox.md), [evidence](evidence.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [entities](entities.md), [curator](curator.md) |
+| Pipeline | Signal, Inbox, Evidence, Insight, Narrative, Memory, Entity, Curator, Integration | [signals](signals.md), [inbox](inbox.md), [evidence](evidence.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [entities](entities.md), [curator](curator.md), [integrations](integrations.md) |
 | Work | Task, Periodic Task | [tasks](tasks.md), [periodic-tasks](periodic-tasks.md) |
 | Capability | Agent, Skill, Tool | [agents](agents.md), [skills](skills.md), [tools](tools.md) |
 | Surfaces | Conversation, Message, Digest | [conversation](conversation.md), [ui-shell](ui-shell.md) |
@@ -140,3 +141,4 @@ A periodic watcher on the competitor's release-notes page detects a change → a
 - **2026-06-04 — v1.4** — Renamed the **"Memory Curator" agent role → the "Curator"** background state-maintenance engine (its own [curator](curator.md) spec); the Agent roles are now the user-task actors (Executive · Research · Browser · Ops). Added the Curator to the pipeline ownership row.
 - **2026-06-04 — v1.5** — Expanded the **Agent** definition (built-in + user-definable roles incl. Reviewer; full field set → [agents](agents.md)) and added the **Orchestrator** term (the task-execution control loop → [agent-orchestration](agent-orchestration.md)).
 - **2026-06-05 — v1.6** — Added the **security cluster** — *Prompt injection* (direct/indirect), *Lethal trifecta*, *Untrusted-content envelope / data-fencing*, *Exfiltration vector* (→ [prompt-injection](prompt-injection.md)). Refreshed two stale entries against approved specs: **Agent** (roster collapsed to Executive · Research · Ops · Reviewer; `Browser` → an Ops specialization; agents are memory-stateless) and **Periodic Task** (a cron schedule that **enqueues a Task** — no watcher primitive).
+- **2026-06-09 — v1.7** — Added the **Integration** (`int_`) term — a Space-scoped, authorized **inbound** polling connection to an external service (email · calendar · task-tracking · chat · code-host) that emits [Signals](signals.md); outbound actions stay with [skills](skills.md)/[mcp](mcp.md) (→ [integrations](integrations.md)). Added it to the Pipeline ownership row.

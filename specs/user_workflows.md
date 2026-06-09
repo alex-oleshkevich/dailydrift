@@ -1,8 +1,8 @@
 # User Workflows
 
-> **Status:** Approved
+> **Status:** In Review
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-09
+> **Version:** 1.1   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The User Workflow feature end-to-end — a user-authored **"when *this real-world thing* happens, *do this*"** rule that handles specific incoming events. The user-facing automation layer: a saved instruction bound to a concrete trigger, executed by the existing Task machinery under the existing autonomy gates.
 >
@@ -61,9 +61,8 @@ Canonical definitions are in [glossary](glossary.md); terms this spec introduces
 > |---|---|---|
 > | **Mail** | from `xxx@yyyy.com` · subject contains "invoice" · has attachment | `source=connector`, `kind=email_received`, `metadata.from/subject/...` |
 > | **File** | in `~/Projects/framework` · name matches `*.md` · modified | `source=file`, `kind=file_modified`, `metadata.path` |
-> | **Page** | the page at `<url>` changes | `source=monitor`, `kind=page_changed`, `metadata.url` |
+> | **Page** | the page at `<url>` changes | `source=watcher`, `kind=page_changed`, `metadata.url` |
 > | **Calendar** | an event with `<person>` · starting within 1h | `source=calendar`, `metadata.attendees/start` |
-> | **Note / Bookmark** | a note created in `<notebook>` · a page saved about `<topic>` | `source=note`/`bookmark` |
 > | **Incoming task result** | a Task tagged `<x>` fails | `source=task`, `kind=task_failed` |
 >
 > The catalog grows by **adding a user-facing source that maps onto the existing Signal catalog** (REQ-SIG-02), never by inventing a parallel ingestion path. A trigger that cannot be expressed as a predicate over normalized fields is rejected at authoring time, not half-supported.
@@ -152,8 +151,8 @@ interface UserWorkflow {          // user-facing automation rule
 
 interface WorkflowTrigger {
   source:                         // user-facing source (maps to Signal source/kind, REQ-WF-02)
-    | "mail" | "file" | "page" | "calendar"
-    | "note" | "bookmark" | "task_result";
+    | "mail" | "file" | "page"
+    | "calendar" | "task_result";
   conditions: TriggerCondition[]; // ANDed; compiled to a predicate over the normalized Signal
 }
 
@@ -224,5 +223,6 @@ A Workflow *"WHEN mail from `vendor@x.com` THEN forward it to `talia@firm.com`"*
 
 ## 13. Changelog
 
+- **2026-06-09 — v1.1** — Aligned the user-facing trigger catalog (REQ-WF-02, §7 `WorkflowTrigger.source`) to the cleaned-up [signals](signals.md) source set: dropped the **Note / Bookmark** trigger source (removed primitives) and pointed the **Page** trigger at `source=watcher` (renamed from `monitor`). No mechanism change. *Header and index status set to In Review pending re-confirmation alongside signals v1.1.*
 - **2026-06-09 — v1.0** — **Approved.** Moved from the untiered backlog into **Tier 3: Features** (§6.3); no requirement changes from v0.1.
 - **2026-06-08 — v0.1** — Initial draft. User Workflow (`wf_`) as a user-authored `WHEN <event> THEN <instruction>` rule, the **event-triggered sibling of [periodic-tasks](periodic-tasks.md)** (REQ-WF-01). Concrete, per-source triggers that compile to a normalized-Signal predicate, never internal taxonomy (REQ-WF-02). Matching hooks into the Inbox after dedup and **force-promotes** matched events past scoring's drop/defer while preserving fingerprint dedup (REQ-WF-03). The instruction spawns a [Task](tasks.md) run by the existing Orchestrator — **no new step-engine** (REQ-WF-04). Governance **inherited wholesale**, authoring ≠ authorization, no self-escalation (REQ-WF-05). Trust boundary: instruction trusted, triggering content untrusted/fenced (REQ-WF-06; P12). Augments, never replaces, the Evidence/Curator pipeline (REQ-WF-07). Lifecycle + anti-spam bounds (REQ-WF-08). In Review; stays in the untiered backlog pending approval, glossary term, and tier placement (OQ-WF-6).
