@@ -6,7 +6,7 @@
 >
 > **Purpose:** The Insight feature end-to-end — what an Insight is, how the System captures one, how it is embedded and recalled by semantic relevance, and how it is deduped, expired, and surfaced without becoming noise.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [evidence](evidence.md), [narrative](narrative.md), [memory](memory.md), [situations](situations.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [evidence](evidence.md), [narrative](narrative.md), [memory](memory.md), [situations](situations.md), [ui-shell](ui-shell.md), [conversation](conversation.md), [proactivity](proactivity.md)
 
 > Requirement tag: **INS**
 
@@ -23,7 +23,7 @@ The model follows one principle: **capture liberally, retrieve intelligently.** 
 - **Not the entity-relationship model.** How an Insight relates to Storyline / Situation / Evidence / Space is fixed in [data-model](data-model.md); this spec does not restate it.
 - **Not Situations.** When an Insight becomes actionable it may **escalate into** a Situation ([data-model](data-model.md) REQ-DM-06); the Situation object and its lifecycle are owned by [situations](situations.md).
 - **Not storage or the embedding model.** The vector model, index, and persistence are owned by [app-architecture](app-architecture.md) / [memory](memory.md); this spec treats the embedding conceptually.
-- **Not surface layout.** Where Insights render (Home, chat, Digest) is owned by [home-and-briefings](home-and-briefings.md) and [conversation](conversation.md); this spec defines *when* and *whether* they surface.
+- **Not surface layout.** Where Insights render (Home, chat, Digest) is owned by [ui-shell](ui-shell.md) and [conversation](conversation.md); this spec defines *when* and *whether* they surface.
 - **Not Evidence extraction.** Turning Signals into Evidence is owned by [signals](signals.md).
 
 ## 3. Background & Rationale
@@ -105,8 +105,8 @@ Capture sources include: an Agent reasoning over a Storyline's Evidence; a perio
 > | Channel | When | Owner |
 > |---------|------|-------|
 > | **Chat injection** | the discussion's topic recalls relevant Insights | [conversation](conversation.md) |
-> | **Home — "what the System thinks you should know"** | a few high-relevance Insights for the current Space | [home-and-briefings](home-and-briefings.md) |
-> | **Digest** | periodic roll-up of the period's most salient Insights | [home-and-briefings](home-and-briefings.md) |
+> | **Home — "what the System thinks you should know"** | a few high-relevance Insights for the current Space | [ui-shell](ui-shell.md) |
+> | **Digest** | periodic roll-up of the period's most salient Insights | [ui-shell](ui-shell.md) |
 >
 > The System never pushes a low-relevance Insight; below-bar Insights wait to be recalled in context.
 
@@ -321,7 +321,7 @@ A Northwind pricing-page watcher and two competitor watchers distill Evidence th
 - [glossary](glossary.md) — canonical Insight definition and `kind` list.
 - [situations](situations.md) — the Situation an Insight escalates into.
 - [signals](signals.md) — Signal ingestion; [evidence](evidence.md) — the Evidence captured Insights cite. [narrative](narrative.md) — the Narrative salient Insights feed. [memory](memory.md) — embedding index and semantic recall.
-- [home-and-briefings](home-and-briefings.md) / [conversation](conversation.md) — the surfaces that render Insights. [proactivity](proactivity.md) — the relevance/urgency bar.
+- [ui-shell](ui-shell.md) / [conversation](conversation.md) — the surfaces that render Insights. [proactivity](proactivity.md) — the relevance/urgency bar.
 - [spaces](spaces.md) — scope, promotion, isolation.
 
 ## 13. Changelog

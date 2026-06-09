@@ -29,7 +29,7 @@ It operates only on **already-accepted facts** ([Evidence](evidence.md)), runs a
 - **Not the primitive contracts.** *How* a Storyline is curated, a Situation detected, an Insight captured, a Narrative generated, a Memory consolidated is owned by [storylines](storylines.md)/[situations](situations.md)/[insights](insights.md)/[narrative](narrative.md)/[memory](memory.md); the Curator **invokes** those contracts.
 - **Not surfacing.** Whether the user is shown anything is owned by [proactivity](proactivity.md) (the relevance/urgency bar).
 - **Not the runtime.** The concrete job queue, workers, and scheduler are owned by [app-architecture](app-architecture.md).
-- **Not Digests.** Out of scope here; if added later they are owned by [home-and-briefings](home-and-briefings.md).
+- **Not Digests.** Out of scope here; if added later they are owned by [ui-shell](ui-shell.md).
 
 ## 3. Background & Rationale
 

@@ -6,7 +6,7 @@
 >
 > **Purpose:** The canonical conceptual entity-relationship model for the System — how the narrative-layer primitives (Space, Storyline, Situation, Insight, Evidence, Narrative) relate, what each owns, and how they are identified. It fixes the **Situation ↔ Insight boundary** and the **capture-and-retrieve Insight**.
 >
-> **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [signals](signals.md), [insights](insights.md), [memory](memory.md), [entities](entities.md), [home-and-briefings](home-and-briefings.md)
+> **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [signals](signals.md), [insights](insights.md), [memory](memory.md), [entities](entities.md), [ui-shell](ui-shell.md)
 
 > Requirement tag: **DM**
 
@@ -24,7 +24,7 @@ A central commitment of this model: an **Insight is a lightweight, evidence-back
 
 - **Not persistence or storage tech.** Table layouts, the concrete ID format (ULID vs slug), indexes, and the embedding model/library are owned by [app-architecture](app-architecture.md) / [stack](stack.md) and the relevant feature specs.
 - **Not the mechanics of any primitive.** *How* Situations are detected, *how* Insights are captured and recalled, *how* Storylines are promoted/merged — those live in [situations](situations.md), [insights](insights.md), [storylines](storylines.md). This spec fixes only what they share.
-- **Not the surfacing UI.** Where these appear is owned by [home-and-briefings](home-and-briefings.md) and [conversation](conversation.md).
+- **Not the surfacing UI.** Where these appear is owned by [ui-shell](ui-shell.md) and [conversation](conversation.md).
 
 ## 3. Background & Rationale
 

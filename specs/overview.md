@@ -6,7 +6,7 @@
 >
 > **Purpose:** The product north-star — what the System is, who it's for, what it deliberately is *not*, the goals, the headline use cases, and what success feels like. The no-tech vision every other spec deepens.
 >
-> **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [how-it-works](how-it-works.md), [home-and-briefings](home-and-briefings.md)
+> **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [how-it-works](how-it-works.md), [ui-shell](ui-shell.md)
 
 > Requirement tag: **OVR**
 
@@ -190,7 +190,7 @@ You haven't touched the `Framework` Space in two weeks. You open a client. The S
 - [spaces](spaces.md) — the hierarchy and sharing behind the multi-context and collaboration use cases.
 - [glossary](glossary.md) — definitions used loosely here.
 - [how-it-works](how-it-works.md) — the operating loop that realizes this vision.
-- [home-and-briefings](home-and-briefings.md) — the briefing experience in §5.8/§6.2.
+- [ui-shell](ui-shell.md) — the briefing experience in §5.8/§6.2.
 
 ## 13. Changelog
 

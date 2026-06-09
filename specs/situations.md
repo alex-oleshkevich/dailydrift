@@ -6,7 +6,7 @@
 >
 > **Purpose:** The Situation feature end-to-end — what a Situation is, its category catalog, how it is detected, how its Attention score and Status move, the actions it suggests, how an Insight escalates into one, and how it surfaces.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [insights](insights.md), [storylines](storylines.md), [signals](signals.md), [evidence](evidence.md), [tasks](tasks.md), [permissions](permissions.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [insights](insights.md), [storylines](storylines.md), [signals](signals.md), [evidence](evidence.md), [tasks](tasks.md), [permissions](permissions.md), [ui-shell](ui-shell.md), [conversation](conversation.md), [proactivity](proactivity.md)
 
 > Requirement tag: **SIT**
 
@@ -24,7 +24,7 @@ This spec owns the Situation's **mechanics**: its category catalog, how the Syst
 - **Not Insights or Storylines.** Owned by [insights](insights.md) and [storylines](storylines.md); here, an Insight may *escalate into* a Situation and a Storyline *aggregates* Situations.
 - **Not the Task engine.** A Situation suggests actions that may spawn Tasks; Task lifecycle is [tasks](tasks.md).
 - **Not the approval system.** A parked approval surfaces *as* a Situation, but the gate itself is [permissions](permissions.md) / [constitution](constitution.md) §5.2.
-- **Not surface layout or Evidence extraction** ([home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [signals](signals.md)).
+- **Not surface layout or Evidence extraction** ([ui-shell](ui-shell.md), [conversation](conversation.md), [signals](signals.md)).
 
 ## 3. Background & Rationale
 
@@ -105,7 +105,7 @@ A discovered *risk* or *opportunity* lives as an [Insight](insights.md); it beco
 
 ### 5.9 Surfacing
 
-> **REQ-SIT-12.** Situations are the **Home → Attention-Needed** section, ordered by **Attention score** ([home-and-briefings](home-and-briefings.md)). `snoozed`/`dismissed`/`resolved` do not appear there; `blocked` appears, marked as stuck.
+> **REQ-SIT-12.** Situations are the **Home → Attention-Needed** section, ordered by **Attention score** ([ui-shell](ui-shell.md)). `snoozed`/`dismissed`/`resolved` do not appear there; `blocked` appears, marked as stuck.
 
 > **REQ-SIT-13.** A Situation has a **detail view**: summary, category, Attention, cited Evidence, suggested actions, and the linked Storyline. In [conversation](conversation.md), the Situations relevant to the current Storyline are offered as context.
 
@@ -296,7 +296,7 @@ A background Task needs to email Devin to unblock the Brightmoor portal — an *
 
 ## 10. Open Questions & Decisions
 
-- **OQ-SIT-1** — The concrete Attention-score formula and its inputs/weights. (Tune against real volume; coordinate with [home-and-briefings](home-and-briefings.md)/[proactivity](proactivity.md).)
+- **OQ-SIT-1** — The concrete Attention-score formula and its inputs/weights. (Tune against real volume; coordinate with [ui-shell](ui-shell.md)/[proactivity](proactivity.md).)
 - **OQ-SIT-2** — Is `watch` one category, or should cost/anomaly conditions get a dedicated category? (Revisit once detectors exist.)
 - **OQ-SIT-3** — Default snooze options and whether snooze is per-Situation or per-category. (Coordinate with [settings](settings.md).)
 
@@ -318,7 +318,7 @@ A background Task needs to email Devin to unblock the Brightmoor portal — an *
 - [glossary](glossary.md) — canonical Situation and Attention-score definitions.
 - [insights](insights.md) — the Insight that escalates into a Situation. [storylines](storylines.md) — the Storyline that aggregates Situations. [tasks](tasks.md) — Tasks that act on them.
 - [evidence](evidence.md) — the Evidence detection draws on; [signals](signals.md) — where it originates. [permissions](permissions.md) / [constitution](constitution.md) §5.2 — the approval gate behind `approval` Situations.
-- [home-and-briefings](home-and-briefings.md) / [conversation](conversation.md) — the surfaces. [proactivity](proactivity.md) — the relevance/urgency bar.
+- [ui-shell](ui-shell.md) / [conversation](conversation.md) — the surfaces. [proactivity](proactivity.md) — the relevance/urgency bar.
 
 ## 13. Changelog
 

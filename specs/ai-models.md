@@ -1,8 +1,8 @@
 # AI Models
 
-> **Status:** In Review
+> **Status:** Approved
 >
-> **Version:** 0.1   ·   **Last updated:** 2026-06-05
+> **Version:** 1.0   ·   **Last updated:** 2026-06-08
 >
 > **Purpose:** The **inference layer** every other spec abstracts over when it says "typically an LLM" — *which model (and tier) runs each task*, **how the System detects the right model**, the **catalog of models by purpose**, the **local-vs-remote** policy (P1), and the **runtime** (structured output, prompt caching, token budgeting, fallback). Resolves the agent `model` field ([agents](agents.md) REQ-AGENT-07) and memory's embedding stack to concrete choices.
 >
@@ -305,4 +305,5 @@ Also: **RouteLLM** (LMSYS — classifiers on Arena preference data) and the **se
 
 ## 13. Changelog
 
+- **2026-06-08 — v1.0** — **Approved.** The inference layer finalized; no requirement changes from v0.1. The purpose→models catalog (§8.4) remains a dated snapshot, maintained as the landscape moves.
 - **2026-06-05 — v0.1** — Initial draft, replacing the stub. The provider-agnostic **inference layer** (REQ-AIM-01); the **model card** (REQ-AIM-02) and **tiers** Fast/Standard/Strong + flags (REQ-AIM-03); the **task→requirement** registry (REQ-AIM-04); **deterministic-then-semantic selection** answering *how to detect the right model* (REQ-AIM-05) with **fallback ≠ escalation** (REQ-AIM-06); **local-by-default / opt-in remote** (REQ-AIM-07); the single dimension-locked **embedding model** (REQ-AIM-08); **structured output + repair** (REQ-AIM-09), **prompt caching** (REQ-AIM-10), **token budgeting** (REQ-AIM-11), **thinking level** (REQ-AIM-12); **keys as secret handles** (REQ-AIM-13); the **researched purpose→models catalog snapshot** (REQ-AIM-14, §8.4) + **fitness/evals** (REQ-AIM-15); ownership (REQ-AIM-16). §7 gives Go enums/structs/interfaces. Code-grounded in OpenClaw (`types.models.ts`, `model-fallback.ts`) with verbatim ◆ Source-patterns; RouteLLM/semantic-router routing + the June-2026 model/embedding landscape cited; folded in the stub's recommended Go libs. In Review.

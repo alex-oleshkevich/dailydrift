@@ -6,7 +6,7 @@
 >
 > **Purpose:** The Narrative feature end-to-end — the System's continuously maintained synthesis of *what is going on*, at **Space** and **Storyline** scope: its structure, how the Curator generates and updates it, its human-editable form, how it is backed by Evidence, and how it surfaces as the briefing that opens Home, a Storyline, and a chat.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [evidence](evidence.md)   ·   **Related:** [memory](memory.md), [storylines](storylines.md), [situations](situations.md), [insights](insights.md), [spaces](spaces.md), [home-and-briefings](home-and-briefings.md), [conversation](conversation.md), [proactivity](proactivity.md), [agents](agents.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [evidence](evidence.md)   ·   **Related:** [memory](memory.md), [storylines](storylines.md), [situations](situations.md), [insights](insights.md), [spaces](spaces.md), [ui-shell](ui-shell.md), [conversation](conversation.md), [proactivity](proactivity.md), [agents](agents.md)
 
 > Requirement tag: **NAR**
 
@@ -24,7 +24,7 @@ This spec owns the Narrative's **mechanics**: its **two scopes** (Space and Stor
 - **Not the Storyline lifecycle.** Whether a Storyline exists, is promoted, or merges is owned by [storylines](storylines.md); this spec owns the **structure and generation** of the synthesis that Storyline maintains (its `summary` — §5.2).
 - **Not the inputs.** Evidence, Situations, Insights, and Storylines are *consumed* by the Narrative; their mechanics live in their own specs.
 - **Not the Curator engine.** The actor that generates Narratives is the [curator](curator.md); this spec owns *what* it must produce, not how the engine is triggered or scheduled.
-- **Not surface layout.** Where the briefing renders is owned by [home-and-briefings](home-and-briefings.md) and [conversation](conversation.md); this spec owns the content contract.
+- **Not surface layout.** Where the briefing renders is owned by [ui-shell](ui-shell.md) and [conversation](conversation.md); this spec owns the content contract.
 
 ## 3. Background & Rationale
 
@@ -97,7 +97,7 @@ Canonical definitions in [glossary](glossary.md); the entity shape in [data-mode
 ### 5.9 Surfacing
 
 > **REQ-NAR-09.** The Narrative is the System's **opening line**, not a buried artifact:
-> - **Home** opens with the Space Narrative as an operational **briefing** — before tasks, notifications, or metrics ([home-and-briefings](home-and-briefings.md)).
+> - **Home** opens with the Space Narrative as an operational **briefing** — before tasks, notifications, or metrics ([ui-shell](ui-shell.md)).
 > - A **Storyline** view opens with its Narrative, which provides context for the Situations, Insights, and Evidence below it ([storylines](storylines.md)).
 > - **Chat** injects the relevant Narrative **first** when a conversation is entered — the context-compression path of §5.6 ([conversation](conversation.md)).
 > - The **Digest** is **Narrative-first**: it leads with what changed in the story — supported by concrete figures — rather than *opening* with a bare changelog of counts ([proactivity](proactivity.md)).
@@ -302,7 +302,7 @@ The user edits the `friction` section to add *"and we've decided to defer multi-
 - [glossary](glossary.md) — canonical Narrative definition; OQ-CON-1 (one-per-Space vs sub-Narratives), resolved here for Storyline scope.
 - [storylines](storylines.md) — the Storyline `summary` that **is** the Storyline-scoped Narrative (REQ-STORY-08); Momentum, which the Narrative narrates but does not own.
 - [evidence](evidence.md) / [situations](situations.md) / [insights](insights.md) — the inputs the Curator synthesizes and the Narrative cites.
-- [memory](memory.md) — capture/retention/recall; the Narrative is the synthesis surface alongside it. [curator](curator.md) — the engine that generates and refreshes it. [home-and-briefings](home-and-briefings.md) / [conversation](conversation.md) / [proactivity](proactivity.md) — the surfaces.
+- [memory](memory.md) — capture/retention/recall; the Narrative is the synthesis surface alongside it. [curator](curator.md) — the engine that generates and refreshes it. [ui-shell](ui-shell.md) / [conversation](conversation.md) / [proactivity](proactivity.md) — the surfaces.
 
 ## 13. Changelog
 
