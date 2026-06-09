@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/starfrontventures/dailydrift/cmd/serve"
-	"github.com/starfrontventures/dailydrift/desktop"
+	"github.com/starfrontventures/dailydrift/dailydrift/cmd/serve"
+	"github.com/starfrontventures/dailydrift/dailydrift/desktop"
 
 	"github.com/urfave/cli/v3"
 )
