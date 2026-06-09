@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-08
+> **Version:** 1.1   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** **Gate 1** — the capability & scope decision — and the **grant** system (`grant_`): deny-by-default, least-privilege approvals that are scoped, time-bound, recorded, inspectable, and revocable.
 >
@@ -64,7 +64,7 @@ The hard usability problem is **approval fatigue**: gate everything and users ru
 
 ### 5.4 Background actions park, surface, and resume
 
-> **REQ-PERM-04.** An Ask-first action inside a **background [Task](tasks.md)** does not block silently: the worker **parks** in `awaiting_approval` (REQ-TASK-07), raising an **`approval` [Situation](situations.md)** (REQ-TASK-10) and surfacing in [conversation](conversation.md), Home → Attention-Needed, and the [activity-log](activity-log.md). On **grant**, the Task **resumes from the park point**; on **deny**, that step aborts and the loop continues other branches or fails, recording why; on **timeout**, the request lapses (`permission_timeout`) and the block is surfaced as stale.
+> **REQ-PERM-04.** An Ask-first action inside a **background [Task](tasks.md)** does not block silently: the worker **parks** in `awaiting_approval` (REQ-TASK-07), raising an **`approval` [Situation](situations.md)** (REQ-TASK-10) and surfacing in [conversation](conversation.md), Home → Attention-Needed, and the [activity-log](activity-log.md). On **grant**, the Task **resumes from the park point**; on **deny**, the parked **leaf Task is cancelled** (`permission_denied`, [tasks](tasks.md) REQ-TASK-09) — sibling branches continue and the parent reconciles, recording why; on **timeout**, the request lapses, the leaf Task is **cancelled** (`permission_timeout`), and the block is surfaced as stale.
 
 ### 5.5 Least privilege & attenuation
 
@@ -166,7 +166,7 @@ The orchestrator dispatches a *Research* subagent to read competitor release not
 
 - **No matching grant.** Deny-by-default; the agent may *request* a narrow grant, never self-grant (REQ-PERM-01/05).
 - **Conflicting grants.** Deny wins; most-specific scope wins otherwise (REQ-PERM-02).
-- **Approval never answered.** Parked Task lapses on its deadline (`permission_timeout`); the block is surfaced as stale (REQ-PERM-04).
+- **Approval never answered.** On its deadline the parked leaf Task is **cancelled** (`permission_timeout`) and the block is surfaced as stale (REQ-PERM-04).
 - **Grant outlives its need.** Expiry and explicit revocation both apply; revocation takes effect immediately, including mid-Task (REQ-PERM-02/10).
 - **Reviewer says "good" but the action is Ask-first.** Still gated — quality ≠ permission (REQ-PERM-09).
 
@@ -201,5 +201,6 @@ The orchestrator dispatches a *Research* subagent to read competitor release not
 
 ## 13. Changelog
 
+- **2026-06-09 — v1.1** — Reconciled REQ-PERM-04 (and the §9 edge case) with [tasks](tasks.md) REQ-TASK-07/09 and [constitution](constitution.md) §5.2 v1.4: a denied/timed-out parked approval **cancels the parked leaf Task** (`permission_denied` / `permission_timeout`) — siblings continue, the parent reconciles — instead of "the step aborts and the loop continues." Removes the three-way deny-semantics contradiction. *Flagged for re-confirmation.*
 - **2026-06-08 — v1.0** — **Approved.** Capability-grant (rule-based) model confirmed; a policy-as-code layer remains explicitly deferred (OQ-PERM-3).
 - **2026-06-08 — v0.1** — Initial draft. Gate 1 before Gate 2, deny-by-default (REQ-PERM-01); first-class scoped/revocable `grant_` records (REQ-PERM-02); the five-choice approval lifecycle (REQ-PERM-03); background park→surface→resume (REQ-PERM-04); least privilege + attenuation (REQ-PERM-05); cross-Space isolation (REQ-PERM-06); credential-use grants (REQ-PERM-07); the subagent denylist as a permission boundary (REQ-PERM-08); permission ≠ quality review (REQ-PERM-09); observability/ownership (REQ-PERM-10). Policy-as-code deferred by explicit decision (OQ-PERM-3). In Review.

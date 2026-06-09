@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.3   ·   **Last updated:** 2026-06-09
+> **Version:** 1.4   ·   **Last updated:** 2026-06-09
 >
 > **Purpose:** The governing document for the entire specification suite and the eventual build. It fixes the product/engineering principles, the autonomy model, the example world, and the authoring conventions that every other spec inherits.
 >
@@ -138,8 +138,8 @@ flowchart LR
     C["Surface to user:<br/>chat · Attention-Needed<br/>· activity-log · Situation"]
     D{"User decision"}
     E["Resume task<br/>from park point"]
-    F["Skip step<br/>continue or fail"]
-    G["Blocked<br/>surfaced as stale"]
+    F["Cancel leaf task<br/>(permission_denied)"]
+    G["Cancel leaf task<br/>(permission_timeout)<br/>surfaced as stale"]
 
     A --> B --> C --> D
     D -->|allow| E
@@ -151,7 +151,7 @@ flowchart LR
 
 - Autonomous work proceeds freely over **Always** actions and any **Allow-always standing grants**. Standing grants are what make meaningful autonomy possible — without them, an unattended task stalls at the first Ask-first step.
 - On an **Ask-first** action with no covering grant: the task **parks a permission request** and enters **Awaiting-approval**. The request surfaces as a permission-request message in [conversation](conversation.md), a Home → Attention-Needed item ([ui-shell](ui-shell.md)), an [activity-log](activity-log.md) entry, and (usually) a Situation ([glossary](glossary.md)) such as *"task blocked awaiting approval."* [proactivity](proactivity.md) decides whether to actively notify now or let it wait for the next digest, by urgency.
-- **Approved** → resume from the park point. **Denied** → abort that step, continue other branches or fail, recording why. **Expired/timed out** (configurable) → the request lapses and the block is surfaced as stale.
+- **Approved** → resume from the park point. **Denied** → the parked **leaf Task is cancelled** (`permission_denied`, [tasks](tasks.md) REQ-TASK-07/09); sibling branches continue and the parent reconciles, recording why. **Expired/timed out** (configurable) → the request lapses, the leaf Task is **cancelled** (`permission_timeout`), and the block is surfaced as stale. (Because every Ask-first side effect is gated *before* it happens, a cancel cannot leave a half-done irreversible action — no compensation is needed.)
 - On a **Never** action → refused immediately and logged; the branch is recorded as blocked (no approval can unlock a Never).
 - **Anticipate, don't nag.** A task that can foresee the approvals it will need SHOULD request them as one batch up front (or rely on standing grants) rather than interrupting repeatedly. Full mechanics live in [permissions](permissions.md), [tasks](tasks.md), and [proactivity](proactivity.md).
 
@@ -205,6 +205,10 @@ Entity IDs use a `type_` prefix + a stable short identifier (conceptually a slug
 | Conversation | `conv_` | Message | `msg_` |
 | Integration | `int_` | User Workflow | `wf_` |
 | Workflow Run | `wfr_` | Notification | `notif_` |
+| Narrative | `nar_` | Grant | `grant_` |
+| MCP server | `mcp_` | — | — |
+
+> This lists the core primitives; the **complete, authoritative ID catalog** (including internal prefixes like `cjob_`, `ibx_`, and the [entities](entities.md) `etype_`/`rtype_`/`rel_`) lives in [data-model](data-model.md) §5.1 / [app-architecture](app-architecture.md) REQ-ARCH-02.
 
 - **Requirement IDs:** `REQ-<SPEC>-NN`, where `<SPEC>` is a short uppercase tag (e.g. `CONV`, `MEM`, `PERM`) and `NN` is zero-padded and **stable** (never renumbered). Each spec declares its tag in §1.
 - **File names:** lowercase kebab-case, `.md`, matching the spec's tag domain.
@@ -324,3 +328,4 @@ This spec is satisfied when:
 - **2026-05-29 — v1.1** — Architecture shift to client-server / self-hosted with space-sharing. Amended P1 (local-first → self-hosted & user-owned), P10 (isolation now by space **and** person; sharing flows downstream-only), added P11 (the Space is the only primitive — no roles/orgs/teams) and P12 (untrusted content is data, not instructions — prompt-injection defense). Added a "share a Space" row to the §5 table and Sam Rivera to the cast. Re-approved.
 - **2026-05-29 — v1.2** — Removed **Monitor** (folded into Periodic Task — a Monitor is a recurring watcher task), **Note**, and **Bookmark** as primitives: dropped their `mon_`/`note_`/`bm_` ID prefixes (§6.2), the Monitor capitalization entry, and the Notes/Monitors action references; reworked the cast's Monitors into recurring watchers. Fixed a stale `arcs` cast reference (→ storylines).
 - **2026-06-09 — v1.3** — ID/vocabulary alignment: added `int_`, `wf_`, `wfr_`, and `notif_` prefixes now owned by the Integration, User Workflow, and Proactivity specs, and refreshed canonical capitalization for Tool, Periodic Task, Integration, User Workflow, Workflow Run, and Conversation. No autonomy-model change.
+- **2026-06-09 — v1.4** — **§5.2 background-approval model reconciled with [tasks](tasks.md).** A denied or timed-out parked approval now **cancels the parked leaf Task** (`permission_denied` / `permission_timeout`) — sibling branches continue and the parent reconciles — replacing the prior "abort that step, continue" wording that contradicted tasks.md REQ-TASK-07/09 and permissions.md REQ-PERM-04 (both now consistent). Updated the §5.2 diagram. Also added the `nar_`, `grant_`, and `mcp_` prefixes to the §6.2 table with a pointer to the complete catalog in [data-model](data-model.md) §5.1. *Autonomy-model change — re-approval required.*

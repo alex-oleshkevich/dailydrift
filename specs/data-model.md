@@ -46,7 +46,7 @@ Canonical definitions live in [glossary](glossary.md); this spec uses them and r
 - **Situation** — a persistent **operational condition that needs awareness/action now**; *acted upon*; lives until resolved. *(See §5.4.)*
 - **Insight** — a lightweight, evidence-backed **captured note of non-obvious discovered info**; *recalled* by semantic relevance; expires. *(See §5.5.)*
 - **Evidence** — a normalized, attributable, **immutable** fact distilled from Signals; the citable substance behind everything (P3).
-- **Narrative** — the single editable per-Space **synthesis**: current state, active Storylines, risks.
+- **Narrative** — the editable **synthesis** at **Space or Storyline** scope: current state, active Storylines, risks (REQ-DM-16).
 
 ## 5. Detailed Specification
 
