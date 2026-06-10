@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-08
+> **Version:** 1.1   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** When and how the System **initiates contact** — the relevance/urgency bar, urgency tiers, channels, quiet hours, anti-spam, and escalation — so that liberal capture never becomes notification spam (P4).
 >
@@ -62,6 +62,8 @@ The design principle is therefore **deterministic restraint with a thin layer of
 ### 5.4 Channels and per-channel bars
 
 > **REQ-PROACT-04.** Four channels in v1, ordered by intrusiveness, each with its own bar (louder ⇒ higher bar): **chat injection** (strictest — interrupts the live conversation; coordinate the per-context cap with [insights](insights.md) OQ-INS-1) · **Home → Attention-Needed** (the persistent in-app list, ranked by Attention score) · **native push** (interruptive, budget- and quiet-hours-bound) · **Digest** (most lenient — the periodic roll-up). The **surfaces** are owned by [conversation](conversation.md) and the client surface (out of scope here); proactivity owns the **bar** that admits a candidate to each. (No email/SMS in v1 — OQ-PROACT-3.)
+>
+> **`native push` is conditional on a configured transport.** Because the System is **self-hosted with no vendor relay**, delivering a push to a **closed** client requires a transport that [app-architecture](app-architecture.md) REQ-ARCH-22 owns (self-hosted **UnifiedPush/ntfy**, OS-scheduled **polling**, or an opt-in **end-to-end-encrypted vendor relay**). When **no transport is configured**, the push channel **degrades**: a candidate that would have pushed instead falls to **Home → Attention-Needed** (delivered on next connect) and the **Digest**, exactly as a held surface does (§5.5) — it is **never lost**, and the System **never silently acquires a vendor dependency** to deliver it. Proactivity owns *whether a candidate clears the push bar*; REQ-ARCH-22 owns *how that push reaches a closed client*.
 
 ### 5.5 Quiet hours and DND
 
@@ -69,7 +71,13 @@ The design principle is therefore **deterministic restraint with a thin layer of
 
 ### 5.6 Anti-spam: budget, caps, dedup, suppression
 
-> **REQ-PROACT-06.** Capture volume is decoupled from surfacing volume by four controls: a **notification budget** (a cap on interrupt-now surfaces per period; over-budget candidates fall to the Digest); **per-channel frequency caps**; **dedup / debounce** (repeats of the same condition reinforce the existing surface rather than re-notify — composing with [situations](situations.md) REQ-SIT-05 dedup); and **dismiss-ratio auto-suppression** — a category the user routinely dismisses is **demoted** (its bar raised) until engagement recovers. This is the "cry-wolf" guard: trust is preserved by *not* spending it on noise.
+> **REQ-PROACT-06.** Capture volume is decoupled from surfacing volume by four controls: a **notification budget** (a cap on interrupt-now surfaces per period; over-budget candidates fall to the Digest); **per-channel frequency caps**; **dedup / debounce** (repeats of the same condition reinforce the existing surface rather than re-notify — composing with [situations](situations.md) REQ-SIT-05 dedup); and **dismiss-ratio auto-suppression** — a category the user routinely dismisses is **demoted** (its bar raised). This is the "cry-wolf" guard: trust is preserved by *not* spending it on noise.
+>
+> **Suppression must not become a death spiral.** Demotion reduces exposure, which reduces engagement, so "until engagement recovers" can **never fire** if recovery requires engagement the System has stopped offering. Two mechanisms break the loop:
+> - **Minimum-sample floor.** A category is **not** suppressed until it has accumulated a **minimum number of surfaces with an outcome** (a statistically meaningful sample, not one or two dismissals). Below the floor the bar holds at baseline — the System does not infer "noise" from sparse evidence.
+> - **Decay & probe.** Suppression **relaxes over time on its own**, not only on engagement: a demoted category's raised bar **decays back toward baseline** as time passes since the last dismissal, and the System periodically lets a **probe** surface through (a single above-threshold candidate at a low rate) to **re-test** whether the category is still unwanted. A probe that is **acted on** lifts the suppression; a probe **dismissed** re-arms it. Suppression is thus **self-healing** — it can always recover because exposure never drops to zero.
+>
+> Suppression never raises a bar above a **Critical** override or applies to a category the user has explicitly opted to keep.
 
 ### 5.7 Batching and the Digest
 
@@ -171,7 +179,9 @@ A watcher reports *"Northwind Cloud bill spiked"* — a `watch`-category Situati
 
 - **Budget exhausted but a Critical arrives.** Critical **overrides** the budget and quiet hours (with prior consent) — the budget caps noise, not emergencies (REQ-PROACT-05/06).
 - **Same condition fires repeatedly.** Dedup/debounce reinforces the existing surface; it does not re-notify (REQ-PROACT-06, [situations](situations.md) REQ-SIT-05).
-- **User dismisses a category repeatedly.** Auto-suppression raises that category's bar; escalation aggression decays (REQ-PROACT-06/08).
+- **User dismisses a category repeatedly.** Auto-suppression raises that category's bar **once a minimum-sample floor is met**; escalation aggression decays (REQ-PROACT-06/08).
+- **Suppression death spiral.** Demotion would otherwise cut exposure to zero so engagement could never recover; the **decay & probe** mechanism relaxes the bar over time and periodically re-tests with a probe surface, so suppression is self-healing and never permanent (REQ-PROACT-06).
+- **No push transport configured.** A push-bar-clearing candidate falls to Attention-Needed + Digest instead of being lost, and the System acquires no vendor dependency to deliver it (REQ-PROACT-04, [app-architecture](app-architecture.md) REQ-ARCH-22).
 - **Missing / ambiguous urgency signal.** Fail-soft: resolve toward batch/log, never interrupt (REQ-PROACT-03).
 - **Judge unavailable or slow.** The deterministic bar decides alone (the judge is an optional refinement, never on the critical path) (REQ-PROACT-11).
 - **Injected content in a candidate.** The judge treats it as data; it cannot raise its own urgency or alter the decision (P12, REQ-PROACT-11).
@@ -188,9 +198,9 @@ A watcher reports *"Northwind Cloud bill spiked"* — a `watch`-category Situati
 - [ ] Silence is default; nothing surfaces without clearing the channel+moment bar (REQ-PROACT-01).
 - [ ] Urgency tiers are derived from Attention score / actionability / deadline, not user-set (REQ-PROACT-02).
 - [ ] Every candidate resolves to interrupt / batch / log, fail-soft toward silence (REQ-PROACT-03).
-- [ ] Four channels with louder-⇒-higher bars; surfaces deferred to their owners (REQ-PROACT-04).
+- [ ] Four channels with louder-⇒-higher bars; surfaces deferred to their owners; `native push` is conditional on a configured transport ([app-architecture](app-architecture.md) REQ-ARCH-22), degrading to Attention-Needed + Digest with no vendor dependency when none (REQ-PROACT-04).
 - [ ] Quiet hours hold non-Critical; Critical overrides only with prior consent (REQ-PROACT-05).
-- [ ] Anti-spam: budget, frequency caps, dedup/debounce, dismiss-ratio suppression (REQ-PROACT-06).
+- [ ] Anti-spam: budget, frequency caps, dedup/debounce, dismiss-ratio suppression with a **minimum-sample floor** and a **decay/probe** mechanism so suppression is self-healing, never a death spiral (REQ-PROACT-06).
 - [ ] Below-bar/low items batch into the Digest; Critical/High never silently absorbed (REQ-PROACT-07).
 - [ ] Active, bounded escalation that decays for ignored categories; nothing lost (REQ-PROACT-08).
 - [ ] Snooze/dismiss/mute/per-category prefs; the feedback loop tunes the bar (REQ-PROACT-09).
@@ -209,6 +219,7 @@ A watcher reports *"Northwind Cloud bill spiked"* — a `watch`-category Situati
 
 ## 13. Changelog
 
+- **2026-06-10 — v1.1** — **(remains Approved.)** REQ-PROACT-04 now makes the **`native push` channel conditional on a configured transport** ([app-architecture](app-architecture.md) REQ-ARCH-22) — with no transport, push degrades to Attention-Needed + Digest and the System acquires no vendor dependency; proactivity owns the bar, REQ-ARCH-22 owns the delivery. REQ-PROACT-06 dismiss-ratio suppression now requires a **minimum-sample floor** before demoting a category and a **decay & probe** mechanism (the raised bar relaxes over time and periodic probe surfaces re-test the category), so demotion can't strangle the engagement it waits on — suppression is self-healing, never a death spiral. Added §9 edge cases and updated the §11 checklist. No requirement IDs changed; no cross-references broken.
 - **2026-06-08 — v1.0** — **Approved.** Surfacing-layer initiation policy finalized; no requirement changes from v0.1. Moved from the untiered backlog into **Tier 3: Features** (§6.3).
 - **2026-06-08 — v0.1** — Initial draft. The relevance/urgency bar with silence as default (REQ-PROACT-01); derived urgency tiers (REQ-PROACT-02); the interrupt/batch/log decision (REQ-PROACT-03); four channels with per-channel bars (REQ-PROACT-04); quiet hours with consented Critical override (REQ-PROACT-05); anti-spam via budget/caps/dedup/dismiss-suppression (REQ-PROACT-06); Digest batching (REQ-PROACT-07); active bounded escalation (REQ-PROACT-08); user controls + the bar-tuning feedback loop (REQ-PROACT-09); transparency + the `notif_` delivery record (REQ-PROACT-10); the borderline-only LLM relevance judge with a deterministic backstop (REQ-PROACT-11); ownership (REQ-PROACT-12). Research-grounded (attention-budget / alert-fatigue / escalation practice). In Review.
 - **2026-06-04 — v0.0** — Stub created (Planned).

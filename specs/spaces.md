@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-09
+> **Version:** 1.1   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The Space primitive end-to-end — the **only** organizing container in the System: one hierarchy, **downstream inheritance** of configuration and context, **nearest-scope-wins** precedence with explicit overrides, **physical per-Space isolation**, the rule that every item resolves to **exactly one** owning Space, and the create/move/archive lifecycle. The structural backbone every other spec is scoped to.
 >
@@ -93,7 +93,7 @@ Canonical definition of **Space** is in [glossary](glossary.md). Terms this spec
 
 > **REQ-SPACE-06.** Whether an override **replaces** the inherited value or **merges** with it is a **per-dimension** property (§5.4 column 3), not a global rule:
 > - **Replace** (config, model): the nearest set value wins wholesale; ancestor values are shadowed.
-> - **Merge** (context, permissions, secrets): the effective value is the **composition** of ancestor and descendant contributions, with the descendant applied **last** and, for the security dimensions, **only able to attenuate** (deny-wins on conflict — [permissions](permissions.md) REQ-PERM-02).
+> - **Merge** (context, permissions, secrets): the effective value is the **composition** of ancestor and descendant contributions, with the descendant applied **last** and, for the security dimensions, **only able to attenuate** — **deny-wins at every level**, so a descendant (or any) `deny` is final and a more-specific `allow` can never override it ([permissions](permissions.md) REQ-PERM-02, REQ-PERM-11, now reconciled to this composition).
 >
 > Every resolved value carries its **provenance** — *which Space in the chain supplied it* (`inherited_from`, or `self`). Provenance is **inspectable**: the user can always see, for any effective value, whether it is set here or inherited and from where. ◆ Source pattern: GCP "effective policy = union"; AWS Organizations SCP, where an **Allow must be restated at every level** to pass but a **Deny is inherited and evaluated at every level** (the deny-wins composition the security dimensions use); HNC's `inherited-from` provenance label.
 
@@ -239,7 +239,7 @@ The user moves `Research/LLM Agents` to become `Business/LLM Agents` (it has bec
 - **OQ-SPACE-1** — **Sub-Space Narratives.** Whether very large Spaces need a Narrative **below** the Space level (the remainder of [glossary](glossary.md) OQ-CON-1 / [narrative](narrative.md) OQ-NAR-3). Current leaning: **no** new scope — Storyline-scope Narratives already subdivide, and a "global" view is just the root Space's Narrative ([narrative](narrative.md) REQ-NAR-02). Revisit if real Spaces grow past readable Narratives.
 - **OQ-SPACE-2** — **Merge/split of Spaces.** Restructuring is done by **move** in v0.1; whether Spaces ever need a first-class merge/split (folding two Spaces, or dividing one) — and how owned items re-home — is deferred (cf. Storyline merge/split, [curator](curator.md) REQ-CUR-05).
 - **OQ-SPACE-3** — **Sharing layering.** When sharing is un-deferred, it must layer onto §5.7's downstream-only shape: a shared person sees a Space + descendants, never private ancestors (P10). Open: the person/identity model, the cross-server view, and whether shared-in context counts as untrusted ingested data (P12). Out of scope now; this spec is built to accept it without changing the inheritance/isolation core.
-- **OQ-SPACE-4** — **Per-dimension merge semantics.** The exact composition for *context* merge (concatenate vs structured layering) and the precise deny-wins evaluation order for inherited grants — coordinate with [agents](agents.md), [narrative](narrative.md), and [permissions](permissions.md).
+- **OQ-SPACE-4** — **Per-dimension merge semantics.** The exact composition for *context* merge (concatenate vs structured layering) remains open — coordinate with [agents](agents.md) and [narrative](narrative.md). The deny-wins evaluation order for inherited grants is now **fixed** by [permissions](permissions.md) REQ-PERM-11 (deny-wins-everywhere + the total ordering), consistent with REQ-SPACE-06.
 
 ## 11. Review & Acceptance Checklist
 
@@ -260,7 +260,7 @@ The user moves `Research/LLM Agents` to become `Business/LLM Agents` (it has bec
 - [constitution](constitution.md) — **P10** (isolation by Space, downstream-only), **P11** (the Space is the only primitive — no roles), §5 (cross-Space act = Never), §7 (the cast).
 - [glossary](glossary.md) — the canonical **Space** definition this spec realizes.
 - [data-model](data-model.md) — every entity belongs to exactly one Space (REQ-DM-02); containment hierarchy (REQ-DM-03).
-- [permissions](permissions.md) — cross-Space isolation of capabilities (REQ-PERM-06), attenuate-only (REQ-PERM-05), deny-wins (REQ-PERM-02) — the security dimensions resolved here.
+- [permissions](permissions.md) — cross-Space isolation of capabilities (REQ-PERM-06), attenuate-only (REQ-PERM-05), **deny-wins-everywhere + deterministic total ordering** (REQ-PERM-02, REQ-PERM-11, reconciled to this spec's REQ-SPACE-06 composition) — the security dimensions resolved here.
 - [secrets](secrets.md) / [mcp](mcp.md) — per-Space secret handles and connectors that inherit downstream.
 - [narrative](narrative.md) — Space-scope Narrative; the sub-Space question (OQ-NAR-3 ↔ OQ-SPACE-1). [memory](memory.md) — per-Space recall scope. [entities](entities.md) — per-Space CRM and physical isolation (REQ-ENT-08).
 - [agents](agents.md) / [ai-models](ai-models.md) — context/personality and model selection that inherit downstream. The configurable key set is owned inline by each feature spec (client config surface out of scope).
@@ -270,5 +270,6 @@ The user moves `Research/LLM Agents` to become `Business/LLM Agents` (it has bec
 
 ## 13. Changelog
 
+- **2026-06-10 — v1.1** — **Deny-semantics reconciled with [permissions](permissions.md).** [permissions](permissions.md) previously implied a more-specific `allow` could beat a broader `deny` ("deny-wins on ties"), contradicting this spec's REQ-SPACE-06 AWS-SCP-style **deny-wins at every level**. The conflict is resolved in permissions' favor of *this* spec — [permissions](permissions.md) REQ-PERM-02 is now **deny-wins-everywhere** and REQ-PERM-11 adds a **deterministic total ordering** over the security dimensions. Clarified the §5.6 merge row to state deny-wins-at-every-level explicitly, updated the §12 cross-reference and OQ-SPACE-4 to point at the now-fixed REQ-PERM-11 evaluation order. No REQ IDs renumbered; no change to the inheritance/isolation core.
 - **2026-06-09 — v1.0** — **Approved.** Moved from the untiered backlog into **Tier 3: Features** (§6.3); no requirement changes from v0.1.
 - **2026-06-08 — v0.1** — Initial draft. The Space as the only primitive in one single-parent hierarchy (REQ-SPACE-01/02); downstream-only inheritance (REQ-SPACE-03); the inherited dimensions with per-dimension merge/replace and attenuate-only security dimensions (REQ-SPACE-04); nearest-scope-wins resolution root→self (REQ-SPACE-05) with inspectable provenance (REQ-SPACE-06); the hard, physical isolation boundary realized as per-Space DB/index with cross-Space = Never (REQ-SPACE-07); item→exactly-one-owning-Space resolution (REQ-SPACE-08); create/move/archive lifecycle with cycle rejection and Ask-first re-parent (REQ-SPACE-09); the inheritance-not-content ownership split (REQ-SPACE-10). Sharing explicitly deferred but the downstream-only design is sharing-ready (OQ-SPACE-3). Grounded in GCP resource hierarchy, Kubernetes HNC, AWS Organizations SCP, git/VS Code config cascades, and the database-per-tenant silo model. In Review.

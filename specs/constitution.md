@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.4   ·   **Last updated:** 2026-06-09
+> **Version:** 1.5   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The governing document for the entire specification suite and the eventual build. It fixes the product/engineering principles, the autonomy model, the example world, and the authoring conventions that every other spec inherits.
 >
@@ -231,6 +231,12 @@ stateDiagram-v2
 ```
 Every spec carries a dated `## Changelog`. Status is shown in the header and mirrored in [index](index.md).
 
+**Approval gate.** A spec MUST NOT be marked **Approved** while either holds:
+1. an **Open Question is load-bearing** for one of its own requirements — i.e., a `REQ` cannot be implemented as written because its behavior depends on an unresolved OQ. (Open Questions about *future extensions*, or *tuning values that have a stated default*, are fine; an OQ that leaves a core mechanism undefined is not.)
+2. a spec it **Depends on** is below **In Review** status (an Approved spec may not rest on a Draft or unwritten prerequisite).
+
+The gate applies at the moment of approval and is not retroactive: an already-approved spec is not demoted by it, but is reconciled in place via material-change changelog entries.
+
 ## 7. The recurring example cast (the shared world)
 
 All specs draw examples from **one invented, coherent world** so scenarios cohere instead of being reinvented. It is fictional; any resemblance to real people/companies is coincidental. The protagonist is **"you"** — a solo founder/consultant.
@@ -329,3 +335,4 @@ This spec is satisfied when:
 - **2026-05-29 — v1.2** — Removed **Monitor** (folded into Periodic Task — a Monitor is a recurring watcher task), **Note**, and **Bookmark** as primitives: dropped their `mon_`/`note_`/`bm_` ID prefixes (§6.2), the Monitor capitalization entry, and the Notes/Monitors action references; reworked the cast's Monitors into recurring watchers. Fixed a stale `arcs` cast reference (→ storylines).
 - **2026-06-09 — v1.3** — ID/vocabulary alignment: added `int_`, `wf_`, `wfr_`, and `notif_` prefixes now owned by the Integration, User Workflow, and Proactivity specs, and refreshed canonical capitalization for Tool, Periodic Task, Integration, User Workflow, Workflow Run, and Conversation. No autonomy-model change.
 - **2026-06-09 — v1.4** — **§5.2 background-approval model reconciled with [tasks](tasks.md).** A denied or timed-out parked approval now **cancels the parked leaf Task** (`permission_denied` / `permission_timeout`) — sibling branches continue and the parent reconciles — replacing the prior "abort that step, continue" wording that contradicted tasks.md REQ-TASK-07/09 and permissions.md REQ-PERM-04 (both now consistent). Updated the §5.2 diagram. Also added the `nar_`, `grant_`, and `mcp_` prefixes to the §6.2 table with a pointer to the complete catalog in [data-model](data-model.md) §5.1. *Autonomy-model change — re-approval required.*
+- **2026-06-10 — v1.5** — Added the **§6.4 approval gate**: a spec may not be marked Approved while an Open Question is load-bearing for one of its own requirements, or while a Depends-on spec is below In Review. (Several specs had been marked Approved one revision early with a core mechanism left open; this fixes the root cause going forward.) Also retargeted §5/§5.2/§10 references to the removed `browser-automation`/`filesystem`/`ui-shell` specs (now out of scope — client/deferred). No change to the Always/Ask-first/Never model itself.

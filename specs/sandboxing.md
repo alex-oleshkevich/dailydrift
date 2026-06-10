@@ -140,15 +140,14 @@ The design borrows nanoclaw's **principle** — *sandbox the whole agent, not ju
 ### 6.1 Orchestrator (trusted) vs worker (sandboxed)
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '13px'}}}%%
 flowchart LR
     classDef trust fill:#D4EDDA,stroke:#27AE60,color:#155724
     classDef box fill:#F8D7DA,stroke:#C0392B,color:#721C24
 
-    O["Orchestrator (trusted)\nmodel calls · Memory recall"]:::trust
-    B["Credential broker / egress proxy\n(injects secrets outside worker)"]:::trust
+    O["Orchestrator (trusted)<br/>model calls · Memory recall"]:::trust
+    B["Credential broker / egress proxy<br/>(injects secrets outside worker)"]:::trust
     subgraph SB["Sandbox profile (per-agent)"]
-        W["Execution worker\nexec · files · fetch"]:::box
+        W["Execution worker<br/>exec · files · fetch"]:::box
     end
     O -->|self-contained prompt| W
     W -->|authed egress| B
@@ -158,15 +157,14 @@ flowchart LR
 ### 6.2 One profile → many backends
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '12px'}}}%%
 flowchart TB
-    P["SandboxProfile\nfilesystem · network · exec · resources"] --> SEL{"strongest available\nwithout elevation"}
-    SEL --> L["Linux native: Landlock + seccomp-bpf\n+ no_new_privs + rlimits/cgroups"]
-    SEL --> Sd["Linux systemd: systemd-run --user\n(hardening directives + cgroups)"]
+    P["SandboxProfile<br/>filesystem · network · exec · resources"] --> SEL{"strongest available<br/>without elevation"}
+    SEL --> L["Linux native: Landlock + seccomp-bpf<br/>+ no_new_privs + rlimits/cgroups"]
+    SEL --> Sd["Linux systemd: systemd-run --user<br/>(hardening directives + cgroups)"]
     SEL --> M["macOS native: Seatbelt (sandbox-exec, SBPL)"]
-    SEL --> W["Windows native: restricted token + ACLs\n+ Firewall + Job Object"]
-    SEL --> Po["Linux container: Podman\n(rootless, daemonless)"]
-    SEL --> AC["macOS container: Apple container\n(one VM per container)"]
+    SEL --> W["Windows native: restricted token + ACLs<br/>+ Firewall + Job Object"]
+    SEL --> Po["Linux container: Podman<br/>(rootless, daemonless)"]
+    SEL --> AC["macOS container: Apple container<br/>(one VM per container)"]
     SEL --> D["Docker (optional, needs daemon)"]
 ```
 

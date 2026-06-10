@@ -265,7 +265,6 @@ Extract the Evidence this batch proves.
 ### 6.1 The processing pipeline
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef input fill:#95A5A6,stroke:#7F8C8D,color:#fff
     classDef cheap fill:#34495E,stroke:#2C3E50,color:#fff
@@ -277,10 +276,10 @@ flowchart LR
     DED["Deduplicator"]:::cheap
     NF["Noise-filter"]:::cheap
     RES["Resolver"]:::cheap
-    EXT["Extractor\nLLM"]:::llm
+    EXT["Extractor<br/>LLM"]:::llm
     PROP["Evidence-proposer"]:::llm
     RED["State-reducers"]:::fact
-    COM["Committer\natomic"]:::fact
+    COM["Committer<br/>atomic"]:::fact
 
     SIG --> BAT --> DED --> NF --> RES --> EXT --> PROP --> RED --> COM
     NF -.->|"noise"| DROP["dropped"]:::input
@@ -292,7 +291,6 @@ flowchart LR
 ### 6.2 The InboxItem state machine
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 stateDiagram-v2
     classDef active fill:#4A90D9,stroke:#2C6FB5,color:#fff
     classDef hold fill:#FFF3CD,stroke:#FFC107,color:#333

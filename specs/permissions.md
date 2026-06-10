@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.1   ·   **Last updated:** 2026-06-09
+> **Version:** 1.2   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** **Gate 1** — the capability & scope decision — and the **grant** system (`grant_`): deny-by-default, least-privilege approvals that are scoped, time-bound, recorded, inspectable, and revocable.
 >
@@ -49,7 +49,9 @@ The hard usability problem is **approval fatigue**: gate everything and users ru
 
 ### 5.2 Grants are first-class, scoped, and revocable
 
-> **REQ-PERM-02.** A standing decision is a **`grant_`** record carrying: an **action pattern** (a tool/action + optional argument constraints), a **scope** `{space, agent, skill, tool, target}`, a **disposition** (`allow` | `deny`), an **expiry** (or none), and **provenance** (who decided, when, from which request). Grants are **recorded, inspectable, and revocable** at any time ([constitution](constitution.md) §5). A `deny` grant is a standing **Never** for its scope. Evaluation is **most-specific-match, deny-wins** on ties.
+> **REQ-PERM-02.** A standing decision is a **`grant_`** record carrying: an **action pattern** (a tool/action + optional argument constraints), a **scope** `{space, agent, skill, tool, target}`, a **disposition** (`allow` | `deny`), an **expiry** (or none), and **provenance** (who decided, when, from which request). Grants are **recorded, inspectable, and revocable** at any time ([constitution](constitution.md) §5). A `deny` grant is a standing **Never** for its scope.
+>
+> **Evaluation is deny-wins-everywhere and deterministic (REQ-PERM-11).** **Any** matching `deny` grant blocks the action — a more-specific `allow` can **never** override a broader `deny` (the AWS-SCP / [spaces](spaces.md) REQ-SPACE-06 composition: a deny inherited or set at any level is final). Specificity ordering therefore selects only **among `allow` grants** when **no `deny` matches**; it never lets an allow beat a deny. The action is permitted iff at least one `allow` matches **and** no `deny` matches; absent any match it is denied (deny-by-default, REQ-PERM-01).
 
 ### 5.3 The approval lifecycle
 
@@ -88,7 +90,16 @@ The hard usability problem is **approval fatigue**: gate everything and users ru
 
 ### 5.10 Observability & ownership
 
-> **REQ-PERM-10.** Every permission decision — allow once, each standing grant created or revoked, every deny and timeout — is **logged** with actor, time, action, and scope ([activity-log](activity-log.md), [tasks](tasks.md) REQ-TASK-11), and the live grant set is **inspectable**. This spec **owns** Gate 1, the `grant_` model, the approval lifecycle, and cross-Space capability isolation. It **references**: [constitution](constitution.md) §5 (Gate 2), [tools](tools.md) (the lifecycle hook), [secrets](secrets.md) (credential grants), [tasks](tasks.md) (parking). It **defers** the `grant_` id format and the policy store to [app-architecture](app-architecture.md).
+> **REQ-PERM-10.** Every permission decision — allow once, each standing grant created or revoked, every deny and timeout — is **logged** with actor, time, action, and scope ([activity-log](activity-log.md), [tasks](tasks.md) REQ-TASK-11), and the live grant set is **inspectable**. This spec **owns** Gate 1, the `grant_` model, the **deterministic evaluation order** (REQ-PERM-11), the approval lifecycle, and cross-Space capability isolation. It **references**: [constitution](constitution.md) §5 (Gate 2), [tools](tools.md) (the lifecycle hook), [secrets](secrets.md) (credential grants), [tasks](tasks.md) (parking). It **defers** the `grant_` id format and the policy store to [app-architecture](app-architecture.md).
+
+### 5.11 Deterministic grant evaluation — total ordering
+
+> **REQ-PERM-11.** Grant evaluation is **deterministic**: there is a **total ordering** over matching grants so that, given the same grant set, the same request always resolves identically. The algorithm:
+> 1. **Deny-wins (decisive).** If **any** matching grant has disposition `deny`, the action is **blocked** — full stop. A `deny` is never outranked by a more-specific `allow` (consistent with [spaces](spaces.md) REQ-SPACE-06 and AWS-SCP deny composition; the specificity rules below apply **only when no `deny` matches**). This is the deny-wins-everywhere rule REQ-PERM-02 states.
+> 2. **Specificity score.** Among matching `allow` grants, each is scored by its **count of bound scope dimensions** — how many of `{space, agent, skill, tool, target}` it constrains rather than leaves wildcard — plus **+1 if its action pattern is an exact action** (vs. a wildcard/prefix pattern). A higher count is **more specific** and ranks higher.
+> 3. **Dimension-priority tiebreak.** When two `allow` grants have the **same** specificity score, break the tie by a **fixed dimension priority** — most-specific first: **`target` > `tool` > `skill` > `agent` > `space`** (the grant bound on the higher-priority dimension wins). If still tied (the same dimensions bound), prefer the grant with the **nearer expiry** (`ExpiresAt`; non-expiring sorts last), then the **later provenance timestamp** — yielding a total, stable order with **no remaining ambiguity**.
+>
+> The selected `allow` authorizes; if none matches, the action is denied (REQ-PERM-01). Specificity selects only *which allow's constraints apply* (for logging/attenuation); it can never resurrect an action a `deny` blocked (step 1).
 
 ## 6. Visualizations
 
@@ -143,7 +154,8 @@ type Grant struct {
     CreatedBy  string       // user
 }
 
-// Resolution: most-specific match wins; deny beats allow on a tie; absent → deny.
+// Resolution (REQ-PERM-11): any matching deny wins outright; else the most-specific matching
+// allow wins by bound-dimension count, tiebroken target>tool>skill>agent>space; absent → deny.
 type Decision struct {
     Allowed bool
     Matched *Grant // nil when deny-by-default
@@ -165,7 +177,7 @@ The orchestrator dispatches a *Research* subagent to read competitor release not
 ## 9. Edge Cases & Failure Modes
 
 - **No matching grant.** Deny-by-default; the agent may *request* a narrow grant, never self-grant (REQ-PERM-01/05).
-- **Conflicting grants.** Deny wins; most-specific scope wins otherwise (REQ-PERM-02).
+- **Conflicting grants.** **Any** matching `deny` wins outright — a more-specific `allow` cannot override it; among allows-only, the most-specific by bound-dimension count wins, tiebroken by the fixed `target>tool>skill>agent>space` priority then nearer expiry (REQ-PERM-02, -11).
 - **Approval never answered.** On its deadline the parked leaf Task is **cancelled** (`permission_timeout`) and the block is surfaced as stale (REQ-PERM-04).
 - **Grant outlives its need.** Expiry and explicit revocation both apply; revocation takes effect immediately, including mid-Task (REQ-PERM-02/10).
 - **Reviewer says "good" but the action is Ask-first.** Still gated — quality ≠ permission (REQ-PERM-09).
@@ -179,7 +191,7 @@ The orchestrator dispatches a *Research* subagent to read competitor release not
 ## 11. Review & Acceptance Checklist
 
 - [ ] Gate 1 runs before Gate 2; deny-by-default (REQ-PERM-01).
-- [ ] Grants are first-class `grant_` records: action + scope + disposition + expiry + provenance; recorded, inspectable, revocable (REQ-PERM-02).
+- [ ] Grants are first-class `grant_` records: action + scope + disposition + expiry + provenance; recorded, inspectable, revocable; **deny-wins-everywhere** (REQ-PERM-02).
 - [ ] The five approval choices and narrowest-default scope are specified (REQ-PERM-03).
 - [ ] Background Ask-first parks, surfaces, and resumes/expires (REQ-PERM-04).
 - [ ] Least privilege + attenuation; no ambient authority (REQ-PERM-05).
@@ -188,6 +200,7 @@ The orchestrator dispatches a *Research* subagent to read competitor release not
 - [ ] The subagent denylist is a Gate-1 boundary, not a tier (REQ-PERM-08).
 - [ ] Reviewer approval is not user permission (REQ-PERM-09).
 - [ ] Every decision is logged and the grant set is inspectable (REQ-PERM-10).
+- [ ] Grant evaluation is **deterministic** via a total ordering — deny-wins decisively, then allow-specificity by bound-dimension count, tiebroken `target>tool>skill>agent>space` then nearer expiry (REQ-PERM-11).
 
 ## 12. Cross-References
 
@@ -197,10 +210,11 @@ The orchestrator dispatches a *Research* subagent to read competitor release not
 - [tasks](tasks.md) — `awaiting_approval`, the `approval` Situation, and logged decisions (REQ-TASK-07/10/11).
 - [agent-orchestration](agent-orchestration.md) — the permission gate vs the quality gate (REQ-AORCH-05/13).
 - [agents](agents.md) — `tool_policy` and the subagent denylist (REQ-AGENT-06/12/13).
-- [spaces](spaces.md) — the Space hierarchy and downstream inheritance.
+- [spaces](spaces.md) — the Space hierarchy and downstream inheritance; the **deny-wins** security-dimension composition (REQ-SPACE-06) this spec's evaluation order now matches.
 
 ## 13. Changelog
 
+- **2026-06-10 — v1.2** — **Deterministic, deny-wins-everywhere grant evaluation.** Two reconciled fixes. (1) *Non-deterministic ordering:* "most-specific-match, deny-wins on ties" (old REQ-PERM-02) gave **no** specificity ordering over the five scope dimensions + action pattern, so overlapping grants could resolve ambiguously. Added **REQ-PERM-11** (§5.11): a **total ordering** — deny-wins decisively, then `allow`-specificity by **count of bound dimensions** (+1 for an exact action pattern), tiebroken by a **fixed dimension priority `target > tool > skill > agent > space`**, then nearer expiry, then provenance timestamp — leaving no remaining ambiguity. (2) *Deny-semantics conflict with [spaces](spaces.md):* permissions previously implied a more-specific `allow` could beat a broader `deny` ("deny-wins on ties"), contradicting [spaces](spaces.md) REQ-SPACE-06's AWS-SCP-style **deny-wins at every level**. Amended **REQ-PERM-02** to **deny-wins-everywhere** — any matching `deny` blocks the action and can never be overridden by a more-specific `allow`; specificity selects only among allows when no deny matches. Updated §7 resolution comment, the §9 conflicting-grants edge case, REQ-PERM-10 ownership, and the §11/§12 checklist + cross-refs. No REQ IDs renumbered.
 - **2026-06-09 — v1.1** — Reconciled REQ-PERM-04 (and the §9 edge case) with [tasks](tasks.md) REQ-TASK-07/09 and [constitution](constitution.md) §5.2 v1.4: a denied/timed-out parked approval **cancels the parked leaf Task** (`permission_denied` / `permission_timeout`) — siblings continue, the parent reconciles — instead of "the step aborts and the loop continues." Removes the three-way deny-semantics contradiction. *Flagged for re-confirmation.*
 - **2026-06-08 — v1.0** — **Approved.** Capability-grant (rule-based) model confirmed; a policy-as-code layer remains explicitly deferred (OQ-PERM-3).
 - **2026-06-08 — v0.1** — Initial draft. Gate 1 before Gate 2, deny-by-default (REQ-PERM-01); first-class scoped/revocable `grant_` records (REQ-PERM-02); the five-choice approval lifecycle (REQ-PERM-03); background park→surface→resume (REQ-PERM-04); least privilege + attenuation (REQ-PERM-05); cross-Space isolation (REQ-PERM-06); credential-use grants (REQ-PERM-07); the subagent denylist as a permission boundary (REQ-PERM-08); permission ≠ quality review (REQ-PERM-09); observability/ownership (REQ-PERM-10). Policy-as-code deferred by explicit decision (OQ-PERM-3). In Review.

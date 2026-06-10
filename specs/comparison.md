@@ -2,7 +2,7 @@
 
 > **Type:** Research / landscape doc (not a house-format spec; not in the spec index).
 >
-> **Last updated:** 2026-06-08
+> **Last updated:** 2026-06-10
 >
 > **Purpose:** Survey apps adjacent to dailydrift ("the System") — features, stack, LLMs, GitHub stars, **pricing** — and, for each, state honestly **where dailydrift would win, and where it doesn't** (including where the competitor is simply better).
 
@@ -21,9 +21,9 @@ dailydrift is a **self-hosted, privacy-first "operational intelligence."** Its b
 - **Proactive but anti-spam** initiation (a relevance/urgency bar + notification budget + dismiss-ratio learning).
 - **Always / Ask-first / Never** autonomy gating (capability + tier, two gates).
 - **Per-Space isolation** (a SQLite DB per Space).
-- **Self-hosted, Go single-binary, local-LLM by default** (remote frontier models opt-in).
+- **Self-hosted, Go single-binary, model-agnostic** (self-hosted/user-owned; **remote frontier models fully supported and opt-in**; **local models are the default for cheap/high-volume and privacy-sensitive work**, with Strong-tier synthesis prompted as a remote opt-in at onboarding).
 
-**Honest status:** none of this is proven in product. The differentiators are also the **hardest things to execute** — proactivity that helps instead of nags, agents that don't invent actions, a pipeline whose Evidence is actually trustworthy. And the self-hosted/local-LLM choice **trades away** the model quality, polish, integrations, and zero-friction onboarding that make the competitors usable. Read §6 for the unvarnished verdict.
+**Honest status:** none of this is proven in product. The differentiators are also the **hardest things to execute** — proactivity that helps instead of nags, agents that don't invent actions, a pipeline whose Evidence is actually trustworthy. The self-hosted choice still **trades away** polish, integrations, and the zero-friction onboarding that make the competitors usable — but note it is **model-agnostic**, *not* locked to weak local models: frontier-cloud quality is available (opt-in), so the real trade is **privacy/cost/setup vs. convenience**, not model quality. Read §6 for the unvarnished verdict.
 
 ## 2. The landscape at a glance
 
@@ -66,7 +66,7 @@ Grouped by category. Stars & pricing ≈ June 2026. "Free self-host" = the OSS c
 | **Reflect** | AI notes (E2E) | closed cloud | cloud (GPT-4/Whisper) | n/a | $10/mo · $100/yr (14-day trial) | ❌ |
 | **Motion** | AI scheduling + tasks | closed cloud | cloud (undisclosed) | n/a | ~$19/mo (Pro AI) · ~$29/mo (Business AI) | ❌ |
 | **Reclaim.ai** | AI calendar scheduling | closed cloud (heuristic) | rules + cloud | n/a | Free; ~$8–10/mo · ~$12–15/mo business | ❌ |
-| **→ dailydrift** | **Operational intelligence** | **Go single-binary · per-Space SQLite + chromem-go** | **local-by-default + opt-in remote** | — | **Free self-host (planned)** | **✅** |
+| **→ dailydrift** | **Operational intelligence** | **Go single-binary · per-Space SQLite + chromem-go** | **model-agnostic (local default for cheap/sensitive; remote frontier opt-in)** | — | **Free self-host (planned)** | **✅** |
 
 ## 3. The differentiator matrix
 
@@ -80,7 +80,7 @@ First-class? (`✓` yes · `~` partial · `✗` no). Note dailydrift's column is
 | **Always/Ask-first/Never** gate | ✗ | ~ | ~ | ~ | ~ | ✗ | ✗ | ✗ | ✗ | **✓** |
 | **Per-Space isolation** | ~ | ~ | ✗ | ✗ | ~ | ✗ | ✗ | ✗ | ✗ | **✓** |
 | **Self-hosted** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | **✓** |
-| **Local-LLM by default** | ✗ | ✗ | ✗ | ✗ | ~ | ✓ | ~ | ✗ | ✗ | **✓** |
+| **Local-LLM option + privacy default** (model-agnostic; local for cheap/sensitive, remote opt-in) | ✗ | ✗ | ✗ | ✗ | ~ | ~ | ~ | ✗ | ~ | **✓** |
 | **Ships today / has users** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **✗ (unbuilt)** |
 
 The last row is the one that matters most right now.
@@ -144,12 +144,18 @@ The last row is the one that matters most right now.
 
 **Not crap — but unproven, and niche by construction.**
 
-- **The concept is genuinely under-served.** No shipping product combines *Situations/Storylines + immutable cited Evidence + anti-spam proactivity + Always/Ask-first/Never gating + per-Space isolation + self-hosted/local-LLM*. Cora validates the proactivity framing, Glean validates provenance-as-product, Hermes/Onyx/Khoj validate self-hosted demand. The **whitespace is real**: a *privacy-owned sense-making layer* that tells you what changed and what's blocked, with receipts, and acts only under explicit control.
+- **The concept is genuinely under-served.** No shipping product combines *Situations/Storylines + immutable cited Evidence + anti-spam proactivity + Always/Ask-first/Never gating + per-Space isolation + self-hosted/model-agnostic*. Cora validates the proactivity framing, Glean validates provenance-as-product, Hermes/Onyx/Khoj validate self-hosted demand. The **whitespace is real**: a *privacy-owned sense-making layer* that tells you what changed and what's blocked, with receipts, and acts only under explicit control.
 - **But the moat is "the combination," which is also the execution trap.** Each differentiator is individually hard, and they compound: proactivity that isn't annoying, agents that don't fabricate actions, an Evidence pipeline that's actually trustworthy. Products routinely *die* on exactly these.
-- **The strategic choices cost us the mass market.** Self-hosted + local-LLM-by-default means **weaker model quality** than Copilot/Gemini/Glean (frontier cloud), **setup friction** a $20/mo SaaS doesn't have, and **zero integrations on day one** while Lindy/n8n have thousands. Big-tech (Copilot/Gemini/Apple) win on distribution and capability by orders of magnitude. The realistic audience is the **privacy/tinkerer/self-hoster niche** (the Khoj/Onyx/Hermes crowd) — meaningful, loyal, but not large.
+- **The strategic choices cost us the mass market — but model quality is *not* the reason.** The product is **model-agnostic, not locked to weak local models**: you can point the core synthesis loop at Claude Opus / GPT-5.5 / Gemini 3.x and get **the same frontier quality** Copilot/Gemini/Glean enjoy. (In fact, Strong-tier synthesis on a typical solo-founder box *requires* a remote frontier model — those models are multi-GPU and don't run locally; local is the default for cheap/high-volume and privacy-sensitive work, not for synthesis.) So the real trade is **privacy/cost/control vs. convenience**: **setup friction** a $20/mo SaaS doesn't have, **zero integrations on day one** while Lindy/n8n have thousands, and the **cost/privacy decision** the user must own (run frontier remotely and pay/expose, or stay pure-local and accept a degraded synthesis posture). Big-tech (Copilot/Gemini/Apple) still win on **distribution and zero-friction**, not on a model ceiling we can't reach. The realistic audience is the **privacy/tinkerer/self-hoster niche** (the Khoj/Onyx/Hermes crowd) — meaningful, loyal, but not large.
 - **Today, it loses to everything on the only metric that counts: it doesn't exist.** A 35-way feature comparison flatters a product that hasn't shipped a feature.
+- **Monetization / sustainability — currently a blank where every rival has an answer.** The §2 table lists dailydrift as *"Free self-host (planned)"* — but "free" is a license, not a business. Every shipping competitor here runs on *something*: a subscription (Cora $12/mo, Lindy $50–200/mo, Glean ~$60k+/yr), a paid cloud tier over an OSS core (Onyx, AnythingLLM, Mem0, Letta), pay-per-token (Hermes), or hardware (Omi, Bee). Self-hosted/user-owned (P1) **rules out the data-holding SaaS model** that funds most of them — which is honest, but leaves no funded path to do the brutal execution §6 says is the whole ballgame. Plausible models that survive P1 — a **paid binary / one-time license**, **paid support & updates**, or a **hosted-for-clients** single-tenant managed deployment — all exist in OSS, but none is chosen, and "unfunded passion project racing funded incumbents on the hardest 20%" is its own failure mode. **No revenue model is not a neutral omission; it's an unanswered risk.** (Tracked as an Open Question in [overview](overview.md) §10 OQ-5.)
 
 **Bottom line:** strong, differentiated *thesis*; brutal execution risk; niche-by-design. Worth building **only if** you (a) genuinely value ownership/privacy enough to run a server, and (b) can execute the proactivity + Evidence quality that nobody else has nailed. If either fails, you've built a worse, lonelier Hermes/Onyx. The idea isn't the weak point — **shipping the hard 20% that makes it feel magical is.**
+
+## Changelog
+
+- **2026-06-10** — Added a **"Monetization / sustainability"** bullet to the §6 verdict: every shipping rival has a revenue model (subscription / OSS+cloud / pay-per-token / hardware), while dailydrift lists only *"Free self-host (planned)"* with none — P1 rules out data-holding SaaS, leaving paid-binary / paid-support / hosted-for-clients as the P1-compatible options, none chosen. Flags the absence as an unanswered execution risk, not a neutral omission; cross-linked to the new [overview](overview.md) §10 OQ-5. Self-skeptical tone preserved.
+- **2026-06-10** — **Corrected the "local-LLM by default" premise** throughout. dailydrift is **model-agnostic / self-hosted**, *not* locked to local models: remote frontier models are fully supported (and are the default for the Strong-tier synthesis loop, prompted as an opt-in at onboarding), while local models are the default for cheap/high-volume and privacy-sensitive work. Updated §1 (yardstick + honest status), the §2 landscape-table row, and the §3 differentiator-matrix row (now "Local-LLM option + privacy default"). **Re-derived §6:** the cost/quality bullet no longer claims "weaker model quality… costs us the mass market" — frontier quality *is* available, so the real trade is **privacy/cost/control vs. convenience** (setup friction, day-one integrations, the cost/privacy decision the user owns); big-tech still wins on distribution/zero-friction, not on a model ceiling. Self-skeptical tone preserved. Aligns with `ai-models.md` REQ-AIM-07/17 (v1.1).
 
 ## Sources
 

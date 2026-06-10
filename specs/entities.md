@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-08
+> **Version:** 1.1   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The Entity & relationship graph — a Space-scoped, SQL-backed "dynamic CRM" of real-world things (people, companies, repos, …) and the typed, directed relationships between them.
 >
@@ -34,7 +34,7 @@ The narrative layer is organized **vertically by topic**: `Space ⊃ Storyline �
 
 Entities are the **horizontal** layer that cuts across topics: the join key that lets the System pivot from topic-organized to thing-organized knowledge. [data-model](data-model.md) REQ-DM-01 already reserves the `ent_` identity and marks it *owned by this spec*; this document fills it in.
 
-Making it **SQL-backed with a table per type** (rather than a generic graph or key-value store) buys three things: real columns and constraints (type safety, foreign keys, `CHECK`s enforced by the engine, not app code); ordinary SQL for querying the CRM; and a model a user can inspect and reason about directly. Keeping it **per-Space** makes the System's privacy and isolation guarantee (P1) *physical* — one database file per Space, no shared rows to leak.
+Making it **SQL-backed with a table per type** (rather than a generic graph or key-value store) buys three things: real columns and constraints (type safety, foreign keys, `CHECK`s enforced by the engine, not app code); ordinary SQL for querying the CRM; and a model a user can inspect and reason about directly. Keeping it **per-Space** makes the System's isolation guarantee (P10) *physical* — one database file per Space, no shared rows to leak.
 
 ## 4. Concepts & Definitions
 
@@ -83,7 +83,7 @@ Canonical term **Entity** is defined in [glossary](glossary.md); this spec intro
 
 ### 5.8 Per-Space isolation
 
-> **REQ-ENT-08.** Types and records are **never shared across Spaces**. The same real-world thing referenced in two Spaces is **two independent entities** in two databases; there is no implicit cross-Space identity. (A future opt-in "same-as" correlation is OQ-ENT-2.) This makes the P1 isolation guarantee physical: a Space's CRM is a single file with no rows visible to another Space.
+> **REQ-ENT-08.** Types and records are **never shared across Spaces**. The same real-world thing referenced in two Spaces is **two independent entities** in two databases; there is no implicit cross-Space identity. (A future opt-in "same-as" correlation is OQ-ENT-2.) This makes the P10 isolation guarantee physical: a Space's CRM is a single file with no rows visible to another Space.
 
 ### 5.9 Autonomy classification & integrity
 
@@ -94,7 +94,16 @@ Canonical term **Entity** is defined in [glossary](glossary.md); this spec intro
 
 ### 5.10 Ownership & non-duplication
 
-> **REQ-ENT-10.** This spec **owns** the entity/relationship type system, the records, the catalog, and the SQL-as-model. It **references**: [data-model](data-model.md) REQ-DM-01 (the `ent_` identity it realizes), [evidence](evidence.md) REQ-EV-07 (the evidence graph that *links to* entities), [spaces](spaces.md) (the Space scope). It **defers**: the DB engine, migration runner, and persistence plumbing to [app-architecture](app-architecture.md); resolution of [signals](signals.md) `entity_hints` and the LLM entity-resolution/merge prompt to future work (§10).
+> **REQ-ENT-10.** This spec **owns** the entity/relationship type system, the records, the catalog, the SQL-as-model, and **dynamic-DDL identifier safety** (REQ-ENT-11). It **references**: [data-model](data-model.md) REQ-DM-01 (the `ent_` identity it realizes), [evidence](evidence.md) REQ-EV-07 (the evidence graph that *links to* entities), [spaces](spaces.md) (the Space scope). It **defers**: the DB engine, migration runner, and persistence plumbing to [app-architecture](app-architecture.md); resolution of [signals](signals.md) `entity_hints` and the LLM entity-resolution/merge prompt to future work (§10).
+
+### 5.11 Dynamic-DDL identifier safety
+
+> **REQ-ENT-11.** Because user-defined (and, later, System/LLM-defined) entity-type, relationship-type, and field names become **raw SQL identifiers** in `CREATE TABLE` / `ALTER TABLE` / column references (REQ-ENT-02/04/05/07), every such name **MUST** be made safe before any DDL or DML is issued:
+> - **Safe grammar.** A name must match a restrictive identifier grammar — ASCII letter or underscore, then letters/digits/underscores (e.g. `^[A-Za-z_][A-Za-z0-9_]*$`), bounded in length and case-folded for uniqueness. Names failing the grammar are **rejected at definition time** (Always-action validation, REQ-ENT-09); there is no auto-mangling into something else.
+> - **Reserved-name blocklist.** A name must not collide with the **catalog tables** (`entity_types`, `relationship_types`, `fields`), SQLite internals (`sqlite_*`, e.g. `sqlite_master`/`sqlite_sequence`), SQL reserved words, or the reserved physical-column names (`id`, `name`, `from_id`, `to_id`). Collisions are **rejected**, never silently shadowed.
+> - **Quoted, namespaced physical names.** Physical table names are **namespaced** to keep user types out of the catalog/internal namespace — entity-type tables as `ent_<type>`, relationship-type tables as `rel_<type>` — and **every** identifier (table and column) is **always emitted double-quoted** (`"ent_company"`, `"tier"`) in generated DDL/DML, so a name can never break out of its identifier position into injectable SQL. The **catalog `name`** stays the user-facing logical name; the namespaced quoted form is the **physical** name the engine sees.
+>
+> Grammar + blocklist + mandatory quoting together make dynamic DDL safe: a type named `entity_types`, `sqlite_master`, or `fields` is **rejected**, and no validly-named type can collide with or inject into the catalog or engine internals. This realizes the **P10 isolation** guarantee at the schema level — see REQ-ENT-08.
 
 ## 6. Visualizations
 
@@ -149,20 +158,21 @@ CREATE TABLE fields (
 ```
 
 ```sql
--- Physical tables, generated from the catalog (REQ-ENT-02/04)
-CREATE TABLE person (                 -- the built-in EntityType
-  id    TEXT PRIMARY KEY,             -- 'ent_...' stable global id
-  name  TEXT NOT NULL,               -- display name
-  email TEXT,
-  role  TEXT
+-- Physical tables, generated from the catalog (REQ-ENT-02/04). Names are grammar-checked,
+-- blocklist-screened, namespaced (ent_/rel_), and always quoted in generated DDL (REQ-ENT-11).
+CREATE TABLE "ent_person" (           -- the built-in EntityType (logical name 'person')
+  "id"    TEXT PRIMARY KEY,           -- 'ent_...' stable global id
+  "name"  TEXT NOT NULL,              -- display name
+  "email" TEXT,
+  "role"  TEXT
 );
 
-CREATE TABLE invests_in (             -- RelationshipType person -> company
-  id      TEXT PRIMARY KEY,           -- 'rel_...'
-  from_id TEXT NOT NULL REFERENCES person(id)  ON DELETE RESTRICT,
-  to_id   TEXT NOT NULL REFERENCES company(id) ON DELETE RESTRICT,
-  since   TEXT,                       -- date (ISO-8601)
-  amount  INTEGER                     -- money (minor units)
+CREATE TABLE "rel_invests_in" (       -- RelationshipType person -> company
+  "id"      TEXT PRIMARY KEY,         -- 'rel_...'
+  "from_id" TEXT NOT NULL REFERENCES "ent_person"(id)  ON DELETE RESTRICT,
+  "to_id"   TEXT NOT NULL REFERENCES "ent_company"(id) ON DELETE RESTRICT,
+  "since"   TEXT,                     -- date (ISO-8601)
+  "amount"  INTEGER                   -- money (minor units)
 );
 ```
 
@@ -172,7 +182,7 @@ CREATE TABLE invests_in (             -- RelationshipType person -> company
 
 - **Given** the `Framework` Space, whose database has only the built-in `person` table.
 - **When** the user defines a `company` EntityType with fields `domain: string`, `tier: enum[free, pro, enterprise]`.
-- **Then** the System runs `CREATE TABLE company (id TEXT PRIMARY KEY, name TEXT NOT NULL, domain TEXT, tier TEXT CHECK (tier IN ('free','pro','enterprise')))`, writes the `entity_types` and `fields` catalog rows in the same transaction (Always; logged), and `Northwind Cloud` can now be added as a `company` row.
+- **Then** — after the name `company` and its fields pass the safe grammar + reserved-name blocklist (REQ-ENT-11) — the System runs `CREATE TABLE "ent_company" ("id" TEXT PRIMARY KEY, "name" TEXT NOT NULL, "domain" TEXT, "tier" TEXT CHECK ("tier" IN ('free','pro','enterprise')))` (namespaced, fully quoted), writes the `entity_types` and `fields` catalog rows in the same transaction (Always; logged), and `Northwind Cloud` can now be added as a `company` row. Had the user named the type `entity_types` or `sqlite_master`, definition would have been **rejected** before any DDL.
 
 ### Example B — a typed relationship with fields (narrative)
 
@@ -186,6 +196,8 @@ In the `Framework` Space, `Talia Brandt` exists as a `person` and `Framework` as
 
 - **Required field added to a populated table.** Added nullable; existing rows flagged *incomplete* rather than rejected; new writes must supply it (REQ-ENT-07).
 - **Relationship type referencing a missing entity type.** Definition is **rejected** — `from_type`/`to_type` must already exist in `entity_types` (FK in the catalog).
+- **Type/field name collides with the catalog, an SQLite internal, or a reserved column.** A name like `entity_types`, `fields`, `sqlite_master`, or `id` is **rejected at definition time** by the grammar + reserved-name blocklist; it can never reach DDL or shadow the catalog (REQ-ENT-11).
+- **Type/field name with quotes, spaces, or SQL metacharacters.** Fails the safe grammar and is rejected; and because every generated identifier is **always double-quoted and namespaced**, a name can never break out of its identifier position into injectable SQL (REQ-ENT-11).
 - **Deleting an entity that relationships point to.** Default `ON DELETE RESTRICT` blocks it; a cascading delete is **Ask-first** (REQ-ENT-09).
 - **Enum value outside the allowed set.** Rejected by the column `CHECK` and by catalog validation (REQ-ENT-06).
 - **Two rows that are the same real-world thing.** Tolerated in v1 (no auto-merge); dedup/merge is deferred (OQ-ENT-3).
@@ -208,6 +220,7 @@ In the `Framework` Space, `Talia Brandt` exists as a `person` and `Framework` as
 - [ ] Field kinds map to columns with catalog-driven validation (REQ-ENT-06).
 - [ ] Schema evolution is **conservative** (add nullable, flag incomplete) and destructive DDL is **Ask-first** (REQ-ENT-07, -09).
 - [ ] Actions are classified into the Always / Ask-first framework (REQ-ENT-09).
+- [ ] Dynamic-DDL identifier safety: names pass a **safe grammar** + **reserved-name blocklist** (catalog/`sqlite_*`/reserved cols), and physical names are **namespaced (`ent_`/`rel_`) and always quoted** (REQ-ENT-11).
 - [ ] Boundaries with [evidence](evidence.md), [data-model](data-model.md), [signals](signals.md), and [app-architecture](app-architecture.md) hold; no redefinition (REQ-ENT-10).
 
 ## 12. Cross-References
@@ -221,6 +234,7 @@ In the `Framework` Space, `Talia Brandt` exists as a `person` and `Framework` as
 
 ## 13. Changelog
 
+- **2026-06-10 — v1.1** — **Dynamic-DDL identifier safety + P10 isolation citation fix.** User/System/LLM-defined type and field names become **raw SQL identifiers** in `CREATE TABLE`/`ALTER TABLE` (REQ-ENT-02/05), yet nothing mandated validation or quoting — a type named `entity_types`, `sqlite_master`, or `fields` could collide with the catalog/engine internals, and unquoted dynamic identifiers risked SQL injection. Added **REQ-ENT-11** (§5.11): names validated against a **safe grammar** + a **reserved-name blocklist** (catalog tables, `sqlite_*`, SQL keywords, reserved physical columns), rejected at definition time; physical names always **namespaced (`ent_`/`rel_`) and double-quoted** in generated DDL/DML so they cannot collide with or inject into the catalog. Threaded into REQ-ENT-10 ownership, the §7 physical-table SQL (now quoted/namespaced), §8 Example A, two §9 edge cases, and the §11 checklist. Also fixed the **P1→P10** isolation miscitation in §3 and REQ-ENT-08 (isolation is **P10**, not P1). No REQ IDs renumbered.
 - **2026-06-08 — v1.0** — **Approved.** No material change from v0.1; pipeline resolution/merge and cross-Space correlation remain open questions (OQ-ENT-2/3) tracked for a later revision.
 - **2026-06-08 — v0.1** — Initial draft. Entity graph as a per-Space, SQL-backed dynamic CRM: user-defined entity types as real tables with `person` built-in (REQ-ENT-02); validated entity instances with stable `ent_` ids (REQ-ENT-03); directed, schema'd relationship types as FK join tables (REQ-ENT-04); the catalog metadata layer (REQ-ENT-05); field-kind→column mapping (REQ-ENT-06); DDL lifecycle with conservative schema evolution (REQ-ENT-07); per-Space isolation (REQ-ENT-08); autonomy classification and referential integrity (REQ-ENT-09); ownership boundaries with data-model/evidence/signals/app-architecture (REQ-ENT-10). Pipeline resolution, dedup/merge, and cross-Space correlation deferred (OQ-ENT-2/3). In Review.
 - **2026-06-04 — v0.0** — Stub created (Planned).

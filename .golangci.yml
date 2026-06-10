@@ -1,0 +1,88 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    # — correctness ————————————————————————————————————————————————
+    - errcheck # unchecked error returns
+    - govet # go vet
+    - staticcheck # comprehensive SA/S/ST checks
+    - ineffassign # assigned but never used
+    - unused # dead code (vars, funcs, types, consts)
+    - nilerr # `if err != nil { return nil }` anti-pattern
+    - nilnil # functions that can return (nil, nil)
+    - bodyclose # unclosed HTTP response bodies
+    - rowserrcheck # sql.Rows.Err() not checked
+    - sqlclosecheck # sql.Rows / sql.Stmt not closed
+    # — exhaustiveness  —————————————————————————————————
+    - exhaustive # switch on enum must cover all cases
+    - exhaustruct # struct literals must name all fields
+    # — type safety ————————————————————————————————————————————————
+    - forcetypeassert # unchecked type assertion panics
+    # — error handling —————————————————————————————————————————————
+    - wrapcheck # errors from external pkgs must be wrapped
+    # — code quality ———————————————————————————————————————————————
+    - gocritic # large set of diagnostic + perf + style checks
+    - unparam # unused function parameters
+    - misspell # spelling errors in comments and strings
+    # — security ———————————————————————————————————————————————————
+    - gosec # OWASP-aligned security checks
+
+  settings:
+    errcheck:
+      check-type-assertions: true # flag `x.(T)` return values too
+      check-blank: true # flag `_ = f()` that discards errors
+      exclude-functions:
+        - (database/sql/driver.Conn).Close # cleanup in error paths
+        - (*database/sql.DB).Close # cleanup in error paths
+        - (*github.com/starfrontventures/dailydrift/dailydrift/db.Tx).Rollback # safe deferred rollback
+
+    exhaustive:
+      default-signifies-exhaustive: true # explicit default = intentional catch-all
+
+    exhaustruct:
+      include:
+        - "github\\.com/starfrontventures/dailydrift/.*" # only our own types
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+      disabled-checks:
+        - commentedOutCode # legitimately useful during development
+        - whyNoLint # nolint comments don't need justification
+
+    gosec:
+      excludes:
+        - G304 # variable file path — expected for DSN / config paths
+
+    staticcheck:
+      checks:
+        - all
+        - -ST1000 # no package doc comments per project convention
+
+    wrapcheck:
+      ignore-sigs:
+        - fmt.Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - errors.Join(
+      ignore-package-globs:
+        - github.com/starfrontventures/dailydrift/* # our own errors are already contextualised
+        - golang.org/x/sync/errgroup # pass-through; goroutine errors are already wrapped
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: "_test\\.go"
+      linters:
+        - exhaustruct # test helpers don't need fully initialised structs
+        - wrapcheck # test code doesn't need to wrap errors
+        - gosec # test code is not production surface
+        - errcheck # deferred cleanup (Close, Rollback) in tests is legitimately ignored
+        - rowserrcheck # test iteration patterns don't need rows.Err checks

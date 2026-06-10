@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-08
+> **Version:** 1.3   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The **inference layer** every other spec abstracts over when it says "typically an LLM" — *which model (and tier) runs each task*, **how the System detects the right model**, the **catalog of models by purpose**, the **local-vs-remote** policy (P1), and the **runtime** (structured output, prompt caching, token budgeting, fallback). Resolves the agent `model` field ([agents](agents.md) REQ-AGENT-07) and memory's embedding stack to concrete choices.
 >
@@ -34,7 +34,7 @@ It is **provider-agnostic**: Claude is the recommended default (memory's `anthro
 
 ## 3. Background & Rationale
 
-A self-hosted assistant runs a *lot* of model calls of very different shapes — high-volume cheap extraction, occasional deep synthesis, embeddings on every write, the odd vision task. Sending all of them to one frontier model is wasteful; sending them all to a small model is wrong. The discipline is **tiering + routing**: describe each model by capability, describe each task by need, and match them — cheaply by default, with a smarter pass only when it's ambiguous (the RouteLLM / semantic-router consensus). And because the System is **self-hosted and private (P1)**, the default leans **local** (embeddings, high-volume cheap tasks), reaching for a remote frontier model only for what genuinely needs it, and only with the user's opt-in.
+A self-hosted assistant runs a *lot* of model calls of very different shapes — high-volume cheap extraction, occasional deep synthesis, embeddings on every write, the odd vision task. Sending all of them to one frontier model is wasteful; sending them all to a small model is wrong. The discipline is **tiering + routing**: describe each model by capability, describe each task by need, and match them — cheaply by default, with a smarter pass only when it's ambiguous (the RouteLLM / semantic-router consensus). And because the System is **self-hosted and user-owned (P1)** — *self-hosted, not local-model-only* — the default leans **local** for what local hardware can actually do well: **embeddings and high-volume cheap tasks** (Fast tier). The **core synthesis loop** (narrative synthesis, reflection, Curator reasoning) needs **Strong-tier** models a typical box can't host, so it reaches for a **remote frontier model — opt-in, prompted at onboarding** — and **pure-local deployments run that loop in a degraded posture** (REQ-AIM-17). Outbound calls are always opt-in and visible.
 
 The shape is grounded in OpenClaw's real model layer — a capability catalog, per-agent `{primary, fallbacks}`, automatic fallback on auth/billing/timeout/rate-limit, separate models per purpose, local Ollama + provider auto-detect — minus the per-message chat ergonomics, plus an explicit **task→requirement** registry.
 
@@ -69,13 +69,15 @@ The shape is grounded in OpenClaw's real model layer — a capability catalog, p
 > |---|---|---|
 > | extract / classify / route / title ([inbox](inbox.md), [signals](signals.md)) | Fast | JSON |
 > | recall embedding ([memory](memory.md)) | — | `embedding` |
+> | classify-route — the L2 complexity classifier (§5.5) | Fast | JSON |
+> | compact — context compaction ([context-management](context-management.md) REQ-CTX-07) | Fast–Standard | — |
 > | situation / insight reasoning-detection | Standard | JSON |
 > | narrative / synthesis ([narrative](narrative.md)) | Strong | reasoning, JSON |
 > | reflection / consolidation ([memory](memory.md) REQ-MEM-15) | Strong | reasoning |
 > | orchestration plan/route/review ([agent-orchestration](agent-orchestration.md)) | Standard–Strong | JSON |
 > | vision (image Signal) | Standard | `vision` |
 >
-> The registry is the System's answer to *"what does this task need?"* — the input to selection.
+> The registry is the System's answer to *"what does this task need?"* — the input to selection. **Every entry is a real model call**: the **L2 `classify-route`** pass (§5.5) and **`compact`** (the one LLM step of context assembly, [context-management](context-management.md) REQ-CTX-07) flow through the inference layer (REQ-AIM-01) like any other call — selected by this registry and **metered with a usage record** ([token-cost-management](token-cost-management.md) REQ-TOK-01, `purpose` = the task kind). No model call is exempt from selection, budgeting, or metering.
 
 ### 5.5 Selection / routing — *how to detect the right model*
 
@@ -90,11 +92,11 @@ The shape is grounded in OpenClaw's real model layer — a capability catalog, p
 
 ### 5.7 Local vs remote (privacy, P1)
 
-> **REQ-AIM-07.** Default **local** ([constitution](constitution.md) P1): **embeddings** and **high-volume cheap** tasks run on a local model (in-process / Ollama) with **no egress**. **Strong reasoning** may use a **remote** model, but content leaves the System **only on explicit opt-in** ([memory](memory.md) REQ-MEM-04). A **Space may be marked local-only**, forbidding any remote model for its tasks; selection then restricts the catalog to `hosting: local` and degrades the tier if needed (best-effort, surfaced).
+> **REQ-AIM-07.** **P1 means self-hosted / user-owned, not local-model-only.** The System is **model-agnostic**; the privacy posture is about *where the System runs* and *whether content egresses*, not about forcing every model on-box. **Local Fast-tier models + the embedding model are the privacy-preserving default** for cheap, high-volume work (extraction, classification, routing, titling, recall embeddings) — they run in-process / Ollama with **no egress**. The product's **core synthesis loop** (narrative synthesis, reflection, Curator reasoning) needs **Strong-tier** models that a typical workstation cannot host (see REQ-AIM-17); **remote Strong-tier is opt-in, prompted at onboarding**, and content leaves the System **only on that explicit opt-in** ([memory](memory.md) REQ-MEM-04). A **Space may be marked local-only**, forbidding any remote model for its tasks; selection then restricts the catalog to `hosting: local` and **runs in a degraded posture** for synthesis-heavy features (best-effort, surfaced — see REQ-AIM-17).
 
 ### 5.8 Embeddings
 
-> **REQ-AIM-08.** The **embedding model** is a catalog member with the `embedding` flag. There is **one embedding model across the shared semantic index** ([memory](memory.md) REQ-MEM-03), and its **output dimension must match the vector-store column** ([app-architecture](app-architecture.md)) — changing it requires a **re-index** (§9). Default **local** (BGE-M3 / `embeddinggemma` / fastembed `all-MiniLM`/`bge-small`); **remote optional** (OpenAI `text-embedding-3`, Voyage, Cohere) for higher retrieval quality on opt-in.
+> **REQ-AIM-08.** The **embedding model** is a catalog member with the `embedding` flag. There is **one embedding model across the shared semantic index** ([memory](memory.md) REQ-MEM-03), and its **output dimension must match the vector-store column** ([app-architecture](app-architecture.md)) — changing it requires a **re-index** (§9). **The default embedding model is `BGE-M3` at `1024` dimensions** (strong, multilingual, open, locally runnable) — the locked default that resolves **OQ-AIM-2**. The **dimension is fixed at deploy time**: it is the value [app-architecture](app-architecture.md) REQ-ARCH-05 locks the `vec0` column to, and **changing either the model or the dimension requires a full re-index** of the shared store (§9), never a hot-swap. A deployment **may override the model** (other local options — `embeddinggemma`, fastembed `all-MiniLM`/`bge-small`; or **remote optional** — OpenAI `text-embedding-3`, Voyage, Cohere — for higher retrieval quality on opt-in), but it **inherits the same dimension-lock discipline**: whatever is chosen at deploy, its dimension is frozen for the life of the index until a deliberate re-index.
 
 ### 5.9 Structured output / tool use
 
@@ -127,6 +129,29 @@ The shape is grounded in OpenClaw's real model layer — a capability catalog, p
 ### 5.16 Ownership & non-duplication
 
 > **REQ-AIM-16.** This spec **owns** the model card, tiers, selection/routing, the catalog, and the runtime knobs. It **references**: [agents](agents.md) REQ-AGENT-07 (the `model` field), [memory](memory.md) REQ-MEM-03/04 (the embedding substrate + local-default), [prompt-injection](prompt-injection.md) REQ-PINJ-15 (model-strength posture), [secrets](secrets.md) (keys). It **defers**: the prompt contracts to their feature specs; the vector store + client libraries to [app-architecture](app-architecture.md); the local-only enforcement to [privacy-security](privacy-security.md).
+
+### 5.17 Hardware tiers & honest local-vs-remote posture
+
+> **REQ-AIM-17.** The System defines **minimum-hardware tiers** and states honestly what each can run **locally**, so "self-hosted" is never confused with "everything runs on-box":
+> | Hardware tier | Typical box | Runs locally | Strong tier locally? |
+> |---|---|---|---|
+> | **Small** | laptop / mini-PC / single-board (CPU or one consumer GPU, ≤24 GB) | embeddings + Fast-tier extraction/classification/routing/titling; at best a **weak Standard** model, slowly | **No** |
+> | **Workstation** | desktop, one prosumer GPU (24–48 GB) | the above + a comfortable **Standard** model | **No** (Strong synthesis models are multi-GPU / hundreds-of-GB) |
+> | **GPU server** | multi-GPU host / hundreds of GB VRAM | all of the above **plus Strong-tier** synthesis/reasoning | **Yes** |
+>
+> **Honest default posture (clarifies P1, does not contradict it):** the System is **model-agnostic** and **self-hosted / user-owned**; all outbound calls are **opt-in and visible** ([constitution](constitution.md) P1). The **default** is **local Fast-tier + the local embedding model** for cheap/high-volume work. The product's **core synthesis loop** — **narrative synthesis** ([narrative](narrative.md)), **reflection / consolidation** ([memory](memory.md) REQ-MEM-15), and **Curator reasoning** ([curator](curator.md)) — requires **Strong-tier** models that a **Small or Workstation** box **cannot run locally**. The System therefore **prompts for remote Strong-tier opt-in at onboarding**, explaining the trade (privacy/cost vs. synthesis quality), and never silently routes content remotely.
+>
+> **Pure-local mode (no remote opt-in, or a local-only Space on Small/Workstation hardware) runs in a *degraded posture*:** narrative synthesis, reflection, and Curator reasoning are **off or run at reduced quality** on the best available local tier, and the always-on Curator/synthesis heartbeat **surfaces this degradation** rather than hiding it or forcing remote spend. Extraction, embeddings, recall, and routing remain **fully local and unaffected**. Selection enforces this via the Space policy and the requirement registry (REQ-AIM-04/05/07).
+
+### 5.18 First-run hardware fitness
+
+> **REQ-AIM-18.** Because "Ollama is the local default" ([app-architecture](app-architecture.md) REQ-ARCH-11) means real **multi-GB model pulls**, **RAM/VRAM floors**, and **cold starts**, the System owns a **first-run hardware-fitness step** that makes the local posture honest before any work runs:
+> - **Detect** the host's CPU, RAM, and GPU/VRAM and **map it to a hardware tier** (Small · Workstation · GPU-server, REQ-AIM-17).
+> - **Recommend** the local model set the tier can actually run well — the local **embedding model** plus the best **Fast-tier** (and, on a Workstation, **Standard-tier**) chat model — and, on **Small/Workstation** hardware (which cannot host Strong-tier synthesis), present the **remote Strong-tier opt-in** with the trade explained (REQ-AIM-07/17). The System **never silently pulls a model the host can't run**.
+> - **Download with visible progress**: pulling the recommended local models is an explicit, resumable step with progress and disk-space checks; a failed or interrupted pull leaves the System in a known state, never a half-configured one.
+> - **Graceful under-spec behavior**: on a host below even the Small floor, the System **starts anyway** — embeddings/Fast work on the strongest model that fits (CPU-only if needed, slowly), the synthesis loop runs in the **degraded posture** (REQ-AIM-17), and the shortfall is **surfaced**, not hidden. It never refuses to boot and never forces remote spend.
+>
+> Fitness is **re-runnable** (hardware or model choices change); its config UI is a client surface (out of scope here). This complements REQ-AIM-17 (which *defines* the tiers and the honest posture) by owning the **detection → recommendation → download → under-spec** UX that makes that posture real on first run.
 
 ## 6. Visualizations
 
@@ -229,7 +254,7 @@ The [Inbox](inbox.md) extractor runs on every batch — high volume. Requirement
 
 ### Example B — reflection (Strong + reasoning)
 
-Memory's nightly reflection ([memory](memory.md) REQ-MEM-15) synthesizes clusters into durable knowledge. Requirement: `{Kind: reflect, MinTier: strong, Reasoning: true}`. L1 picks a Strong reasoning card (Opus-class), thinking `high`. If the user marked the Space **local-only**, selection restricts to local Strong models and surfaces the trade-off (REQ-AIM-07).
+Memory's nightly reflection ([memory](memory.md) REQ-MEM-15) synthesizes clusters into durable knowledge — part of the **core synthesis loop**. Requirement: `{Kind: reflect, MinTier: strong, Reasoning: true}`. On typical (Small/Workstation) hardware, the local catalog has **no runnable Strong card**, so the default plan is a **remote** Strong reasoning card (Opus-class), thinking `high` — surfaced as the opt-in chosen at onboarding (REQ-AIM-07/17). If the user declined remote, or marked the Space **local-only**, reflection runs in the **degraded posture**: best-effort on the strongest local tier (or off), with the trade-off surfaced (REQ-AIM-17). Only a **GPU-server** deployment runs Strong reflection fully locally.
 
 ### Example C — a vision Signal
 
@@ -241,15 +266,15 @@ Every write embeds its content for the shared index. Requirement: `{Kind: embed,
 
 ### 8.4 Catalog snapshot — purpose → models (2026-06, **non-normative**)
 
-| Purpose | Need | Local / self-host (default) | Remote (opt-in) |
+| Purpose | Need | Local / self-host | Remote (opt-in) |
 |---|---|---|---|
-| Orchestration · synthesis · reflection | Strong + reasoning | DeepSeek V4 · GLM-5.1 · Qwen3 (large) | **Claude Opus 4.8 / 4.7** · GPT-5.5 · Gemini 3.x |
-| Fast · high-volume (extract · classify · route · title) | Fast + JSON | Qwen3 · Llama · Kimi-small (Ollama) | **Claude Haiku 4.5** · Gemini 3.5 Flash · GPT-5-mini |
-| Coding · Ops | Strong/Standard + tools | MiniMax M3 · Qwen3-Coder · GLM-5.1 | **Claude Opus 4.7** · GPT-5.5 |
+| Orchestration · synthesis · reflection | Strong + reasoning | DeepSeek V4 · GLM-5.1 · Qwen3 (large) — **GPU-server hardware only** (REQ-AIM-17); **not** runnable on a Small/Workstation box | **Default for synthesis on typical hardware: Claude Opus 4.8 / 4.7** · GPT-5.5 · Gemini 3.x (opt-in, prompted at onboarding) |
+| Fast · high-volume (extract · classify · route · title) | Fast + JSON | **Local default:** Qwen3 · Llama · Kimi-small (Ollama) | **Claude Haiku 4.5** · Gemini 3.5 Flash · GPT-5-mini |
+| Coding · Ops | Strong/Standard + tools | MiniMax M3 · Qwen3-Coder · GLM-5.1 (Strong locally needs a GPU server) | **Claude Opus 4.7** · GPT-5.5 |
 | Vision · multimodal | image input | MiniMax M3 · Kimi K2.6 | Gemini 3.5 Flash · Claude (vision) · GPT-5.x |
-| Embeddings (recall) | `embedding` | **BGE-M3** · Nomic Embed v2 · embeddinggemma-300M · fastembed (MiniLM/bge-small) | OpenAI `text-embedding-3-large/-small` · Voyage `voyage-3-large` · Cohere `embed-v4` |
+| Embeddings (recall) | `embedding` | **Local default: BGE-M3** · Nomic Embed v2 · embeddinggemma-300M · fastembed (MiniLM/bge-small) | OpenAI `text-embedding-3-large/-small` · Voyage `voyage-3-large` · Cohere `embed-v4` |
 
-*"No single best" — the right model depends on workload, budget, and the Space's privacy policy; this table is refreshed on a cadence, not pinned (REQ-AIM-14).*
+*"No single best" — the right model depends on workload, budget, **the deployment's hardware tier (REQ-AIM-17)**, and the Space's privacy policy. The **local-default** column is Fast-tier + embeddings on a Small/Workstation box; **Strong-tier synthesis is remote-opt-in by default** (local Strong needs a GPU server). This table is refreshed on a cadence, not pinned (REQ-AIM-14).*
 
 ## 9. Edge Cases & Failure Modes
 
@@ -264,7 +289,7 @@ Every write embeds its content for the shared index. Requirement: `{Kind: embed,
 ## 10. Open Questions & Decisions
 
 - **OQ-AIM-1** — The **L2 classifier**: a fine-tuned embedding head vs a tiny distilled model vs heuristic signals; confidence threshold for escalation.
-- **OQ-AIM-2** — The **default local embedding model** + its dimension (BGE-M3 1024-d vs a 384-d MiniLM), and how `app-architecture` fixes the `vec0` column to it.
+- **OQ-AIM-2** — *(Resolved v1.3, REQ-AIM-08.)* The **default local embedding model** is **BGE-M3 at 1024 dimensions** (over a 384-d MiniLM); the dimension is **fixed at deploy** and [app-architecture](app-architecture.md) REQ-ARCH-05 locks the `vec0` column to it. A deployment may override the model but inherits the same dimension-lock discipline; changing model or dimension requires a full re-index.
 - **OQ-AIM-3** — Per-Space **model policy** (local-only, tier caps, allowed providers) — coordinate with [spaces](spaces.md); its config UI is a client surface (out of scope here).
 - **OQ-AIM-4** — Catalog **refresh cadence** + whether cards are fetched live (provider model lists) or shipped and updated per release.
 - **OQ-AIM-5** — Whether fitness signals (REQ-AIM-15) auto-adjust selection or only advise the user.
@@ -272,8 +297,8 @@ Every write embeds its content for the shared index. Requirement: `{Kind: embed,
 ## 11. Review & Acceptance Checklist
 
 - [ ] The model **card** (capabilities/cost/context/hosting) and **tiers** (Fast/Standard/Strong + flags) are defined (REQ-AIM-02/03).
-- [ ] **Task→requirement** registry (REQ-AIM-04) and **deterministic-then-semantic selection** with the agent override answer *how to detect the right model* (REQ-AIM-05); fallback ≠ escalation (REQ-AIM-06).
-- [ ] **Local-by-default / opt-in remote** (P1, REQ-AIM-07); the **embedding model** is single, dimension-locked (REQ-AIM-08); keys are **secret handles** (REQ-AIM-13).
+- [ ] **Task→requirement** registry (REQ-AIM-04), including the `classify-route` (L2) and `compact` task kinds — every model call (selection + metering) is registered, none exempt; and **deterministic-then-semantic selection** with the agent override answer *how to detect the right model* (REQ-AIM-05); fallback ≠ escalation (REQ-AIM-06).
+- [ ] **Honest local-vs-remote posture** — P1 = self-hosted/user-owned (not local-model-only); local Fast + embeddings default, **remote Strong opt-in at onboarding**, **hardware tiers** + **pure-local degraded posture** for the synthesis loop defined (REQ-AIM-07/17); a **first-run hardware-fitness** step (detect → recommend → download → under-spec) makes the local posture real (REQ-AIM-18); the **embedding model** is single, dimension-locked (REQ-AIM-08); keys are **secret handles** (REQ-AIM-13).
 - [ ] Runtime: structured-output + repair (REQ-AIM-09), prompt caching (REQ-AIM-10), token budgeting (REQ-AIM-11), thinking level (REQ-AIM-12).
 - [ ] The **purpose→models catalog** (REQ-AIM-14, §8.4) is present and marked **non-normative**; fitness/evals specified (REQ-AIM-15).
 - [ ] §7 gives Go enums/structs/interfaces. Examples use the [constitution](constitution.md) §7 cast.
@@ -305,5 +330,8 @@ Also: **RouteLLM** (LMSYS — classifiers on Arena preference data) and the **se
 
 ## 13. Changelog
 
+- **2026-06-10 — v1.3** — **Approved (embedding default + dimension lock).** **Resolved OQ-AIM-2** by locking the default embedding model to **BGE-M3 at 1024 dimensions** in REQ-AIM-08 (strong, multilingual, open, locally runnable — already the §8.4 lead). REQ-AIM-08 now states the **dimension is fixed at deploy** (the value [app-architecture](app-architecture.md) REQ-ARCH-05 locks the `vec0` column to), that **changing model or dimension requires a full re-index**, and that a deployment **may override the model but inherits the dimension-lock discipline**. This makes ai-models and app-architecture agree on **BGE-M3/1024** as the canonical default (app-architecture's prior MiniLM/384 example is now marked merely illustrative). No other requirement IDs changed; no cross-references broken.
+- **2026-06-10 — v1.2** — **Approved.** Closed two registry/onboarding gaps. REQ-AIM-04 now registers the previously-unregistered model calls — the **L2 `classify-route`** classifier (§5.5) and **`compact`** context compaction ([context-management](context-management.md) REQ-CTX-07) — as first-class task kinds, and states that **every** registry entry is a real call that flows through the inference layer and **emits a usage record** ([token-cost-management](token-cost-management.md) REQ-TOK-01) with `purpose` = the task kind, so their tier/budget/metering are defined. Added **REQ-AIM-18** (§5.18) — a **first-run hardware-fitness** step (detect hardware → map to a tier per REQ-AIM-17 → recommend the runnable local model set + present the remote Strong opt-in → resumable model download with progress → graceful under-spec behavior that boots in the degraded posture rather than refusing or forcing remote spend), complementing REQ-AIM-17. Updated the §11 checklist. No other requirement IDs changed; no cross-references broken.
+- **2026-06-10 — v1.1** — **Approved (clarification).** Encoded the honest local-vs-remote posture: **P1 means self-hosted / user-owned, not local-model-only.** Added **REQ-AIM-17** (§5.17) — **minimum-hardware tiers** (Small / Workstation / GPU-server) and what each runs locally; the **honest default posture** (local Fast + embeddings default; **remote Strong-tier opt-in, prompted at onboarding**); and the **pure-local degraded posture** for the core synthesis loop (narrative synthesis, reflection, Curator reasoning off/reduced, surfaced — extraction/embeddings/recall unaffected). Rewrote **REQ-AIM-07** to match (clarifies, does not contradict, P1). Corrected §3 rationale, Example B, the §8.4 catalog (local Strong = GPU-server-only; Strong synthesis is remote-opt-in by default), and the §11 checklist. No other requirement IDs changed; no cross-references broken.
 - **2026-06-08 — v1.0** — **Approved.** The inference layer finalized; no requirement changes from v0.1. The purpose→models catalog (§8.4) remains a dated snapshot, maintained as the landscape moves.
 - **2026-06-05 — v0.1** — Initial draft, replacing the stub. The provider-agnostic **inference layer** (REQ-AIM-01); the **model card** (REQ-AIM-02) and **tiers** Fast/Standard/Strong + flags (REQ-AIM-03); the **task→requirement** registry (REQ-AIM-04); **deterministic-then-semantic selection** answering *how to detect the right model* (REQ-AIM-05) with **fallback ≠ escalation** (REQ-AIM-06); **local-by-default / opt-in remote** (REQ-AIM-07); the single dimension-locked **embedding model** (REQ-AIM-08); **structured output + repair** (REQ-AIM-09), **prompt caching** (REQ-AIM-10), **token budgeting** (REQ-AIM-11), **thinking level** (REQ-AIM-12); **keys as secret handles** (REQ-AIM-13); the **researched purpose→models catalog snapshot** (REQ-AIM-14, §8.4) + **fitness/evals** (REQ-AIM-15); ownership (REQ-AIM-16). §7 gives Go enums/structs/interfaces. Code-grounded in OpenClaw (`types.models.ts`, `model-fallback.ts`) with verbatim ◆ Source-patterns; RouteLLM/semantic-router routing + the June-2026 model/embedding landscape cited; folded in the stub's recommended Go libs. In Review.

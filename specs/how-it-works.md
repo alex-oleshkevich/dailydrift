@@ -2,7 +2,7 @@
 
 > **Status:** In Review
 >
-> **Version:** 0.2   ·   **Last updated:** 2026-06-09
+> **Version:** 0.4   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The end-to-end story of how the System works, plus its full feature catalog — written for an investor or a new user, not an engineer. It explains *what every feature does and how they connect*; the deep mechanics of each live in that feature's own spec.
 >
@@ -44,12 +44,11 @@ This spec uses the canonical vocabulary from [glossary](glossary.md) — **Space
 > **REQ-HOW-01.** The System runs a continuous loop on the always-on server — **Observe → Understand → Surface → Act** — independent of whether any client is connected.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '16px'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 75, 'padding': 12}}}%%
 flowchart LR
-    OBS["Observe\nsignals in"]:::process
-    UND["Understand\ndistill meaning"]:::app
-    SUR["Surface\nwhat matters"]:::success
-    ACT["Act\ngated tasks"]:::secondary
+    OBS["Observe<br/>signals in"]:::process
+    UND["Understand<br/>distill meaning"]:::app
+    SUR["Surface<br/>what matters"]:::success
+    ACT["Act<br/>gated tasks"]:::secondary
     OBS -->|"normalize"| UND
     UND -->|"rank by relevance"| SUR
     SUR -->|"approved or allowed"| ACT
@@ -64,13 +63,12 @@ flowchart LR
 At feature altitude, data moves along one spine — raw input becomes citable fact becomes tracked narrative becomes actionable insight becomes a summary you can read:
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '16px'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 75, 'padding': 12}}}%%
 flowchart LR
-    SIG["Signal\nchange enters"]:::process
-    EV[("Evidence\ncitable fact")]:::store
-    ST["Storyline or\nSituation"]:::app
+    SIG["Signal<br/>change enters"]:::process
+    EV[("Evidence<br/>citable fact")]:::store
+    ST["Storyline or<br/>Situation"]:::app
     INS["Insight"]:::secondary
-    NAR[("Narrative\nper Space")]:::store
+    NAR[("Narrative<br/>per Space")]:::store
     OUT(["You"]):::success
     SIG -->|"normalize"| EV
     EV -->|"feeds"| ST
@@ -119,7 +117,7 @@ You organize work as Spaces — e.g. `Business/Framework`, `Business/Brightmoor`
 
 - **Storylines** carry **Momentum** — *advancing · steady · stalled · looping* — so you see what's progressing vs stuck (e.g. the *Framework UI direction* Storyline is *looping*).
 - **Situations** carry an **Attention score** that ranks the briefing (e.g. *investor reply to Talia overdue* climbs each day it slips).
-- **Insights** are the proactive catch: *contradiction · opportunity · risk · stale work · dependency · anomaly · repetition · synthesis* — e.g. "you've revisited routing four times without an RFC."
+- **Insights** are the proactive catch, in six kinds: *observation · connection · risk · opportunity · prediction · context* — e.g. a *connection* that surfaces "you've revisited routing four times without an RFC," or a *risk* on a slipping deadline.
 
 *See [insights](insights.md); the pipeline invariant is [glossary](glossary.md) REQ-CON-01/02.*
 
@@ -136,14 +134,13 @@ It also maintains **Entities** — a knowledge graph of people, companies, produ
 > **REQ-HOW-09.** A Task can read and analyze, create/update internal objects, call Tools, run on the server in the background, and request approval for anything beyond its standing permissions. Its **results** flow to you via the Surfacing Model (§5.12).
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '16px'}, 'flowchart': {'nodeSpacing': 60, 'rankSpacing': 75, 'padding': 12}}}%%
 flowchart LR
-    SRC["Spawn\nsources"]:::process
-    RUN["Run on\nserver"]:::app
-    PARK{"Needs\napproval?"}:::decision
-    APR["Park for\napproval"]:::secondary
+    SRC["Spawn<br/>sources"]:::process
+    RUN["Run on<br/>server"]:::app
+    PARK{"Needs<br/>approval?"}:::decision
+    APR["Park for<br/>approval"]:::secondary
     RES["Result"]:::success
-    OUT(["Surfaced\nto you"]):::success
+    OUT(["Surfaced<br/>to you"]):::success
     SRC -->|"creates task"| RUN
     RUN -->|"uses tools and grants"| PARK
     PARK -->|"yes"| APR
@@ -181,7 +178,6 @@ A Task uses Tools to get things done; the tier of each Tool determines whether i
 > **REQ-HOW-14.** When a background task parks an approval while you're away, it surfaces the request (and can push to your phone); on approval it **resumes from the park point**, on denial it skips or fails, on timeout it lapses and is shown as stale.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '16px'}, 'sequence': {'actorMargin': 90, 'boxMargin': 15, 'noteMargin': 14, 'messageMargin': 45, 'mirrorActors': false}}}%%
 sequenceDiagram
     participant T as Task
     participant U as You
@@ -233,7 +229,6 @@ Quiet Storyline and Situation changes are state updates, not delivery channels; 
 > **REQ-HOW-19.** This respects anti-spam (§5.16): inside a conversation you're already engaged in, agents act freely; **starting a new conversation or sending a push** must clear the urgency bar and respect quiet hours.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '16px'}, 'sequence': {'actorMargin': 90, 'boxMargin': 15, 'noteMargin': 14, 'messageMargin': 45, 'mirrorActors': false}}}%%
 sequenceDiagram
     participant U as You
     participant A as Assistant
@@ -282,7 +277,9 @@ All reachable from chat:
 > - **Injection-resistant** — ingested content is data, not instructions (P12); secrets never enter prompts.
 > - **Optional local/private models** — sensitive Spaces can run on local models.
 
-*See [privacy-security](privacy-security.md), [prompt-injection](prompt-injection.md), [ai-models](ai-models.md).*
+> **REQ-HOW-24.** **Operating cost is a first-class, user-controlled concern.** Always-on observation (§5.1) means the System is *working while you're away* — and on remote models that work costs **tokens and compute**, the most practical objection for a self-hoster paying per call. The System treats spend as a thing **you set limits on and see**, not a surprise: you set a **budget**, and as it tightens the System **degrades before it blocks** (runs cheaper, defers non-urgent work, and asks before spending past your cap rather than silently stopping or silently overspending), and a **local-model option** lets sensitive or high-volume Spaces run at **no per-token cost** at all. You are never billed by a vendor — your deployment, your spend, shown back to you. *(The mechanics — metering, budgets, the degradation ladder — live in [token-cost-management](token-cost-management.md); the local-vs-remote model economics in [ai-models](ai-models.md).)*
+
+*See [privacy-security](privacy-security.md), [prompt-injection](prompt-injection.md), [ai-models](ai-models.md), [token-cost-management](token-cost-management.md).*
 
 ### 5.18 Platform shape
 
@@ -349,5 +346,7 @@ You ask in chat, *"Where's the Brightmoor portal?"* While the assistant answers,
 
 ## 13. Changelog
 
+- **2026-06-10 — v0.4** — **(In Review.)** Acknowledged **operating cost** at product altitude. Added **REQ-HOW-24** (§5.17) — always-on operation has a token/compute cost, and the System treats **cost as a first-class, user-controlled concern**: budgets, **degrade-before-blocking**, ask-before-overspending, and a **local-model option** for $0 per-token work; spend is shown back to the user, never vendor-billed. Points to [token-cost-management](token-cost-management.md) and [ai-models](ai-models.md) for the mechanics. Product-altitude acknowledgment only; no implementation detail. No existing requirement IDs changed; no cross-references broken.
+- **2026-06-10 — v0.3** — Corrected the **Insight taxonomy** in §5.5 to the canonical six kinds from [glossary](glossary.md) (*observation · connection · risk · opportunity · prediction · context*), replacing the prior eight-category list; adjusted the example prose to use the canonical kinds. Sharing remains correctly out of scope (§2).
 - **2026-06-09 — v0.2** — Reconciled the product-altitude tour with approved mechanics: inbound Integrations are separate from outbound Tools/MCP/Skills, the built-in Agent roster is `Executive`/`Research`/`Ops`/`Reviewer` with `Browser` as an `Ops` specialization, Periodic Tasks do not replay missed fires, and v1 active surfacing uses the four [proactivity](proactivity.md) channels.
 - **2026-05-29 — v0.1** — Initial draft. Built via the interview → gaps → contradictions → expand process: full feature catalog at product altitude; operating-loop + data-flow + task-lifecycle + approval + living-channel diagrams (mermaid-skill compliant); Markdown links; chat-first positioning; public Signal-ingestion API; Monitor folded into watcher Periodic Tasks; sharing/onboarding/undo out of scope.

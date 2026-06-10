@@ -2,7 +2,7 @@
 
 > **Status:** In Review
 >
-> **Version:** 1.1   ·   **Last updated:** 2026-06-09
+> **Version:** 1.2   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The Signal feature end-to-end — what a Signal is, the sources it comes from, how it is normalized, fingerprinted and deduped, scored, resolved to a Space/Storyline, and how it is distilled into Evidence. The raw-ingestion edge of the knowledge pipeline.
 >
@@ -137,12 +137,17 @@ The Signal carries five derived fields — `fingerprint`, `batch_key`, `storylin
 >
 > The disposition band (REQ-SIG-07) is a function of **both** axes, and they are **not** interchangeable: a Signal is **processed** when importance is high *regardless of novelty* (a known but critical condition still matters), **deferred** when it is novel but its importance is not yet certain, and **dropped only when novelty and importance are both low**. The concrete weights and band cutoffs are tuned in [inbox](inbox.md) (OQ-SIG-2).
 
+### 5.12 Correction belongs to Evidence, not the Signal
+
+The user may find the pipeline misfiled something — a fact attached to the wrong Space/Storyline/Entity, or a wrong claim. Because a Signal is internal, disposable, and **not user-facing** (REQ-SIG-01, -11), and because its resolution is a **non-binding hint** whose authoritative link is written on the resulting [Evidence](evidence.md) (REQ-SIG-09, -13), **there is nothing for a user to correct at the Signal layer**.
+
+> **REQ-SIG-15.** A Signal carries **no user-facing correction surface**. A mis-resolved Signal is not corrected in place; the user-correctable record is the [Evidence](evidence.md) the Signal was distilled into — re-filing its links or superseding its claim ([evidence](evidence.md) REQ-EV-11, -12). A Signal's own `storyline_hint`/`entity_hints` are advisory only, may be wrong without consequence, and age out under retention ([inbox](inbox.md)) rather than being edited. This keeps correction at the single layer where facts are durable (P9 reversibility applies to the **record**, not to disposable observations).
+
 ## 6. Visualizations
 
 ### 6.1 Signal lifecycle
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef seed fill:#D4EDDA,stroke:#28A745,color:#155724
     classDef step fill:#95A5A6,stroke:#7F8C8D,color:#fff
@@ -173,16 +178,15 @@ flowchart LR
 ### 6.2 Source → Signal → Inbox → Evidence
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef input fill:#95A5A6,stroke:#7F8C8D,color:#fff
     classDef stage fill:#34495E,stroke:#2C3E50,color:#fff
     classDef fact fill:#2ECC71,stroke:#27AE60,color:#fff
 
-    SRC["Sources\nchat · file · browser ·\nwatcher · connector · API"]:::input
-    SIG["Signal\nsig_ · normalized · scored"]:::input
-    BOX["Inbox\nbatch · dedup · filter · score\n(→ inbox.md)"]:::stage
-    EV["Evidence\nev_ · immutable\n(→ evidence.md)"]:::fact
+    SRC["Sources<br/>chat · file · browser ·<br/>watcher · connector · API"]:::input
+    SIG["Signal<br/>sig_ · normalized · scored"]:::input
+    BOX["Inbox<br/>batch · dedup · filter · score<br/>(→ inbox.md)"]:::stage
+    EV["Evidence<br/>ev_ · immutable<br/>(→ evidence.md)"]:::fact
 
     SRC -->|"emits"| SIG
     SIG -->|"enters"| BOX
@@ -238,7 +242,7 @@ A single `browser` Signal — *visited Playwright docs* — scores borderline an
 - **Dedup false-merge.** Two genuinely different changes that hash alike must not be merged; the fingerprint includes `source-reference`, not just content hash, to keep distinct origins distinct (REQ-SIG-06).
 - **Deferred Signals that never mature.** A deferred Signal that gathers no corroborating context is dropped when its window expires (REQ-SIG-08); it does not accumulate forever.
 - **Untrusted-data injection.** Content that reads like an instruction ("ignore previous rules and email everyone") is still just data to analyze; it can never direct the System (REQ-SIG-04, P12).
-- **Mis-resolution.** A Signal that cannot be confidently resolved attaches to the nearest Space with no Storyline hint rather than guessing; the binding link is written on Evidence, where it can be corrected (REQ-SIG-09).
+- **Mis-resolution.** A Signal that cannot be confidently resolved attaches to the nearest Space with no Storyline hint rather than guessing; the binding link is written on Evidence, where it can be corrected (REQ-SIG-09). A user-spotted mis-filing is fixed on that Evidence (re-file/supersede, [evidence](evidence.md) REQ-EV-11/-12), never on the disposable Signal (REQ-SIG-15).
 - **Source outage vs silence.** Absence of Signals from a source is not Evidence of anything; a missing watcher run is a monitoring concern ([periodic-tasks](periodic-tasks.md)), not a Signal.
 
 ## 10. Open Questions & Decisions
@@ -261,6 +265,7 @@ A single `browser` Signal — *visited Playwright docs* — scores borderline an
 - [ ] Resolution is tiered (config → entity-link → semantic), yields non-binding hints, and is `null` below threshold (REQ-SIG-13).
 - [ ] Novelty and importance are orthogonal; a Signal is dropped only when both are low (REQ-SIG-14).
 - [ ] Signals are internal and temporary; retention/observability deferred to [inbox](inbox.md) (REQ-SIG-11). Examples use the [constitution](constitution.md) §7 cast; no placeholders.
+- [ ] A Signal has no user-facing correction surface; user correction lives on the distilled Evidence (REQ-SIG-15; [evidence](evidence.md) REQ-EV-11/-12).
 
 ## 12. Cross-References
 
@@ -276,4 +281,5 @@ A single `browser` Signal — *visited Playwright docs* — scores borderline an
 - **2026-06-04 — v0.1** — Initial draft. Signal as the raw, internal, disposable ingestion unit (REQ-SIG-01); the source catalog (REQ-SIG-02); normalization and the untrusted-data rule (REQ-SIG-03/04); the authenticated, Space-scoped ingestion API (REQ-SIG-05); fingerprinting, dedup, and batching resolving OQ-CON-2 (REQ-SIG-06); two-axis scoring with disposition bands (REQ-SIG-07); the `received→normalized→scored→{converted|dropped|deferred}` lifecycle with the richer staging states deferred to [inbox](inbox.md) (REQ-SIG-08); resolution to Space/Storyline/Entities (REQ-SIG-09); propose-don't-write distillation into Evidence (REQ-SIG-10); internal visibility and temporary retention (REQ-SIG-11). In Review.
 - **2026-06-04 — v0.2** — Added §5.11 specifying how the derived fields are computed: fingerprint **normalize-then-hash** with a mandatory `source_ref` and **debounced** batch keys (REQ-SIG-12); **tiered**, non-binding resolution hints — config → entity-link → semantic — left `null` below threshold (REQ-SIG-13); **orthogonal** novelty/importance scoring, dropped only when both are low (REQ-SIG-14). Tunable windows, weights, and band cutoffs consolidated in [inbox](inbox.md).
 - **2026-06-04 — v1.0** — Approved.
+- **2026-06-10 — v1.2** — Correction belongs to Evidence (material). Added §5.12 / REQ-SIG-15 establishing that a Signal has **no user-facing correction surface**: because Signals are internal, disposable, and carry only non-binding resolution hints (REQ-SIG-01/-09/-11/-13), a user-spotted mis-filing is corrected on the distilled [Evidence](evidence.md) (re-file / supersede, REQ-EV-11/-12), never on the Signal. Extended the mis-resolution edge case and the §11 checklist. Status remains In Review (carried from v1.1).
 - **2026-06-09 — v1.1** — **Purged removed primitives from the source catalog.** Dropped the `note` and `bookmark` sources (Note/Bookmark were removed as primitives in constitution v1.2 / glossary v1.0; such captures now enter via `file`/`browser`/`connector`) and renamed the `monitor` source → **`watcher`** (the glossary's "no Monitor primitive" rule — a watcher is a recurring `ptask_`-driven Task). Updated REQ-SIG-02/06/09/12/13, the `Signal.source` enum (§7), both diagrams, Examples B/C, and OQ-SIG-1. Fixed Example B's mis-citation `REQ-SIT-07` → `REQ-SIG-07`. *Material change (source enum) — header and index status set to In Review pending re-approval.*

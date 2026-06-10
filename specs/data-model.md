@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.3   ·   **Last updated:** 2026-06-09
+> **Version:** 1.4   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The canonical conceptual entity-relationship model for the System — how the narrative-layer primitives (Space, Storyline, Situation, Insight, Evidence, Narrative) relate, what each owns, and how they are identified. It fixes the **Situation ↔ Insight boundary** and the **capture-and-retrieve Insight**.
 >
@@ -173,7 +173,6 @@ The Insight follows a **capture-and-retrieve** model: capture is cheap and liber
 ### 6.1 Containment & ownership (narrative layer)
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart TB
     classDef container fill:#34495E,stroke:#2C3E50,color:#fff
     classDef continuity fill:#4A90D9,stroke:#2C6FB5,color:#fff
@@ -203,7 +202,6 @@ flowchart TB
 ### 6.2 The pipeline
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef input fill:#95A5A6,stroke:#7F8C8D,color:#fff
     classDef fact fill:#2ECC71,stroke:#27AE60,color:#fff
@@ -214,11 +212,11 @@ flowchart LR
 
     SRC["Source"]:::input
     SIG["Signal"]:::input
-    EV["Evidence\nimmutable"]:::fact
+    EV["Evidence<br/>immutable"]:::fact
     STORY["Storyline"]:::continuity
-    SIT["Situation\nacted upon"]:::condition
-    INS["Insight\ncaptured, recalled"]:::discovery
-    NAR["Narrative\none per Space"]:::synthesis
+    SIT["Situation<br/>acted upon"]:::condition
+    INS["Insight<br/>captured, recalled"]:::discovery
+    NAR["Narrative<br/>one per Space"]:::synthesis
 
     SRC -->|"emits"| SIG
     SIG -->|"distilled into"| EV
@@ -293,19 +291,24 @@ interface Insight {           // a little captured message
   last_seen_at: Date;         // bumped on reinforcement
 }
 
-interface Evidence {          // immutable, append-only
+interface Evidence {          // append-only; claim/type/provenance/captured_at frozen (evidence.md REQ-EV-03)
   id: string;                 // ev_
   space_id: string;
-  type:                       // the kind of fact (catalog owned by evidence.md)
+  type:                       // FROZEN — the kind of fact (catalog owned by evidence.md)
     | "observation" | "statement" | "decision" | "promise"
     | "change" | "relationship" | "activity";
-  signal_ids: string[];       // one or more Signals distilled into this fact
-  claim: string;              // the normalized fact
-  provenance: string;         // where it came from, when
-  storyline_ids: string[];    // aggregates into (may be several)
-  entity_ids: string[];       // graph links to Entities
+  signal_ids: string[];       // append-or-correctable — Signals distilled into this fact
+  claim: string;              // FROZEN — the normalized fact
+  provenance: {               // FROZEN — self-contained snapshot at commit (shape owned by evidence.md REQ-EV-06)
+    source_type: string;      // survives Signal purge, so explainability is durable
+    origin_ref: string;
+    timestamp: Date;
+    excerpt: string;
+  };
+  storyline_ids: string[];    // append-or-correctable links (aggregates into; may be several)
+  entity_ids: string[];       // append-or-correctable graph links to Entities
   metadata: Record<string, unknown>;
-  captured_at: Date;
+  captured_at: Date;          // FROZEN
 }
 
 interface Narrative {         // editable synthesis; scope = Space or Storyline (catalog/shape owned by narrative.md)
@@ -373,6 +376,7 @@ A watcher on Northwind Cloud's pricing page and two competitor pages distills **
 
 ## 13. Changelog
 
+- **2026-06-10 — v1.4** — Aligned the canonical `Evidence` shape with [evidence](evidence.md) v1.1: `provenance` changed from free text to a **self-contained structured snapshot** `{source_type, origin_ref, timestamp, excerpt}` captured at commit (durable across Signal purge), and the shape now annotates the **field-level mutability boundary** — `claim`/`type`/`provenance`/`captured_at` frozen, `signal_ids`/`storyline_ids`/`entity_ids` append-or-correctable.
 - **2026-06-03 — v0.1** — Initial draft. Narrative-layer entity-relationship model: ID catalog, containment and pipeline invariants, the Situation ↔ Insight boundary by role (REQ-DM-05/06), the capture-and-retrieve Insight with its `kind` taxonomy (REQ-DM-07…-13), and per-type Status with orthogonal Momentum (REQ-DM-14/15).
 - **2026-06-03 — v1.0** — Approved.
 - **2026-06-03 — v1.0 (note)** — Clarified the Situation `category` examples to the action-shaped catalog owned by [situations](situations.md), disjoint from Insight `kind`s per REQ-DM-05 (editorial; the rule is unchanged).

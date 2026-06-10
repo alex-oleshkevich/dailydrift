@@ -181,7 +181,6 @@ Identify the Situations this Evidence raises.
 ### 6.1 Status lifecycle
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef seed fill:#D4EDDA,stroke:#28A745,color:#155724
     classDef active fill:#4A90D9,stroke:#2C6FB5,color:#fff
@@ -214,7 +213,6 @@ flowchart LR
 ### 6.2 Detection & escalation
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef fact fill:#2ECC71,stroke:#27AE60,color:#fff
     classDef discovery fill:#CCE5FF,stroke:#4A90D9,color:#004085
@@ -223,10 +221,10 @@ flowchart LR
     classDef work fill:#7B68EE,stroke:#6A5ACD,color:#fff
 
     EV["Evidence"]:::fact
-    DET["Detector\nrule or reasoning"]:::action
-    INS["Insight\ne.g. risk"]:::discovery
-    SIT["Situation\nactive + attention"]:::condition
-    TASK["Task\nattempt to change it"]:::work
+    DET["Detector<br/>rule or reasoning"]:::action
+    INS["Insight<br/>e.g. risk"]:::discovery
+    SIT["Situation<br/>active + attention"]:::condition
+    TASK["Task<br/>attempt to change it"]:::work
 
     EV -->|"matches"| DET
     DET -->|"raises"| SIT

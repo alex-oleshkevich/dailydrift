@@ -66,6 +66,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Working on tasks
 
+- wrap errors so i know where it comes from, do not wrap obvious errors
+- slog important actions and decisions, i want tracing
 
 ### When the task is done:
 - IMPORTANT: do not stage or commit files after your finish your task. Only do it if users instructs you  to do that.

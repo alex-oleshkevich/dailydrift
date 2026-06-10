@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-05
+> **Version:** 1.2   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The credential substrate — how the System **stores, references, and uses** secrets without ever placing a value in a prompt or a sandboxed worker. Owns the **secret handle** (`secret_`), the **pluggable providers** (local · env/.env · OS keychain · HashiCorp Vault · cloud KV · Bitwarden/1Password/Doppler/Infisical · OneCLI Agent Vault), the **broker** that resolves + injects at point-of-use, and the **lifecycle/audit**. This is the credential broker that [prompt-injection](prompt-injection.md) REQ-PINJ-08 and [sandboxing](sandboxing.md) REQ-SBX-13 defer to.
 >
@@ -85,7 +85,9 @@ Two of the mentioned apps frame the design:
 > - **`env`** *(fallback)* — the broker spawns the specific tool subprocess with the secret in its env, **short-lived** and **outside the sandbox-visible env** ([sandboxing](sandboxing.md) REQ-SBX-13).
 > - **`header`** — for the **trusted in-host** caller (the orchestrator's own model/connector requests), the broker builds the request header directly.
 >
-> This is the full credential half of [sandboxing](sandboxing.md) REQ-SBX-13: *secrets never enter the sandbox; the broker injects at request time.*
+> **Destination binding (fail-closed).** Before injecting, the broker **MUST** validate the outbound request's **target host** against the handle/grant's **`allowed_hosts`** destination allowlist (REQ-SEC-09): if the target host is not on the allowlist, the broker **refuses injection** and audits a `deny` — the credential is never stamped onto the request. This closes the **confused-deputy** hole: a hijacked worker holding a valid handle cannot have the proxy stamp the real credential onto a request aimed at an attacker-controlled host (e.g. `evil.example`) and exfiltrate the secret. The sandbox egress allowlist ([sandboxing](sandboxing.md) REQ-SBX-10) is **defense-in-depth**, not a substitute — destination binding is enforced at the broker/proxy where the credential actually exists, so it holds even if egress filtering is misconfigured or bypassed.
+>
+> This is the full credential half of [sandboxing](sandboxing.md) REQ-SBX-13: *secrets never enter the sandbox; the broker injects at request time, and only toward an allowlisted destination.*
 
 ### 5.6 Never in prompts
 
@@ -101,7 +103,7 @@ Two of the mentioned apps frame the design:
 
 ### 5.9 Least-privilege scoping
 
-> **REQ-SEC-09.** Handles are **scoped** — to a Space, an agent role, and/or specific providers/paths — and resolvable only within their grant (P6 least-privilege). A handle granted to the `Business` Space is **not** usable from a sibling or private-ancestor Space (P10); cross-Space credential use is a **hard failure**. An agent receives only the handles its Task needs (orchestrator-injected, like Memory — [agents](agents.md) REQ-AGENT-13).
+> **REQ-SEC-09.** Handles are **scoped** — to a Space, an agent role, specific providers/paths, **and a destination allowlist (`allowed_hosts`)** — and resolvable/injectable only within their grant (P6 least-privilege). A handle granted to the `Business` Space is **not** usable from a sibling or private-ancestor Space (P10); cross-Space credential use is a **hard failure**. **`allowed_hosts`** binds a credential to the destination host(s) it may be sent to (e.g. `api.stripe.com`): the broker injects only when the outbound request's target host matches (REQ-SEC-05, fail-closed), so a credential cannot be redirected to an attacker-controlled host. An empty/unset `allowed_hosts` is treated as **deny-all** for `proxy`/`header` injection, not allow-all — there is no implicit wildcard. An agent receives only the handles its Task needs (orchestrator-injected, like Memory — [agents](agents.md) REQ-AGENT-13).
 
 ### 5.10 Lifecycle — TTL, leases, rotation, revocation
 
@@ -129,32 +131,43 @@ Two of the mentioned apps frame the design:
 
 ### 5.16 Ownership & non-duplication
 
-> **REQ-SEC-16.** This spec **owns** the handle, the broker, the providers, and the lifecycle/audit. It **references**: [constitution](constitution.md) §5 (Ask-first/Never gates), [prompt-injection](prompt-injection.md) REQ-PINJ-08 (never in prompts), [sandboxing](sandboxing.md) REQ-SBX-13 (never in the worker). It **defers**: auth/login + at-rest crypto to [privacy-security](privacy-security.md); the approval gate to [permissions](permissions.md); connector definitions to [mcp](mcp.md); tool wiring to [tools](tools.md); the worker runtime to [app-architecture](app-architecture.md); scoping to [spaces](spaces.md).
+> **REQ-SEC-16.** This spec **owns** the handle, the broker, the providers, the lifecycle/audit, and the **managed secret registry** (§5.17). It **references**: [constitution](constitution.md) §5 (Ask-first/Never gates), [prompt-injection](prompt-injection.md) REQ-PINJ-08 (never in prompts), [sandboxing](sandboxing.md) REQ-SBX-13 (never in the worker). It **defers**: auth/login + at-rest crypto to [privacy-security](privacy-security.md); the approval gate to [permissions](permissions.md); connector definitions to [mcp](mcp.md); tool wiring to [tools](tools.md); the worker runtime + the registry-management UI to [app-architecture](app-architecture.md); scoping to [spaces](spaces.md).
+
+### 5.17 Managed secret registry (resolves OQ-SEC-5)
+
+> **REQ-SEC-17.** The handle store is a **managed registry**, not a set of inline references the user must hand-author. The registry exposes four first-class operations over the handles a user (or the System) has registered, each Space-scoped (REQ-SEC-09) and audited (REQ-SEC-11):
+> - **List** — enumerate the registered handles visible in a Space: each entry surfaces its `secret://…` URI, `provider`, `CredentialType`, `allowed_hosts`, lifecycle state (TTL/lease/expiry, whether rotation is due), and **never the value**. Listing is a read; it returns handles + metadata only.
+> - **Add** — register a new handle: the user supplies the value **once**, the registry hands it to the named provider (the `local` default unless another is chosen), records the resulting `secret://…` handle + its scope + `allowed_hosts`, and **discards the plaintext** — thereafter only the handle is referenced. The submitted value is itself a `Sensitive` (REQ-SEC-15) and is never logged.
+> - **Rotate** — replace a handle's underlying value (provider-side where the provider supports it, REQ-SEC-10, else accept a new value once) **without changing the handle URI**, so every consumer that names the handle keeps working; the broker cache for that handle is invalidated.
+> - **Revoke** — invalidate a handle: any lease is revoked, the cache entry is dropped, and subsequent resolution/injection of that handle **fails closed** (audited `deny`). Revoke is the kill-switch for a compromised or retired credential.
+>
+> **Add/rotate/revoke are state-changing and Ask-first** ([constitution](constitution.md) §5); list is a read. These operations are the registry **contract** the broker and providers implement; the **rendering** of this surface (the management UI) is **client/out-of-scope** ([app-architecture](app-architecture.md), §2) — this spec owns the operations and their behavior, not the screens. The registry holds **handles and metadata only**; the value continues to live transiently in the broker (REQ-SEC-04) and at rest in its provider (REQ-SEC-12), never in the registry.
 
 ## 6. Visualizations
 
 ### 6.1 The broker flow — the worker never sees the value
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '13px'}}}%%
 flowchart LR
     classDef box fill:#F8D7DA,stroke:#C0392B,color:#721C24
     classDef trust fill:#D4EDDA,stroke:#27AE60,color:#155724
 
     subgraph SB["sandbox"]
-        W["worker\nholds: secret://vault/kv/stripe#api_key"]:::box
+        W["worker<br/>holds: secret://vault/kv/stripe#api_key"]:::box
     end
-    BR["Broker (trusted)\nresolve · gate (Ask-first) · audit"]:::trust
-    PR["Provider\n(Vault / cloud KV / 1Password / OneCLI / local)"]:::trust
-    PX["Egress proxy\nswaps handle → credential"]:::trust
+    BR["Broker (trusted)<br/>resolve · gate (Ask-first) · audit"]:::trust
+    PR["Provider<br/>(Vault / cloud KV / 1Password / OneCLI / local)"]:::trust
+    PX["Egress proxy<br/>swaps handle → credential"]:::trust
 
     W -->|request carrying the handle| PX
     PX -->|resolve handle| BR
     BR -->|fetch value| PR
     PR -->|value (lease)| BR
-    BR -->|credential| PX
+    BR -->|credential — only if target host ∈ allowed_hosts| PX
     PX -->|authed request| API["external API"]
 ```
+
+The broker validates the request's **destination host** against the grant's `allowed_hosts` **before** the credential leaves it (REQ-SEC-05/09); a request aimed off-allowlist (e.g. `evil.example`) is refused fail-closed, so a hijacked worker cannot turn the proxy into a confused deputy that exfiltrates the secret.
 
 ## 7. Data Shapes
 
@@ -232,12 +245,43 @@ type Provider interface {
 
 type AgentRef struct{ Space, Agent, Task string }
 
+// Grant is the scope a handle is usable within (REQ-SEC-09): least-privilege over Space/agent/path
+// PLUS a destination allowlist. AllowedHosts binds the credential to the host(s) it may be sent to
+// (REQ-SEC-05 destination binding); empty AllowedHosts is deny-all for proxy/header injection, not
+// allow-all — there is no implicit wildcard.
+type Grant struct {
+    Ref          AgentRef
+    Handle       string   // the secret://… reference this grant authorizes
+    AllowedHosts []string // destination allowlist, e.g. {"api.stripe.com"}; empty = deny injection
+}
+
 // The Broker is the single chokepoint (REQ-SEC-04): Resolve is gated + audited; Inject keeps the
-// value out of the worker (REQ-SEC-05); Redact is the leakage backstop (REQ-SEC-07).
+// value out of the worker (REQ-SEC-05) and refuses (fail-closed) when req's target host is not in the
+// grant's AllowedHosts; Redact is the leakage backstop (REQ-SEC-07).
 type Broker interface {
     Resolve(ctx context.Context, by AgentRef, h SecretHandle) (ResolvedSecret, error)
     Inject(ctx context.Context, by AgentRef, req *http.Request, h SecretHandle, mode InjectionMode) error
     Redact(text string) string
+}
+
+// RegistryEntry is what List returns — handle + metadata, never the value (REQ-SEC-17).
+type RegistryEntry struct {
+    Handle       string         // the secret://… reference
+    Provider     ProviderKind
+    Type         CredentialType
+    AllowedHosts []string       // destination binding (REQ-SEC-09)
+    ExpiresAt    time.Time      // TTL / lease / oauth expiry; rotation-due derives from this
+    Renewable    bool
+}
+
+// Registry is the managed handle store (REQ-SEC-17): List is a read; Add/Rotate/Revoke are
+// Ask-first state changes. The plaintext passed to Add is Sensitive and discarded after the
+// provider stores it — the registry keeps handles + metadata only, never the value.
+type Registry interface {
+    List(ctx context.Context, by AgentRef) ([]RegistryEntry, error)
+    Add(ctx context.Context, by AgentRef, h SecretHandle, value Sensitive, allowedHosts []string) error
+    Rotate(ctx context.Context, by AgentRef, h SecretHandle, newValue Sensitive) error // newValue empty ⇒ provider-side rotate
+    Revoke(ctx context.Context, by AgentRef, h SecretHandle) error
 }
 
 // AuditEntry never carries the value (REQ-SEC-11).
@@ -245,7 +289,7 @@ type AuditEntry struct {
     When    time.Time
     Ref     AgentRef
     Handle  string // the secret://… reference, not the value
-    Action  string // resolve | inject | rotate | revoke | deny
+    Action  string // resolve | inject | rotate | revoke | deny | list | add
     Outcome string // ok | denied | error
 }
 ```
@@ -339,6 +383,10 @@ func (b *broker) Resolve(ctx context.Context, by AgentRef, h SecretHandle) (Reso
 **Injection** — the value leaves the broker *only here*, never to the worker (REQ-SEC-05). `string(rs.Value)` reads the real bytes (only inside the trusted broker/proxy); logging `rs.Value` yields `***`:
 ```go
 func (b *broker) Inject(ctx context.Context, by AgentRef, req *http.Request, h SecretHandle, mode InjectionMode) error {
+    if !b.grants.AllowsHost(by, h, req.URL.Hostname()) { // destination binding, fail-closed (REQ-SEC-05/09)
+        b.audit.Log(entry(by, h, "deny", "denied"))
+        return ErrDestinationNotAllowed
+    }
     rs, err := b.Resolve(ctx, by, h)
     if err != nil {
         return err
@@ -411,16 +459,17 @@ A developer runs locally with `secret://env/OPENAI_API_KEY` resolving from `.env
 - **OQ-SEC-2** — Default injection per platform: `proxy` everywhere, or `env`/`header` where a proxy is impractical.
 - **OQ-SEC-3** — `local` store crypto: OS keychain vs an age/passphrase-encrypted file; key derivation and unlock UX ([privacy-security](privacy-security.md)).
 - **OQ-SEC-4** — Whether the **egress proxy** here is the *same* component as the sandbox egress allowlist ([sandboxing](sandboxing.md) REQ-SBX-10) — likely unified into one boundary.
-- **OQ-SEC-5** — Whether handles get a managed `secret_` registry entity (for listing/rotation UI) or remain pure inline references.
+- **OQ-SEC-5** — *(resolved in v1.2, REQ-SEC-17)* Handles are backed by a **managed registry** with first-class **list / add / rotate / revoke** operations (the contract; the management UI is client/out-of-scope), not pure inline references.
 - **OQ-SEC-6** — The concrete `proxy`-mode mechanism for **HTTPS**: the broker proxy must **originate the TLS connection** to the upstream (a forwarding/MITM proxy that the worker's HTTP client is configured to route through, replacing a placeholder `Authorization` header) — a transparent `CONNECT` proxy cannot edit headers inside an opaque TLS stream. Confirm the worker-client wiring with [app-architecture](app-architecture.md) (likely the same boundary as [sandboxing](sandboxing.md) REQ-SBX-10, per OQ-SEC-4).
 
 ## 11. Review & Acceptance Checklist
 
 - [ ] A secret is only ever a **handle** (`secret_`, `secret://…` URI) outside the broker; the value is transient (REQ-SEC-01/02).
 - [ ] The **provider catalog** includes local(default)/env/keychain/vault/aws/gcp/azure/bitwarden/1password/doppler/infisical/**onecli**, behind one `Provider` interface (REQ-SEC-03, §7).
-- [ ] The **broker** is the single chokepoint (REQ-SEC-04); it **injects outside the worker** (proxy preferred) — fully explaining [sandboxing](sandboxing.md) REQ-SBX-13 (REQ-SEC-05).
+- [ ] The **broker** is the single chokepoint (REQ-SEC-04); it **injects outside the worker** (proxy preferred) and **validates the destination host against `allowed_hosts` before injecting** (fail-closed, REQ-SEC-05/09) — fully explaining [sandboxing](sandboxing.md) REQ-SBX-13.
 - [ ] Secrets never in prompts (REQ-SEC-06 ↔ REQ-PINJ-08); raw exfiltration is Never + redaction backstop (REQ-SEC-07); using a credential is Ask-first (REQ-SEC-08); scoping is least-privilege, no cross-Space (REQ-SEC-09).
 - [ ] Lifecycle (TTL/leases/rotation/revocation, REQ-SEC-10), audit without values (REQ-SEC-11), the local default store (REQ-SEC-12), **OneCLI Agent Vault** (REQ-SEC-13), and OAuth auto-refresh (REQ-SEC-14) are specified.
+- [ ] The handle store is a **managed registry** with first-class **list / add / rotate / revoke** operations — handles + metadata only, value never in the registry, add/rotate/revoke Ask-first, UI client/out-of-scope (REQ-SEC-17).
 - [ ] §7 gives Go **enums/structs/interfaces**, incl. a redact-by-construction `Sensitive` (REQ-SEC-15). Examples use the [constitution](constitution.md) §7 cast.
 
 ## 12. Cross-References
@@ -463,3 +512,5 @@ Also: **OWASP Secrets Management Cheat Sheet** (lifecycle, least-privilege, rota
 - **2026-06-05 — v0.1** — Initial draft, replacing the backlog stub. The opaque **handle** (`secret_`, REQ-SEC-01) and its **`secret://<provider>/<path>#field` URI** (REQ-SEC-02); the **pluggable provider catalog** — local/env/keychain/Vault/AWS/GCP/Azure/Bitwarden/1Password/Doppler/Infisical/**OneCLI** (REQ-SEC-03); the **broker** chokepoint (REQ-SEC-04) and **injection outside the worker** explaining [sandboxing](sandboxing.md) REQ-SBX-13 (REQ-SEC-05); never-in-prompts (REQ-SEC-06), never-exfiltrated + redaction (REQ-SEC-07), Ask-first-to-use (REQ-SEC-08), least-privilege scoping (REQ-SEC-09); lifecycle — TTL/leases/rotation/revocation (REQ-SEC-10), value-free audit (REQ-SEC-11); the **local encrypted default** (REQ-SEC-12), **OneCLI Agent Vault** (REQ-SEC-13), OAuth auto-refresh (REQ-SEC-14), redact-by-construction types (REQ-SEC-15), ownership (REQ-SEC-16). §7 gives Go enums/structs/interfaces. Code-grounded in OpenClaw (`auth-profiles`, `redact.ts`) + nanoclaw Agent Vault + 1Password `op://` with verbatim ◆ Source-patterns; OWASP + provider SDKs cited. In Review.
 - **2026-06-05 — v0.2** — Added **§7.2 reference implementation** (non-normative, Go): handle parsing (`ParseHandle`), an `env` + `vault` (lease-bearing) `Provider`, the `broker.Resolve` chokepoint (scope → cache → Ask-first → provider → audit), `broker.Inject` (the value leaves only here, never to the worker), and `Redact`. Labeled the existing types §7.1.
 - **2026-06-05 — v1.0** — Approved.
+- **2026-06-10 — v1.2** — **Managed secret registry (resolves OQ-SEC-5).** Setup/maintenance friction — add/list/rotate/revoke a secret — was the first thing a self-hosting user hit, but the registry was a deferred open question, leaving handles as pure inline references with no specified management surface. Specified the handle store as a **managed registry** (REQ-SEC-17, §5.17) with four first-class, Space-scoped, audited operations: **list** (handles + metadata only, never the value), **add** (value supplied once, handed to the provider, plaintext discarded), **rotate** (replace the value without changing the handle URI; cache invalidated), **revoke** (lease revoked + fail-closed thereafter). Add/rotate/revoke are Ask-first; list is a read; the management **UI is client/out-of-scope** (operations/contract belong here). Added the §7 `Registry` interface + `RegistryEntry` shape, extended the `AuditEntry` action set with `list`/`add`, folded registry ownership into REQ-SEC-16, and added a §11 checklist line. Marked OQ-SEC-5 resolved. No REQ IDs renumbered.
+- **2026-06-10 — v1.1** — **Destination binding (confused-deputy fix).** The broker previously validated Space/agent/path scope before injecting but never the request's **destination host**, so a hijacked worker holding a valid handle could have the egress proxy stamp the real credential onto a request aimed at an attacker-controlled host and exfiltrate it. Added a per-handle/per-grant **`allowed_hosts`** destination allowlist to REQ-SEC-09 (empty = deny-all for `proxy`/`header`, no implicit wildcard) and required the broker to validate the outbound target host against it **before injecting**, refusing fail-closed on mismatch (REQ-SEC-05). Threaded the check into the §7 data shape (new `Grant` struct, updated `Broker.Inject` contract, `ErrDestinationNotAllowed` in the reference `Inject`), the §6.1 broker-flow diagram + a clarifying sentence, and the §11 checklist. Clarified that the [sandboxing](sandboxing.md) REQ-SBX-10 egress allowlist is defense-in-depth, not a substitute. No REQ IDs renumbered.

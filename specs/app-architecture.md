@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.1   ·   **Last updated:** 2026-06-09
+> **Version:** 1.4   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The concrete runtime architecture — the always-on self-hosted **Go server (the brain)** and its native clients: identity, persistence, the background runtime, the AI/vector/worker runtimes, the server↔client protocol, and the opinionated Go technology stack that realizes every conceptual spec.
 >
@@ -64,11 +64,13 @@ The patterns are drawn from how comparable systems are built. Single-binary self
 
 ### 5.5 Vector store / semantic index (pure-Go)
 
-> **REQ-ARCH-05.** The shared **semantic index** ([memory](memory.md) REQ-MEM-03) — behind Insight recall, Signal novelty, Storyline resolution, and Evidence reinforcement — is realized with **`chromem-go`** (pure-Go, persisted, in-process), one collection per Space, **dimension-locked** to the active embedding model ([ai-models](ai-models.md); e.g. 384 for `all-MiniLM-L6-v2`). **Recall** is exhaustive cosine **KNN** (fine to ~1M items/Space) **re-ranked in Go** by the [memory](memory.md) REQ-MEM-10 score (relevance + recency + importance). Changing the embedding model or dimension requires a **re-index**. *This **revises** the stub's earlier `sqlite-vec`/CGo capture: pure-Go is chosen for single-binary distribution; **`mattn`+`sqlite-vec`** remains an **optional CGo upgrade** for very large indexes (OQ-ARCH-1).*
+> **REQ-ARCH-05.** The shared **semantic index** ([memory](memory.md) REQ-MEM-03) — behind Insight recall, Signal novelty, Storyline resolution, and Evidence reinforcement — is realized with **`chromem-go`** (pure-Go, persisted, in-process), one collection per Space, **dimension-locked** to the active embedding model ([ai-models](ai-models.md) REQ-AIM-08 — the default is **`BGE-M3` at `1024` dimensions**, so the `vec0` column is locked to 1024; a smaller model such as `all-MiniLM-L6-v2`/384 is merely an illustrative alternative a deployment may pick instead). **Recall** is exhaustive cosine **KNN** (fine to ~1M items/Space) **re-ranked in Go** by the [memory](memory.md) REQ-MEM-10 score (relevance + recency + importance). Changing the embedding model or dimension requires a **re-index**. *This **revises** the stub's earlier `sqlite-vec`/CGo capture: pure-Go is chosen for single-binary distribution; **`mattn`+`sqlite-vec`** remains an **optional CGo upgrade** for very large indexes (OQ-ARCH-1).*
 
 ### 5.6 The background queue: deliberately simple, no engine
 
 > **REQ-ARCH-06.** One **shared, simple queue** — a **SQLite `tasks` table polled by a worker** in the System DB (no external queue library) — carries **all** deferred work: [Tasks](tasks.md), CuratorJobs ([curator](curator.md)), [Inbox](inbox.md) processing, and [Periodic](periodic-tasks.md) enqueues. A pool of worker goroutines **atomically claims a `pending` row → `running` → `done`/`failed`** (`UPDATE … SET status='running' WHERE status='pending' … RETURNING`). There are **no** retries, leases, dead-letter, backoff, or priority ([tasks](tasks.md) §2) — replanning is the orchestrator's job, not the queue's. **The table *is* the queue**: all state is **plain SQLite rows**, so work **survives restart**. There is **no workflow / durable-execution engine** and **no broker**.
+>
+> **Crash recovery — startup reclaim (normative).** Because there are no leases or per-row heartbeats, a process crash or a killed worker would otherwise leave `running` rows that **no poller ever reclaims** — stranding the work that §5.1 / Examples A–B promise survives restart. So **on boot, before the poller starts, the System resets every orphaned `running` row → `pending`** in a single transaction (the server is single-process and owns all workers, so any `running` row at startup is by definition orphaned). Reclaimed work re-enters the queue from the top of its step; **idempotent consumers** and the **transactional outbox** (REQ-ARCH-12) make re-execution safe (at-least-once). This keeps the deliberate no-retry/no-engine simplicity — there is still no backoff, dead-letter, or in-flight lease renewal — while making restart-safety explicit rather than assumed.
 
 ### 5.7 Scheduler
 
@@ -126,9 +128,22 @@ The patterns are drawn from how comparable systems are built. Single-binary self
 
 > **REQ-ARCH-20.** The System commits to a **pure-Go, single-binary, no-external-broker** stack (§6.4 table): `modernc.org/sqlite`, `chromem-go`, Atlas (embedded migrations), a SQLite `tasks` table + poller, `gocron`, `eino` + Ollama, `oversight`, `go-landlock`, `net/http`+SSE, `slog`+OpenTelemetry, `viper`, `go:embed`. Each honors the self-hosted/privacy constraints; documented **upgrade paths** (CGo `sqlite-vec`, River, ConnectRPC, WebSocket) exist for scale/feature needs but are **not** the default. Concrete versions and pinning are [stack](stack.md).
 
+### 5.22 Push transport to closed clients
+
+> **REQ-ARCH-22.** The §5.15 protocol (**REST + SSE**) delivers to a client only **while it holds an open connection**. A **closed** native client — a backgrounded or killed mobile app — receives **nothing**, yet [proactivity](proactivity.md) REQ-PROACT-04 lists **native push** as a v1 channel for exactly the interruptive, time-sensitive surfaces that matter when the app is closed. On a **self-hosted** deployment there is **no vendor relay**, and **P1 forbids a mandatory vendor cloud** — so the System cannot assume FCM/APNs the way a SaaS would. This REQ owns the **push-transport decision** that reconciles the two:
+>
+> | Option | Shape | P1 fit | Cost |
+> |---|---|---|---|
+> | **Self-hosted UnifiedPush / ntfy** | the user runs (or points at) their own push distributor; the server publishes to it; the client subscribes | **best** — no vendor cloud, fully self-hosted | user runs another endpoint; mobile-OS background-delivery caveats |
+> | **Polling / periodic fetch** | the closed client wakes on an OS schedule and pulls the Attention-Needed/Digest delta | **good** — no third party | latency (poll interval); battery; no true-instant Critical |
+> | **Vendor relay with encrypted payloads** | FCM/APNs carries an **opaque, end-to-end-encrypted** envelope the relay can't read; the client decrypts and fetches | **conditional** — relay is a transport, not a data processor; still an external dependency | requires the relay; key management; not "no vendor cloud" |
+> | **Explicit non-goal (v1)** | no push; closed clients rely on SSE-on-open + Digest-on-reconnect | trivially P1-safe | no interruptive delivery while closed |
+>
+> **Decision (v1):** **self-hosted UnifiedPush/ntfy is the recommended default** where the user provides a distributor; **OS-scheduled polling is the no-extra-infra fallback**; a **vendor relay is permitted only with end-to-end-encrypted opaque payloads** and **never mandatory**; with none configured, push **degrades to a non-goal** (SSE-on-open + Digest), never to a silent vendor dependency. Whichever transport is active, **[proactivity](proactivity.md) still owns the bar** (what crosses, quiet hours, budget) — this REQ owns only **how a surface reaches a closed client**. The remaining tuning is **OQ-ARCH-6**.
+
 ### 5.21 Ownership & non-duplication
 
-> **REQ-ARCH-21.** This spec **owns** the runtime, persistence, identity, concurrency, event/data flow, the AI/worker/secrets runtimes, the protocol, and the library choices. It **references** every feature spec it serves — each owns its *semantics*, this owns their *realization*. It **defers**: the build/project-layout/toolchain to [stack](stack.md); per-feature conceptual shapes to their specs; the client↔server auth scheme and at-rest crypto to [privacy-security](privacy-security.md).
+> **REQ-ARCH-21.** This spec **owns** the runtime, persistence, identity, concurrency, event/data flow, the AI/worker/secrets runtimes, the protocol, the push transport, and the library choices. It **references** every feature spec it serves — each owns its *semantics*, this owns their *realization*. It **defers**: the build/project-layout/toolchain to [stack](stack.md); per-feature conceptual shapes to their specs; the client↔server auth scheme and at-rest crypto to [privacy-security](privacy-security.md).
 
 ## 6. Visualizations
 
@@ -247,8 +262,8 @@ config/
 ### Example A — a briefing Task, end to end (Given/When/Then)
 
 - **Given** the user asks for *"prepare the Brightmoor status briefing"* in `Business/Brightmoor`.
-- **When** the Task is created: it is enqueued as a **`pending` row in the `tasks` table** (System DB). A worker goroutine **claims the row** and and runs the **orchestrator** — plan → route. The orchestrator **recalls Memory** from the Space's chromem index and dispatches a **confined subprocess worker** with a self-contained prompt; the worker runs its agent loop in the sandbox, calling models via **eino/Ollama**, and returns one result. A **fresh reviewer** approves it.
-- **Then** the state change + an outbox event commit in **one transaction**; the event bus publishes; the **Curator reconciles** `Business/Brightmoor`, refreshing the Narrative and read models; **proactivity** decides the briefing is ready and surfaces it. The whole run is plain SQLite rows — a restart mid-Task resumes from the queue (REQ-ARCH-06/12/13).
+- **When** the Task is created: it is enqueued as a **`pending` row in the `tasks` table** (System DB). A worker goroutine **claims the row** and runs the **orchestrator** — plan → route. The orchestrator **recalls Memory** from the Space's chromem index and dispatches a **confined subprocess worker** with a self-contained prompt; the worker runs its agent loop in the sandbox, calling models via **eino/Ollama**, and returns one result. A **fresh reviewer** approves it.
+- **Then** the state change + an outbox event commit in **one transaction**; the event bus publishes; the **Curator reconciles** `Business/Brightmoor`, refreshing the Narrative and read models; **proactivity** decides the briefing is ready and surfaces it. The whole run is plain SQLite rows — a restart mid-Task **resets the orphaned `running` row back to `pending` on boot** and resumes from the queue (REQ-ARCH-06/12/13).
 
 ### Example B — a Signal becomes Evidence (narrative)
 
@@ -257,6 +272,7 @@ A Northwind Cloud pricing-page watcher calls `POST /ingest` (Space-scoped, token
 ## 9. Edge Cases & Failure Modes
 
 - **Crash mid-pipeline.** The outbox poller replays unpublished rows on restart; idempotent consumers dedup (REQ-ARCH-12).
+- **Crash with a `running` queue row.** Without leases, a crashed/killed worker would leave a `running` row no poller reclaims. On boot, the startup reclaim resets orphaned `running` rows → `pending` before the poller starts, so the work re-enters the queue; idempotent consumers + the outbox make re-execution safe (REQ-ARCH-06/12).
 - **Concurrent writers to one Space DB.** WAL + a serialized writer handle; readers proceed (REQ-ARCH-03).
 - **Embedding model changed.** Dimension mismatch is rejected; a re-index is required before recall resumes (REQ-ARCH-05).
 - **Runtime DDL on a populated table.** New required columns are added nullable and flagged; destructive changes are Ask-first (REQ-ARCH-04, [entities](entities.md)).
@@ -270,6 +286,7 @@ A Northwind Cloud pricing-page watcher calls `POST /ingest` (Space-scoped, token
 - **OQ-ARCH-3** — Whether **WebSocket** is needed beyond SSE for mid-stream client control (approvals/interrupts), or REST callbacks suffice.
 - **OQ-ARCH-4** — The concrete **concurrency-cap defaults** and per-kind sub-caps (tune with real workloads).
 - **OQ-ARCH-5** — Whether to adopt **`sqlc`** (typed codegen) over plain `database/sql` now or in [stack](stack.md).
+- **OQ-ARCH-6** — The **push-transport** specifics (REQ-ARCH-22): which **UnifiedPush** distributor(s) to document/support, the **polling interval** and its battery/latency trade, the **end-to-end-encryption** scheme for the optional vendor-relay payload, and how the client **discovers** which transport its server offers. Coordinate with [proactivity](proactivity.md) REQ-PROACT-04 (push is conditional on the chosen transport) and [privacy-security](privacy-security.md) (the payload-encryption keys).
 
 ## 11. Review & Acceptance Checklist
 
@@ -278,7 +295,7 @@ A Northwind Cloud pricing-page watcher calls `POST /ingest` (Space-scoped, token
 - [ ] Per-Space SQLite + System DB, WAL, no cross-Space joins; pure-Go `modernc` (REQ-ARCH-03).
 - [ ] **Embedded** (`go:embed`) Atlas migrations applied on startup; transactional runtime DDL; destructive = Ask-first (REQ-ARCH-04).
 - [ ] chromem-go semantic index, dimension-locked, KNN + Go re-rank, re-index on model change (REQ-ARCH-05).
-- [ ] One simple SQLite **`tasks`-table** queue (poller), no engine/retries/DLQ/broker; restart-safe (REQ-ARCH-06).
+- [ ] One simple SQLite **`tasks`-table** queue (poller), no engine/retries/DLQ/broker; restart-safe via startup reclaim of orphaned `running` rows → `pending` (REQ-ARCH-06).
 - [ ] `gocron` UTC scheduler that only enqueues Tasks (REQ-ARCH-07).
 - [ ] Global concurrency cap + per-Space/per-kind sub-caps with backpressure (REQ-ARCH-08).
 - [ ] Orchestrator in Go, LLM only at plan/route/review/replan; depth-1 (REQ-ARCH-09).
@@ -287,6 +304,7 @@ A Northwind Cloud pricing-page watcher calls `POST /ingest` (Space-scoped, token
 - [ ] Event bus + transactional outbox; at-least-once, idempotent (REQ-ARCH-12).
 - [ ] Curator is a level-triggered reconciler; survives missed events (REQ-ARCH-13).
 - [ ] REST + SSE protocol; authoritative server, reconnecting clients (REQ-ARCH-15).
+- [ ] Push transport to closed clients defined — self-hosted UnifiedPush/ntfy default, polling fallback, E2E-encrypted vendor relay only and never mandatory, else push degrades to a non-goal; proactivity still owns the bar (REQ-ARCH-22).
 - [ ] `POST /ingest` Signal API (REQ-ARCH-16); on-disk agent/skill defs + System-DB settings/`notif_` (REQ-ARCH-17).
 - [ ] Opinionated pure-Go stack with documented upgrade paths (REQ-ARCH-20).
 
@@ -307,6 +325,9 @@ A Northwind Cloud pricing-page watcher calls `POST /ingest` (Space-scoped, token
 
 ## 13. Changelog
 
+- **2026-06-10 — v1.4** — **(remains Approved.)** Aligned the §5.5 semantic-index example with the now-locked default from [ai-models](ai-models.md) REQ-AIM-08 — the **default embedding model is `BGE-M3` at `1024` dimensions**, so the `chromem-go` `vec0` column is **dimension-locked to 1024**; the previous `all-MiniLM-L6-v2`/384 example is now marked **merely an illustrative smaller alternative**, not the default. This makes app-architecture and ai-models agree on the canonical **BGE-M3/1024** default while preserving the existing re-index-on-change rule. No other requirement IDs changed; no cross-references broken.
+- **2026-06-10 — v1.3** — **(remains Approved.)** Added **REQ-ARCH-22** (§5.22): a closed mobile client receives nothing over REST+SSE, yet [proactivity](proactivity.md) REQ-PROACT-04 lists native push as a v1 channel and P1 forbids a mandatory vendor cloud. The REQ commits to **self-hosted UnifiedPush/ntfy as the default**, **OS-scheduled polling as the no-extra-infra fallback**, a **vendor relay permitted only with end-to-end-encrypted opaque payloads and never mandatory**, and **graceful degradation to a non-goal** (SSE-on-open + Digest) when none is configured — proactivity still owns the bar, this owns the transport. Added **OQ-ARCH-6**, updated REQ-ARCH-21 ownership and the §11 checklist. No other requirement IDs changed; no cross-references broken.
+- **2026-06-10 — v1.2** — **Crash-recovery fix (remains Approved).** REQ-ARCH-06 now carries a normative **startup-reclaim** rule: on boot, before the poller starts, orphaned `running` rows are reset → `pending` in one transaction, so a process crash or killed worker no longer strands `running` rows that no poller reclaims — reconciling the no-lease/no-retry queue with the "work survives restart" claims (Examples A/B, REQ-ARCH-01). Kept the deliberate no-retry/no-engine simplicity (no backoff, dead-letter, or lease renewal). Added a §9 edge case, tightened Example A and the §11 checklist, and fixed the "claims the row and and runs" typo. No other REQ changed.
 - **2026-06-08 — v1.0** — **Approved.** The backbone runtime architecture + opinionated Go stack finalized; no requirement changes from v0.1. Moved from the untiered backlog into **Tier 3: Features** (§6.3); the §6.4 technology table remains the living record with upgrade paths.
 - **2026-06-09 — v1.1** — ID-catalog alignment: added `int_`, `wf_`, and `wfr_` to REQ-ARCH-02 after Integrations and User Workflows introduced those prefixes. No runtime architecture change.
 - **2026-06-08 — v0.1** — Initial full draft. Server-brain topology + single binary (REQ-ARCH-01); `prefix_ULID` identity (REQ-ARCH-02); per-Space + System SQLite, pure-Go `modernc` (REQ-ARCH-03); **embedded** (`go:embed`) Atlas migrations + runtime DDL (REQ-ARCH-04); **chromem-go** semantic index — *revising the stub's CGo sqlite-vec lean to pure-Go* (REQ-ARCH-05); the SQLite **`tasks`-table** queue (REQ-ARCH-06) + `gocron` (REQ-ARCH-07); concurrency cap (REQ-ARCH-08); orchestrator (REQ-ARCH-09) and confined-subprocess worker + secrets-outside-worker runtime (REQ-ARCH-10, -18); eino/Ollama model runtime (REQ-ARCH-11); event bus + transactional outbox (REQ-ARCH-12); level-triggered Curator reconciliation (REQ-ARCH-13); CQRS read models (REQ-ARCH-14); REST+SSE protocol (REQ-ARCH-15) and `POST /ingest` (REQ-ARCH-16); config/definition files (REQ-ARCH-17); observability/lifecycle/build/backup (REQ-ARCH-19); the opinionated technology table (REQ-ARCH-20); ownership (REQ-ARCH-21). Research-grounded (Go library survey + AnythingLLM/Onyx/Khoj/Hermes/eino). In Review.

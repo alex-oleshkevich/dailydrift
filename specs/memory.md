@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.2   ·   **Last updated:** 2026-06-04
+> **Version:** 1.3   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The Memory feature end-to-end — durable distilled knowledge (`mem_`: facts, preferences, profiles, summaries), the **shared semantic index** and **recall** that the rest of the System retrieves by meaning, **distillation** of accumulated material into durable knowledge, and **retention/decay**.
 >
@@ -79,7 +79,7 @@ Canonical definitions in [glossary](glossary.md); the entity shape in [data-mode
 
 ### 5.6 Retention & decay
 
-> **REQ-MEM-06.** Memory is **not permanent at full weight.** Each item carries **salience** that **decays with time and disuse**, so stale knowledge fades out of recall while staying searchable; **recall bumps recency** (`last_used_at`), keeping live knowledge sharp. On **contradiction**, a Memory item is **superseded** by a new one (`superseded_by`) rather than edited in place — the history is retained. The user may **pin** an item (exempt from decay) or **forget** it explicitly. Decay constants are tunable (OQ-MEM-1).
+> **REQ-MEM-06.** Memory is **not permanent at full weight.** Each item carries **salience** that **decays with time and disuse**, so stale knowledge fades out of recall while staying searchable; **consumed recall bumps recency** (`last_used_at`, REQ-MEM-11/17) — only recalls that are actually *used*, not internal hydration reads — keeping live knowledge sharp. On **contradiction**, a Memory item is **superseded** by a new one (`superseded_by`) rather than edited in place — the history is retained. The user may **pin** an item (exempt from decay) or **forget** it explicitly. Decay constants are tunable (OQ-MEM-1).
 
 ### 5.7 Memory vs the other primitives
 
@@ -108,7 +108,7 @@ Canonical definitions in [glossary](glossary.md); the entity shape in [data-mode
 
 ### 5.11 Decay, reinforcement & forgetting
 
-> **REQ-MEM-11.** A Memory item's **salience decays exponentially** with time since last use — `salience(t) = salience₀ · exp(−λ_kind · Δt_since_use)` (the **Ebbinghaus forgetting curve**) — and is **reinforced on recall**: each retrieval bumps `last_used_at` and raises salience (the spacing effect), so live knowledge stays sharp while disused knowledge fades. **`λ_kind` varies by kind** — `preference`/`profile` decay slowly, `fact`/`summary` faster — and high **importance** (REQ-MEM-12) lowers the effective rate. Forgetting has **three modes**:
+> **REQ-MEM-11.** A Memory item's **salience decays exponentially** with time since last use — `salience(t) = salience₀ · exp(−λ_kind · Δt_since_use)` (the **Ebbinghaus forgetting curve**) — and is **reinforced only on *consumed* recall**: a retrieval bumps `last_used_at` and raises salience (the spacing effect) **only when the recalled item is actually used** — cited in an answer/Narrative/Insight, or surfaced in a user-facing turn. **Internal context-hydration reads do NOT reinforce** (REQ-MEM-17): the background machinery (Curator pre-hydration, every write-time contract's "existing items" lookup) reads Memory constantly, and counting those reads as use would create a **rich-get-richer feedback loop** where memories are reinforced merely because the engine runs, divorced from usefulness. Reinforcement tracks *value delivered*, not *bytes read*. **`λ_kind` varies by kind** — `preference`/`profile` decay slowly, `fact`/`summary` faster — and high **importance** (REQ-MEM-12) lowers the effective rate. Forgetting has **three modes**:
 > - **Passive decay** — when salience falls below the recall threshold the item **drops out of recall** but stays **searchable** (not deleted): a graceful fade, not a loss.
 > - **Active delete** — explicit removal on the user's *forget* request, a privacy / right-to-be-forgotten requirement, or a security rule; deterministic and immediate.
 > - **Supersession** — on contradiction the item is **superseded** non-lossily (REQ-MEM-06, `superseded_by`), never edited in place (Zep-style temporal retirement; the old item stays queryable for "what did I believe then?").
@@ -242,7 +242,7 @@ Choose the operation.
 }
 ```
 
-> **REQ-MEM-15.** **Consolidation / reflection.** Periodically (scheduled, [periodic-tasks](periodic-tasks.md)) the Curator synthesizes a **cluster** of related memories/Insights into higher-level durable Memory — a `summary` or generalized `fact` — **citing the source items** (Park et al. *reflection*). This turns many observations into institutional knowledge and keeps context compressed; it is **Always** internal work and **never deletes its sources** (they decay on their own).
+> **REQ-MEM-15.** **Consolidation / reflection.** Periodically (scheduled, [periodic-tasks](periodic-tasks.md)) the Curator synthesizes a **cluster** of related memories/Insights into higher-level durable Memory — a `summary` or generalized `fact` — **citing the source items** (Park et al. *reflection*). This turns many observations into institutional knowledge and keeps context compressed; it is **Always** internal work and **never deletes its sources** (they decay on their own). **Consolidation depth is capped (REQ-MEM-18):** a consolidation's sources must be **non-consolidation** Memory/Insights/Evidence — the engine must not feed its own prior `summary`/generalized-`fact` outputs back in as inputs — so it cannot iteratively rewrite its own conclusions and compound abstraction drift.
 
 **◆ Source pattern — OpenClaw, `AGENTS.md` "Memory Maintenance"** (local: `docs/reference/templates/AGENTS.md`). The reflection-consolidation loop in plain words:
 > "1. Read through recent `memory/YYYY-MM-DD.md` files  2. Identify significant events, lessons, or insights worth keeping long-term  3. Update `MEMORY.md` with distilled learnings  4. Remove outdated info from MEMORY.md that's no longer relevant"
@@ -291,11 +291,15 @@ What higher-level, durable knowledge does this cluster support?
 }
 ```
 
+> **REQ-MEM-18.** **Consolidation-depth guard.** Each Memory item records whether it was **produced by consolidation** (`origin: consolidated`, §7). Consolidation (REQ-MEM-15) **must not draw its sources from consolidated items** — its candidate cluster is filtered to **`origin: observed`** Memory plus raw Insights/Evidence, so a consolidation cites only first-order observations, never another consolidation's output. This caps abstraction at **depth 1** and prevents the engine from **rewriting its own outputs** pass after pass (compounding drift). If a higher-level roll-up across existing consolidations is ever wanted, it is a deliberate, separately-specified operation — not the default nightly loop — and even then must carry **evidence-weight diffing** against the prior conclusion (the same anti-drift discipline as the Narrative, [curator](curator.md) REQ-CUR-08) before it may change a settled view. The engine enforces this filter; the LLM never sees consolidated items in its cluster.
+
 ### 5.13 Recall in use
 
 > **REQ-MEM-16.** Recall is **context hydration, not a user surface**, and it is **performed by the System/orchestrator, not by the acting agent**: relevant items are recalled and **injected into context before the consumer acts**, instead of loading everything or letting an agent query Memory itself (the context-compression payoff, REQ-MEM-04/06). The System **pre-hydrates** at the start of a turn or dispatch — a chat opening on a Storyline gets that [Narrative](narrative.md) + top-K relevant [Insights](insights.md) + matching `preference`/`profile` Memory injected; when the orchestrator dispatches a worker it recalls the relevant Memory/Evidence and packs it into the worker's **self-contained prompt** ([agents](agents.md) REQ-AGENT-13, [agent-orchestration](agent-orchestration.md) REQ-AORCH-04). **Agents do not issue their own recall queries** — a worker that needs more returns to the orchestrator, which recalls and re-dispatches.
 >
-> Recall also **populates the "existing items" context of every write-time contract** — `EXISTING INSIGHTS` ([insights](insights.md) REQ-INS-09), `EXISTING SIMILAR MEMORIES` (REQ-MEM-14), `OPEN SITUATIONS` ([situations](situations.md) REQ-SIT-14), Evidence reinforcement ([evidence](evidence.md) REQ-EV-10), Signal novelty ([signals](signals.md) REQ-SIG-14) — which is the substrate that makes **reinforce-don't-duplicate** possible System-wide. **Recall is not surfacing:** recalling into an agent's context is internal and liberal; pushing an item to the *user* is a separate, stricter decision gated by the relevance/urgency bar ([proactivity](proactivity.md), P4). High recall volume with quiet user-facing output is the correct, expected behavior.
+> Recall also **populates the "existing items" context of every write-time contract** — `EXISTING INSIGHTS` ([insights](insights.md) REQ-INS-09), `EXISTING SIMILAR MEMORIES` (REQ-MEM-14), `OPEN SITUATIONS` ([situations](situations.md) REQ-SIT-14), Evidence reinforcement ([evidence](evidence.md) REQ-EV-10), Signal novelty ([signals](signals.md) REQ-SIG-14) — which is the substrate that makes **reinforce-don't-duplicate** possible System-wide. **Recall is not surfacing:** recalling into an agent's context is internal and liberal; pushing an item to the *user* is a separate, stricter decision gated by the relevance/urgency bar ([proactivity](proactivity.md), P4). High recall volume with quiet user-facing output is the correct, expected behavior. Because this internal hydration is constant and liberal, **it must not reinforce the items it reads** — only *consumed* recall does (REQ-MEM-11, REQ-MEM-17).
+
+> **REQ-MEM-17.** **Reinforcement is gated on consumption, not on read.** A recall reinforces a Memory item (bump `last_used_at`, raise salience, REQ-MEM-11) **only when the item is *consumed*** — cited in a generated answer/Narrative/Insight, or surfaced in a user-facing turn. The **liberal internal reads** that pre-hydrate context (Curator job hydration REQ-MEM-16, and the "existing items" lookup of every write-time contract above) are **reinforcement-neutral**: they may rank, dedup, and inject an item without bumping its recency or salience. This severs the **rich-get-richer loop** in which background machinery reinforces memories merely by running — salience must track *usefulness*, not *exposure to the engine*. The consumption signal is emitted by the consumer (the agent/orchestrator that cited it, or the surfacing layer), not by the recall call itself; an item recalled but not used decays as if not recalled.
 
 ### 5.14 Recommended implementation stack (non-normative)
 
@@ -315,7 +319,6 @@ The concrete stack is owned by [ai-models](ai-models.md) (embeddings + LLM clien
 ### 6.1 One index, many consumers
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart TB
     classDef store fill:#34495E,stroke:#2C3E50,color:#fff
     classDef item fill:#7B68EE,stroke:#6A5ACD,color:#fff
@@ -341,7 +344,6 @@ flowchart TB
 ### 6.2 Distillation & decay
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef fact fill:#2ECC71,stroke:#27AE60,color:#fff
     classDef discovery fill:#CCE5FF,stroke:#4A90D9,color:#004085
@@ -351,43 +353,42 @@ flowchart LR
 
     EV["Evidence"]:::fact
     INS["Insights"]:::discovery
-    CUR["Curator\n(distills, scheduled)"]:::agent
-    MEM["Memory\nmem_ · salience"]:::mem
-    FADE["faded\n(low salience, searchable)"]:::muted
+    CUR["Curator<br/>(distills, scheduled)"]:::agent
+    MEM["Memory<br/>mem_ · salience"]:::mem
+    FADE["faded<br/>(low salience, searchable)"]:::muted
 
     EV --> CUR
     INS --> CUR
     CUR -->|"consolidate"| MEM
     MEM -.->|"time + disuse"| FADE
-    MEM -->|"recall bumps recency"| MEM
+    MEM -->|"consumed recall bumps recency"| MEM
 ```
 
 ### 6.3 Retrieval scoring & decay
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef sig fill:#CCE5FF,stroke:#4A90D9,color:#004085
     classDef calc fill:#7B68EE,stroke:#6A5ACD,color:#fff
     classDef good fill:#2ECC71,stroke:#27AE60,color:#fff
     classDef muted fill:#95A5A6,stroke:#7F8C8D,color:#fff
 
-    REL["relevance\ncos(query, item)"]:::sig
-    REC["recency\nexp(−λ·Δt)"]:::sig
-    IMP["importance\n0–10 poignancy"]:::sig
-    SCORE["weighted score\n(REQ-MEM-10)"]:::calc
+    REL["relevance<br/>cos(query, item)"]:::sig
+    REC["recency<br/>exp(−λ·Δt)"]:::sig
+    IMP["importance<br/>0–10 poignancy"]:::sig
+    SCORE["weighted score<br/>(REQ-MEM-10)"]:::calc
 
     REL --> SCORE
     REC --> SCORE
     IMP --> SCORE
-    SCORE -->|"≥ threshold"| OUT["recalled\n→ bumps recency, salience (REQ-MEM-11)"]:::good
-    SCORE -.->|"< threshold"| HOLD["not recalled\ndecays, stays searchable"]:::muted
+    SCORE -->|"≥ threshold"| OUT["recalled<br/>→ if consumed: bumps recency, salience (REQ-MEM-11/17)"]:::good
+    SCORE -.->|"< threshold"| HOLD["not recalled<br/>decays, stays searchable"]:::muted
 
     linkStyle 3 stroke:#27AE60,stroke-width:2px
     linkStyle 4 stroke:#7F8C8D,stroke-width:2px,stroke-dasharray:5 5
 ```
 
-*Recall reinforces (recency + salience up); disuse decays an item below the threshold until it fades from recall but stays searchable. Importance slows that fade (REQ-MEM-11/12).*
+*Consumed recall reinforces (recency + salience up); a recall that only hydrates context but is never used does not (REQ-MEM-17). Disuse decays an item below the threshold until it fades from recall but stays searchable. Importance slows that fade (REQ-MEM-11/12).*
 
 ## 7. Data Shapes
 
@@ -405,9 +406,11 @@ interface Memory {              // durable distilled knowledge
   pinned: boolean;              // user-pinned → exempt from decay
   source_evidence_ids: string[];// provenance (P3)
   source_insight_ids: string[];
+  source_memory_ids?: string[]; // for `origin: consolidated` — only `observed` sources (REQ-MEM-18)
+  origin: "observed" | "consolidated"; // depth guard: consolidation reads only `observed` (REQ-MEM-18)
   entity_id?: string;           // for `profile`/`fact` about an Entity
   created_at: Date;
-  last_used_at: Date;           // bumped on recall (recency)
+  last_used_at: Date;           // bumped only on CONSUMED recall, not internal hydration (REQ-MEM-11/17)
   superseded_by?: string;       // mem_ that replaced it on contradiction
 }
 ```
@@ -431,7 +434,8 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - **Pinned-but-wrong.** A user-pinned item exempt from decay can still be **superseded** by contradicting Evidence; pinning resists decay, not correction (REQ-MEM-06).
 - **Recall miss.** A context matching nothing above threshold returns silence, not a forced result (REQ-MEM-04) — same discipline as Insight recall (REQ-INS-08).
 - **Cross-Space leakage.** Recall is downstream-only; Memory in one Space never surfaces in a sibling or private-ancestor Space (REQ-MEM-04, P10).
-- **Distillation drift.** Over-aggressive consolidation could erase nuance; distillation **cites sources** and preserves user edits so a summary is auditable and correctable (REQ-MEM-05/08).
+- **Distillation drift.** Over-aggressive consolidation could erase nuance; distillation **cites sources** and preserves user edits so a summary is auditable and correctable (REQ-MEM-05/08). **Recursive consolidation drift** — the engine re-consolidating its own `summary`/`fact` outputs and compounding abstraction pass after pass — is blocked by the **depth-1 guard** (consolidation reads only `origin: observed` sources, REQ-MEM-18).
+- **Reinforcement loop.** Liberal internal hydration (Curator pre-hydration, write-contract "existing items" reads) must not make a memory salient merely by being read; only **consumed** recall reinforces (REQ-MEM-17), severing the rich-get-richer loop.
 - **Embedding unavailable.** If the local embedding model is down, items are queued for embedding rather than indexed empty; recall degrades gracefully ([ai-models](ai-models.md)).
 
 ## 10. Open Questions & Decisions
@@ -454,6 +458,8 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - [ ] The Memory↔Evidence/Insight/Narrative boundary is stated by role and durability, with `context`-Insight graduation (REQ-MEM-07).
 - [ ] Provenance, editability with edit-preservation, and surfacing as substrate/settings/provenance are specified (REQ-MEM-08/09). Examples use the [constitution](constitution.md) §7 cast; no placeholders.
 - [ ] Recall-in-use is specified: context-hydration via System/orchestrator **pre-hydration + prompt-injection** (no agent-issued recall), populating the dedup context of every write contract, distinct from surfacing (REQ-MEM-16).
+- [ ] Reinforcement is gated on **consumption, not read**: internal hydration reads are reinforcement-neutral, severing the rich-get-richer loop (REQ-MEM-17).
+- [ ] Consolidation depth is capped at 1: consolidation reads only `origin: observed` sources, never its own outputs (REQ-MEM-18).
 
 ## 12. Cross-References
 
@@ -475,3 +481,4 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - **2026-06-04 — v1.0 (note)** — Retargeted "Memory-Curator ([agents])" → the [curator](curator.md) engine (the role was renamed to the Curator engine; editorial, no rule change).
 - **2026-06-04 — v1.1** — **Recall is orchestrator-injected, not agent-queried.** Removed the *agent-callable recall* mode from REQ-MEM-16: the System/orchestrator pre-hydrates and packs recalled Memory into an agent's self-contained prompt; agents no longer issue their own recall queries (aligns with worker isolation — [agents](agents.md) REQ-AGENT-13, [agent-orchestration](agent-orchestration.md) REQ-AORCH-04).
 - **2026-06-04 — v1.2** — Added inline **◆ Source pattern** call-outs (verbatim): mem0 `DEFAULT_UPDATE_MEMORY_PROMPT` at REQ-MEM-14 (the ADD/UPDATE/DELETE/NONE contract this was modeled on — DELETE ⇒ our SUPERSEDE) and OpenClaw `AGENTS.md` Memory-Maintenance at REQ-MEM-15 (reflection/consolidation: "raw notes" → "curated wisdom").
+- **2026-06-10 — v1.3** — **Two feedback-loop fixes (material).** (1) **Recall-reinforcement loop:** reinforcement is now gated on **consumption, not read** — only a recall that is *cited/surfaced* bumps `last_used_at`/salience; the constant liberal internal hydration (Curator pre-hydration, every write-contract "existing items" lookup) is **reinforcement-neutral**, severing the rich-get-richer loop where the engine reinforced memories merely by running (REQ-MEM-11 reworded; new **REQ-MEM-17**; REQ-MEM-06/16 wording and §6.2/§6.3 diagram captions reconciled; `last_used_at` field note updated). (2) **Consolidation depth:** consolidation is capped at **depth 1** — it may read only `origin: observed` sources, never its own `summary`/generalized-`fact` outputs, so the engine cannot rewrite its own conclusions and compound abstraction drift (REQ-MEM-15 amended; new **REQ-MEM-18**; new `origin`/`source_memory_ids` fields in §7; distillation-drift edge case extended). Added acceptance-checklist items for both.

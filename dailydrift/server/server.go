@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -27,12 +28,15 @@ func (s *Server) Run(ctx context.Context) error {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
-		return err
+		return fmt.Errorf("server: %w", err)
 	case <-ctx.Done():
 		slog.Info("server shutting down")
 		sctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		return s.http.Shutdown(sctx)
+		if err := s.http.Shutdown(sctx); err != nil {
+			return fmt.Errorf("server.Shutdown: %w", err)
+		}
+		return nil
 	}
 }
 

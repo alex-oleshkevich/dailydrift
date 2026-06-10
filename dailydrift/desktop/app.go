@@ -11,8 +11,8 @@ type App struct {
 }
 
 // NewApp creates a new App application struct
-func NewApp() *App {
-	return &App{}
+func NewApp(ctx context.Context) *App {
+	return &App{ctx: ctx}
 }
 
 // startup is called when the app starts. The context is saved

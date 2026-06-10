@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.1   ·   **Last updated:** 2026-06-04
+> **Version:** 1.2   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The Insight feature end-to-end — what an Insight is, how the System captures one, how it is embedded and recalled by semantic relevance, and how it is deduped, expired, and surfaced without becoming noise.
 >
@@ -92,7 +92,7 @@ Capture sources include: an Agent reasoning over a Storyline's Evidence; a perio
 
 ### 5.7 Lifecycle
 
-> **REQ-INS-10.** An Insight's status is `active → expired → archived` ([data-model](data-model.md) REQ-DM-12). It is `active` from capture, recallable and surfaceable. It becomes `expired` when it is no longer relevant; `expired` Insights drop out of recall but remain searchable. `archived` is terminal retention.
+> **REQ-INS-10.** An Insight's status is `active → expired → archived` ([data-model](data-model.md) REQ-DM-12). It is `active` from capture, recallable and surfaceable. It becomes `expired` when it is no longer relevant; `expired` Insights drop out of recall but remain searchable. `archived` is terminal retention, entered by an **explicit trigger** — either the System's retention sweep moving a long-`expired` Insight to cold retention (window owned by [memory](memory.md)), or a **user "never show again"** dismissal (REQ-INS-17). An `archived` Insight is neither recalled nor surfaced and is not re-activated by reinforcement.
 
 > **REQ-INS-11.** Expiry rules by `kind`: a `prediction` expires when its **horizon passes** or its predicted event occurs; an `observation` / `opportunity` expires when **superseded** by later Evidence; `context` is long-lived and expires only when **contradicted**; `connection` / `risk` expire when the underlying relationship/risk is **resolved or invalidated**. Reinforcement (§5.6) resets recency and keeps an Insight `active`.
 
@@ -194,12 +194,23 @@ Capture the Insights worth remembering.
 }
 ```
 
+### 5.11 User actions on an Insight
+
+Recall and surfacing are the System's judgment (§5.5, §5.8), but an Insight is user-visible and the System gets things wrong — a note may be unwanted, mis-captured, or worth keeping pinned. P9 reversibility/transparency requires the user be able to act on a surfaced Insight, not just receive it.
+
+> **REQ-INS-17.** A surfaced Insight carries **user actions**, each a distinct user-initiated state transition:
+> - **dismiss** — "not now": removes it from the current surface and **suppresses re-surfacing for a cooldown**; the Insight stays `active` and recallable, so genuine relevance later can still bring it back.
+> - **never show again** — a durable dismissal: moves the Insight to `archived` (REQ-INS-10), permanently out of recall and surfacing.
+> - **pin** — the user marks the Insight important: it stays `active`, is **exempt from expiry** (REQ-INS-11) and the surfacing cooldown, and is preferred by surfacing for its scope until unpinned.
+> - **correct** — the user fixes a mis-captured Insight. Editing the `title`/`body` is permitted (the Insight is a synthesized note, not frozen Evidence) and **re-embeds** it (REQ-INS-06); a wrong **citation** is corrected by re-filing or superseding the underlying [Evidence](evidence.md) ([evidence](evidence.md) REQ-EV-11/-12), since an Insight asserts nothing the Evidence does not support (REQ-INS-01). An Insight whose Evidence is all superseded **expires** (REQ-INS-11).
+>
+> These states are **user-owned**: the Curator's reinforcement/expiry (§5.6/§5.7) must not silently override a user `pin` or a "never show again" `archived`. Pinned and dismissed/archived states persist across regeneration (mirroring the preference edit-preservation rule [memory](memory.md) REQ-MEM-08).
+
 ## 6. Visualizations
 
 ### 6.1 Capture and recall
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef fact fill:#2ECC71,stroke:#27AE60,color:#fff
     classDef action fill:#CCE5FF,stroke:#4A90D9,color:#004085
@@ -209,13 +220,13 @@ flowchart LR
     classDef muted fill:#95A5A6,stroke:#7F8C8D,color:#fff
 
     EV["Evidence"]:::fact
-    CAP["Agent captures\nInsight"]:::action
+    CAP["Agent captures<br/>Insight"]:::action
     DUP{"Near-duplicate?"}:::decision
     RE["Reinforce existing"]:::action
-    EMB[("Embed + store\nactive")]:::store
-    CTX["Context:\nchat, Storyline"]:::muted
+    EMB[("Embed + store<br/>active")]:::store
+    CTX["Context:<br/>chat, Storyline"]:::muted
     Q["Semantic recall"]:::action
-    BAR{"Clears relevance\nbar?"}:::decision
+    BAR{"Clears relevance<br/>bar?"}:::decision
     SURF["Surface"]:::success
     HOLD["Hold, stays silent"]:::muted
 
@@ -295,6 +306,9 @@ A Northwind pricing-page watcher and two competitor watchers distill Evidence th
 - **Recall miss.** A context that matches nothing above threshold yields silence, not a forced suggestion (REQ-INS-08).
 - **Cross-Space leak.** A promoted Insight flows downstream only; it never exposes a sibling or private-ancestor Space (REQ-INS-15, P10).
 - **Contradiction.** New Evidence that contradicts a `context` Insight expires it (REQ-INS-11); if the contradiction itself is non-obvious, that is a new `observation`/`risk` Insight.
+- **Pinned but stale.** A user `pin` exempts an Insight from expiry (REQ-INS-17); if its Evidence is later superseded, the System surfaces the staleness rather than silently expiring it against the user's pin.
+- **Dismiss vs never-show.** A `dismiss` only quiets an Insight for a cooldown (it stays `active` and may recall later); "never show again" is the durable choice that `archives` it (REQ-INS-17, REQ-INS-10).
+- **Correcting a citation.** A user correcting a wrong-source Insight fixes the underlying Evidence (re-file/supersede, [evidence](evidence.md) REQ-EV-11/-12); the Insight re-derives rather than asserting beyond its Evidence (REQ-INS-17, REQ-INS-01).
 
 ## 10. Open Questions & Decisions
 
@@ -309,7 +323,8 @@ A Northwind pricing-page watcher and two competitor watchers distill Evidence th
 - [ ] The `kind` catalog is complete and disjoint from Storyline Momentum and Situation categories (REQ-INS-02).
 - [ ] Capture is Always, ungated, liberal, and requires Evidence + a Space (REQ-INS-03…-05).
 - [ ] Embedding and **semantic recall with a relevance threshold** are specified; intelligence is at read-time (REQ-INS-06…-08).
-- [ ] Dedup/reinforcement prevents duplicate notes (REQ-INS-09); lifecycle and per-`kind` expiry are defined (REQ-INS-10/11).
+- [ ] Dedup/reinforcement prevents duplicate notes (REQ-INS-09); lifecycle and per-`kind` expiry are defined (REQ-INS-10/11), and `archived` has an explicit trigger (REQ-INS-10).
+- [ ] User actions — dismiss, never-show-again (→ archived), pin, correct — are specified, are user-owned, and are not overridden by Curator reinforcement/expiry (REQ-INS-17).
 - [ ] Capture-cheap/surface-selective is explicit, with channels and the escalation-to-Situation path (REQ-INS-12…-14).
 - [ ] Scope + downstream-only promotion are specified (REQ-INS-15).
 - [ ] The LLM capture contract enforces atomic, evidence-backed, non-action, reinforce-not-duplicate capture under the untrusted-data rule (REQ-INS-16).
@@ -331,3 +346,4 @@ A Northwind pricing-page watcher and two competitor watchers distill Evidence th
 - **2026-06-04 — v1.1** — Added §5.10 / REQ-INS-16: the **LLM capture contract** (system prompt + user template + output schema) for the Curator, enforcing atomic single-`kind`, evidence-backed, liberal, non-action, reinforce-not-duplicate capture under the untrusted-data rule (P12).
 - **2026-06-04 — v1.1 (note)** — Cross-reference hygiene: pointed Narrative to [narrative](narrative.md) and Evidence mechanics to [evidence](evidence.md); added both to Related (editorial; no rule change).
 - **2026-06-04 — v1.1 (note)** — Retargeted "the Curator — an Agent ([agents])" → the [curator](curator.md) engine (editorial, no rule change).
+- **2026-06-10 — v1.2** — User-initiated Insight states (material). Gave `archived` an explicit trigger — retention sweep or user "never show again" — and made it non-recallable and not reinforcement-revived (REQ-INS-10). Added §5.11 / REQ-INS-17: user actions **dismiss** (cooldown, stays `active`), **never show again** (→ `archived`), **pin** (expiry-exempt, surfacing-preferred), and **correct** (edit + re-embed the note; fix a wrong citation by re-filing/superseding the underlying [Evidence](evidence.md), REQ-EV-11/-12) — user-owned and not silently overridden by the Curator, persisting across regeneration ([memory](memory.md) REQ-MEM-08). Extended the §9 edge cases and §11 checklist.

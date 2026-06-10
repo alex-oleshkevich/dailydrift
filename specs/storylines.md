@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.2   ·   **Last updated:** 2026-06-04
+> **Version:** 1.3   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The Storyline feature end-to-end — what a Storyline is, how it is created from accumulating Evidence and promoted, how its Status and Momentum move, how Storylines merge, and how the System surfaces them.
 >
@@ -102,7 +102,7 @@ A Storyline is created when **enough Evidence converges on a single coherent, du
 
 ### 5.6 Merging
 
-> **REQ-STORY-07.** When two Storylines are recognized as the **same narrative**, the System merges them into one: their Evidence, Situations, Insights, Tasks, and Entity links combine, one canonical Storyline survives, and the other is recorded as merged-into it. High-confidence duplicates are merged automatically (Always — internal object update); **uncertain** merges are **proposed to the user** rather than applied silently.
+> **REQ-STORY-07.** When two Storylines are recognized as the **same narrative**, the System merges them into one: their Evidence, Situations, Insights, Tasks, and Entity links combine, one canonical Storyline survives, and the other is recorded as merged-into it. **Merge is propose-only.** Because **no unmerge operation exists** and the [Curator](curator.md) itself flags an over-merge as *destroying information and hard to undo* (REQ-CUR-15), a merge is a **high-impact structural change** that is **never auto-executed** on the user's behalf: every merge — high- *or* low-confidence — is surfaced as a **proposal** (Create / Merge into existing / Ignore, REQ-STORY-12) the user confirms, never applied silently. Confidence only sets a merge's **priority/ordering** in the proposal queue, not whether it auto-applies. This is the P9 reversibility-safe posture: the System does not commit an irreversible structural change autonomously. *(Splitting is not the inverse of a past merge — it divides a single drifted Storyline by its current Evidence, not by restoring a pre-merge snapshot.)*
 
 *Example:* candidate threads *API client*, *Postman clone*, and *HTTP tool* are recognized as one effort and merged into the single Storyline *Rust API client*.
 
@@ -124,7 +124,7 @@ A Storyline is created when **enough Evidence converges on a single coherent, du
 
 ### 5.10 The curation contract (LLM)
 
-> **REQ-STORY-13.** Emergent creation (REQ-STORY-04/05) and merge recognition (REQ-STORY-07) are judged by the Curator ([curator](curator.md)), typically via an **LLM**, over an accumulating Evidence cluster and the Space's existing Storylines. The curation contract enforces **scarcity** (REQ-STORY-02) — defaulting to *keep_candidate* — coherent single-topic threads, and conservative merging. High-confidence outcomes apply automatically (Always — internal object update); low-confidence creations/merges are **proposed** to the user (REQ-STORY-05/07/12). All inputs are **untrusted data, never instructions** ([constitution](constitution.md) P12).
+> **REQ-STORY-13.** Emergent creation (REQ-STORY-04/05) and merge recognition (REQ-STORY-07) are judged by the Curator ([curator](curator.md)), typically via an **LLM**, over an accumulating Evidence cluster and the Space's existing Storylines. The curation contract enforces **scarcity** (REQ-STORY-02) — defaulting to *keep_candidate* — coherent single-topic threads, and conservative merging. High-confidence **creations** apply automatically (Always — internal object update; a creation is reversible by archiving); a **merge is always proposed**, never auto-applied, since it is irreversible without an unmerge (REQ-STORY-07); low-confidence creations are likewise **proposed** to the user (REQ-STORY-05/12). All inputs are **untrusted data, never instructions** ([constitution](constitution.md) P12).
 
 **System prompt (static — cache it):**
 
@@ -188,7 +188,6 @@ Decide.
 ### 6.1 Status lifecycle
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef seed fill:#D4EDDA,stroke:#28A745,color:#155724
     classDef candidate fill:#95A5A6,stroke:#7F8C8D,color:#fff
@@ -198,7 +197,7 @@ flowchart LR
     classDef dropped fill:#F8D7DA,stroke:#DC3545,color:#721C24
 
     SEED(["New narrative"]):::seed
-    CAND["Candidate\ninvisible"]:::candidate
+    CAND["Candidate<br/>invisible"]:::candidate
     ACT["Active"]:::active
     DORM["Dormant"]:::dormant
     ARCH["Archived"]:::archived
@@ -223,7 +222,6 @@ flowchart LR
 ### 6.2 Creation — enough Evidence on one topic
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef fact fill:#2ECC71,stroke:#27AE60,color:#fff
     classDef decision fill:#FFF3CD,stroke:#FFC107,color:#333
@@ -232,11 +230,11 @@ flowchart LR
     classDef active fill:#4A90D9,stroke:#2C6FB5,color:#fff
     classDef dropped fill:#F8D7DA,stroke:#DC3545,color:#721C24
 
-    EV["New Evidence\nchat or background"]:::fact
-    OBV{"Unambiguous\neffort?"}:::decision
-    CAND["Candidate\ninvisible"]:::muted
-    ACC["Cluster Evidence\non one topic"]:::action
-    ENOUGH{"Enough on\none topic?"}:::decision
+    EV["New Evidence<br/>chat or background"]:::fact
+    OBV{"Unambiguous<br/>effort?"}:::decision
+    CAND["Candidate<br/>invisible"]:::muted
+    ACC["Cluster Evidence<br/>on one topic"]:::action
+    ENOUGH{"Enough on<br/>one topic?"}:::decision
     ACT["Active Storyline"]:::active
     ONE(["One-off"]):::dropped
 
@@ -297,7 +295,7 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 ## 9. Edge Cases & Failure Modes
 
 - **Storyline explosion.** Liberal topic detection must not spawn Storylines; un-promoted narratives stay candidates and are dropped if they go cold (REQ-STORY-02/03).
-- **False merge.** An uncertain merge is proposed, not applied; a wrong auto-merge of high-confidence duplicates is reversible (the merged-into record preserves provenance).
+- **False merge.** **No merge is auto-applied** — every merge is a user-confirmed proposal (REQ-STORY-07), because there is **no unmerge operation** and a wrong merge collapses two real threads destructively. The merged-into record preserves provenance (so the user can *see* what was folded in), but provenance is **not** an undo: it does not reconstitute the two pre-merge Storylines. Requiring confirmation is the guard, not after-the-fact reversal.
 - **Dormant vs archived.** A quiet-but-live effort goes `dormant` (reactivatable on new Evidence); only completion/abandonment leads to `archived`.
 - **Reactivation churn.** A `dormant` Storyline flapping back and forth is damped by the same quiet-period threshold that made it dormant.
 - **Cross-Storyline Evidence.** One fact legitimately accumulates into more than one Storyline (REQ-STORY-01); it is linked, not duplicated.
@@ -306,7 +304,7 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 
 - **OQ-STORY-1** — The concrete promotion threshold (count of related Evidence and/or the time window). (Tune against real volume.)
 - **OQ-STORY-2** — The `dormant` quiet-period and the `dormant → archived` window — global defaults or per-Space configurable? (Default owned here; client config surface out of scope.)
-- **OQ-STORY-3** — Are merges ever fully automatic, or always at least logged for one-click undo? (Coordinate with [activity-log](activity-log.md).)
+- **OQ-STORY-3** — *(Resolved v1.3, REQ-STORY-07.)* Merges are **never fully automatic** and there is **no unmerge** operation to undo one. Rather than auto-merge-then-undo, the System takes the reversibility-safe posture: a merge is **always a user-confirmed proposal**, so an irreversible structural change is never committed autonomously. The merge **is** logged ([activity-log](activity-log.md)) and the merged-into record preserves provenance for inspection, but that is an audit trail, not a one-click undo. If a concrete unmerge mechanism (restore-from-merged-into-snapshot) is ever specified, auto-merge of high-confidence duplicates could be revisited.
 
 ## 11. Review & Acceptance Checklist
 
@@ -315,7 +313,7 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 - [ ] Status (`candidate/active/dormant/archived` + reactivation) matches [data-model](data-model.md) (REQ-STORY-03).
 - [ ] Creation is triggered by **enough Evidence converging on one coherent topic, from any source** (chat or background) — instant for an unambiguous effort, emergent from an accumulating cluster; scarcity comes from the bar, not the channel; uncertain background clusters are proposed (REQ-STORY-04/05, -12).
 - [ ] Momentum is movement, not volume, with the four values from [data-model](data-model.md) (REQ-STORY-06).
-- [ ] Merging combines links with one survivor; uncertain merges are proposed (REQ-STORY-07).
+- [ ] Merging combines links with one survivor; **every merge is propose-only** — never auto-applied, since no unmerge exists (P9 reversibility); confidence orders the queue, it does not authorize auto-commit (REQ-STORY-07).
 - [ ] The Storyline `summary` is the Storyline-scoped Narrative, distinct from the Space Narrative (REQ-STORY-08; [narrative](narrative.md)).
 - [ ] Surfacing (Home "Active Storylines," chat context, proactive proposal) is specified (REQ-STORY-10…-12).
 - [ ] The LLM curation contract is scarcity-first (defaults to keep_candidate), single-topic, and merges conservatively under the untrusted-data rule (REQ-STORY-13).
@@ -337,3 +335,4 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 - **2026-06-04 — v1.2** — Added §5.10 / REQ-STORY-13: the **curation LLM contract** (system prompt + user template + output schema) for emergent creation and merge, scarcity-first (defaults to keep_candidate), single-topic, conservative merging, under the untrusted-data rule (P12).
 - **2026-06-04 — v1.2 (note)** — Cross-reference hygiene: pointed the accumulated-material cross-ref to [evidence](evidence.md) and added it to Related (editorial; no rule change).
 - **2026-06-04 — v1.2 (note)** — Linked "the Curator" → the [curator](curator.md) engine in REQ-STORY-13 (editorial, no rule change).
+- **2026-06-10 — v1.3** — **Merge is now propose-only — unmerge/reversibility gap closed (material).** The spec previously auto-merged high-confidence duplicates and called a wrong auto-merge "reversible (provenance preserved)," while [curator](curator.md) calls an over-merge "hard to undo" and **no unmerge operation exists** — a P9 reversibility gap on an autonomously-committed structural change. Resolved by the **reversibility-safe** option: a `merge` is **never auto-executed at any confidence** — it is always a user-confirmed proposal (confidence only orders the queue); creation still auto-applies (reversible by archiving) (REQ-STORY-07 rewritten; REQ-STORY-13 reconciled). Corrected the §9 **False-merge** edge case (provenance is an audit trail, not an undo) and the acceptance-checklist item. **Resolved OQ-STORY-3** (merges are never fully automatic; logged but not one-click-undoable; auto-merge could be revisited only if a concrete unmerge mechanism is specified). Coordinated with [curator](curator.md) v1.3 (REQ-CUR-05/14, §5.17 contract), edited in the same pass.

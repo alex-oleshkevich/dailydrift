@@ -2,11 +2,11 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-04
+> **Version:** 1.1   ·   **Last updated:** 2026-06-10
 >
-> **Purpose:** Recurring/scheduled work — `ptask_`: a **cron schedule that enqueues a [Task](tasks.md)**. Nothing more.
+> **Purpose:** Recurring/scheduled work — `ptask_`: a **cron schedule that enqueues a [Task](tasks.md)**. Nothing more (it may mark an obviously-atomic template for the **cheap execution path**).
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [tasks](tasks.md)   ·   **Related:** [signals](signals.md), [inbox](inbox.md), [curator](curator.md), [memory](memory.md), [app-architecture](app-architecture.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md), [tasks](tasks.md)   ·   **Related:** [signals](signals.md), [inbox](inbox.md), [curator](curator.md), [memory](memory.md), [app-architecture](app-architecture.md), [token-cost-management](token-cost-management.md)
 
 > Requirement tag: **PTASK**
 
@@ -52,21 +52,24 @@ Scheduling should be the thinnest possible thing: *"at this cadence, enqueue thi
 
 > **REQ-PTASK-04.** There is **no watcher primitive**. To "watch" a source, schedule a Periodic Task that enqueues a Task whose goal is to **poll the source and emit a [Signal](signals.md) on a meaningful change** ([tasks](tasks.md) REQ-TASK-12). The Signal flows into the [Inbox](inbox.md) like any other.
 
-### 5.5 Lifecycle
+### 5.5 Cheap path for atomic template tasks
+
+> **REQ-PTASK-06.** A high-frequency Periodic Task whose template is **obviously atomic** (a single, well-understood action — e.g. a poll-and-maybe-emit-a-Signal per REQ-PTASK-04) must not pay the **full** plan → route → execute → review pipeline on **every** fire — that is cost without value at cadence. The `task_template` may declare the enqueued Task **atomic** (`atomic: true`), which marks it for the Task's **cheap execution path**: it is run **directly as a single leaf** — **no decomposition** (the planner's "atomic ⇒ no children", [tasks](tasks.md) REQ-TASK-04) and **no reviewer call** unless it is risk-bearing ([tasks](tasks.md) REQ-TASK-08's risk-based rule — a pure poll/read-only fire skips review). This is a **hint** the enqueued Task honors, not a separate execution model; if the goal turns out non-atomic, the normal pipeline still applies. Per-Task budgets ([tasks](tasks.md) REQ-TASK-16) and token/cost accounting ([token-cost-management](token-cost-management.md)) bound the spend either way.
+
+### 5.6 Lifecycle
 
 > **REQ-PTASK-05.** A Periodic Task is **`enabled / paused / disabled`**. A `paused`/`disabled` schedule does not fire. There is no missed-run catch-up and no overlap handling — if the System was off when a schedule was due, it simply fires at its next scheduled time.
 
 ## 6. Visualizations
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef sched fill:#CCE5FF,stroke:#4A90D9,color:#004085
     classDef work fill:#7B68EE,stroke:#6A5ACD,color:#fff
 
-    SCHED["cron fires\n(UTC)"]:::sched
-    TASK["enqueue a Task\n(tasks.md)"]:::work
-    SIG["…a Task may emit a Signal\n(→ inbox)"]:::work
+    SCHED["cron fires<br/>(UTC)"]:::sched
+    TASK["enqueue a Task<br/>(tasks.md)"]:::work
+    SIG["…a Task may emit a Signal<br/>(→ inbox)"]:::work
 
     SCHED --> TASK
     TASK -.->|"e.g. a polling Task"| SIG
@@ -85,6 +88,7 @@ interface PeriodicTask {
   task_template: {            // the Task to enqueue on each fire
     goal: string;
     assigned_role?: string;
+    atomic?: boolean;         // cheap-path hint (REQ-PTASK-06): run as a single leaf, skip planning; review only if risk-bearing
   };
   status: "enabled" | "paused" | "disabled";
   last_enqueued_at?: Date;
@@ -117,16 +121,18 @@ To watch Northwind's pricing, a Periodic Task fires each morning and enqueues a 
 - [ ] A Periodic Task is **a cron schedule that enqueues a Task** — nothing more (REQ-PTASK-01/02/03).
 - [ ] **No watcher primitive** — watching is a Task that emits a Signal (REQ-PTASK-04).
 - [ ] Lifecycle is `enabled/paused/disabled`; **no runs, no catch-up, no overlap locks** (REQ-PTASK-05). Examples use the [constitution](constitution.md) §7 cast; no placeholders; no machinery.
+- [ ] An obviously-atomic template may take the **cheap path** (`atomic` hint): run as a single leaf, skip planning, review only if risk-bearing (REQ-PTASK-06, → [tasks](tasks.md) REQ-TASK-04/08).
 
 ## 12. Cross-References
 
-- [tasks](tasks.md) — the Task a Periodic Task enqueues; a Task's ability to emit a Signal (REQ-TASK-12).
+- [tasks](tasks.md) — the Task a Periodic Task enqueues; a Task's ability to emit a Signal (REQ-TASK-12); the cheap-path's no-planning/risk-based-review behavior (REQ-TASK-04/08) and per-Task budget (REQ-TASK-16).
 - [signals](signals.md) / [inbox](inbox.md) — where an emitted Signal goes.
 - [curator](curator.md) / [memory](memory.md) — common scheduled work (cleanup, distillation) enqueued as Tasks.
-- [app-architecture](app-architecture.md) — the cron runtime.
+- [app-architecture](app-architecture.md) — the cron runtime. [token-cost-management](token-cost-management.md) — the spend the cheap path reduces.
 
 ## 13. Changelog
 
 - **2026-06-04 — v0.1** — Initial draft (Periodic Task + watcher + runs).
 - **2026-06-04 — v0.2** — **Gutted to the minimal model:** a Periodic Task is just **a cron schedule that enqueues a [Task](tasks.md)** (REQ-PTASK-01/03). **Removed the watcher primitive** — watching is a Task that emits a Signal (REQ-PTASK-04, [tasks](tasks.md) REQ-TASK-12) — and **removed runs / catch-up / overlap** machinery (REQ-PTASK-05).
 - **2026-06-04 — v1.0** — Approved.
+- **2026-06-10 — v1.1** — **(stays Approved.)** Added **REQ-PTASK-06 (§5.5)**: a Periodic Task firing at cadence must not pay the full plan→route→execute→review pipeline on an **obviously-atomic** template. The `task_template` may declare `atomic: true` (new field in the §7 shape), a hint that the enqueued Task runs **directly as a single leaf** — no decomposition ([tasks](tasks.md) REQ-TASK-04) and no reviewer call unless risk-bearing ([tasks](tasks.md) REQ-TASK-08), bounded either way by the per-Task budget ([tasks](tasks.md) REQ-TASK-16). Renumbered Lifecycle to §5.6 (REQ-PTASK-05 unchanged); added [token-cost-management](token-cost-management.md) to Related/cross-refs; updated the §11 checklist.

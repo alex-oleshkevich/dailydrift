@@ -219,7 +219,6 @@ const DEFAULT_SUBAGENT_TOOL_DENY = [
 ### 6.1 Agent definition anatomy
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart TB
     classDef id fill:#CCE5FF,stroke:#4A90D9,color:#004085
     classDef beh fill:#7B68EE,stroke:#6A5ACD,color:#fff
@@ -227,10 +226,10 @@ flowchart TB
     classDef run fill:#34495E,stroke:#2C3E50,color:#fff
 
     A["Agent"]
-    ID["Identity & routing\nname · role · description/when_to_use"]:::id
-    BEH["Behavior\nsystem_prompt (how) · personality (who: persona+tone+anti-goals)"]:::beh
-    CAP["Capability\nskill_set · tool_set+policy · mcp_servers"]:::cap
-    RUN["Runtime\nmodel · mode · sandbox · max_iterations · subagent_policy"]:::run
+    ID["Identity & routing<br/>name · role · description/when_to_use"]:::id
+    BEH["Behavior<br/>system_prompt (how) · personality (who: persona+tone+anti-goals)"]:::beh
+    CAP["Capability<br/>skill_set · tool_set+policy · mcp_servers"]:::cap
+    RUN["Runtime<br/>model · mode · sandbox · max_iterations · subagent_policy"]:::run
 
     A --> ID
     A --> BEH

@@ -2,9 +2,9 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-04
+> **Version:** 1.2   ·   **Last updated:** 2026-06-10
 >
-> **Purpose:** The Task feature — an **agentic** unit of work: a *goal* given to an agent. A Task is **planned into subtasks**, each **routed** to the right agent and **executed**, then **reviewed**. Owns the (recursive) Task entity, its status, the plan→execute→review journey, the mid-task **approval** pause, and **cancellation**.
+> **Purpose:** The Task feature — an **agentic** unit of work: a *goal* given to an agent. A Task is **planned into subtasks**, each **routed** to the right agent and **executed**, then **reviewed** (review is **risk-based**, not blanket per-leaf). Owns the (recursive) Task entity, its status, the plan→execute→review journey, the mid-task **approval** pause (with **plan-level pre-approval / batching**), **plan-surfacing & live progress**, a **per-Task cost budget**, and **cancellation**.
 >
 > **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [agents](agents.md), [agent-orchestration](agent-orchestration.md), [situations](situations.md), [curator](curator.md), [permissions](permissions.md), [proactivity](proactivity.md), [skills](skills.md), [tools](tools.md), [periodic-tasks](periodic-tasks.md), [app-architecture](app-architecture.md), [activity-log](activity-log.md)
 
@@ -89,13 +89,19 @@ A Task is also the **attempt to change a [Situation](situations.md)** (REQ-SIT-1
 
 > **REQ-TASK-07.** When the executing agent reaches an **Ask-first** step ([constitution](constitution.md) §5, [permissions](permissions.md)):
 > 1. it asks **before** doing the side effect — so a denial is a clean **no-op** (safety from ordering, not rollback);
-> 2. the Task moves to **`awaiting_approval`** and raises an **`approval` [Situation](situations.md)** (REQ-SIT-04, §5.2) + a [proactivity](proactivity.md) push;
-> 3. **the `approval` Situation is the single source of truth for the decision** (it carries the suggested action and the deadline); the `awaiting_approval` **status mirrors it** and the two stay in lockstep;
-> 4. on **grant** → the Task returns to `running`, the agent performs the action, and continues; on **deny** → `cancelled` (`permission_denied`); on **no answer by the deadline** → `cancelled` (`permission_timeout`). Every decision is logged ([activity-log](activity-log.md)).
+> 2. **the blocked leaf** moves to **`awaiting_approval`** and raises an **`approval` [Situation](situations.md)** (REQ-SIT-04, §5.2) + a [proactivity](proactivity.md) push. Only the blocked leaf and the subtasks that `depends_on` it park; **independent parallel sibling leaves keep running** and the **parent stays `running`** ([agent-orchestration](agent-orchestration.md) REQ-AORCH-05). The parent reconciles when the parked leaf resolves;
+> 3. **the `approval` Situation is the single source of truth for the decision** (it carries the suggested action and the deadline); the `awaiting_approval` **status mirrors it** and the two stay in lockstep. The **previewed action — the exact tool-call arguments — is frozen and persisted at park time** (REQ-TASK-13), so the granted action is what executes;
+> 4. on **grant** → the leaf returns to `running`, the agent performs **the frozen action verbatim**, and continues; on **deny** → `cancelled` (`permission_denied`); on **no answer by the deadline** → the default is **park-and-hold** (stay `awaiting_approval`, the `approval` Situation keeps it visible) **rather than auto-cancel**, *except* where holding is itself unsafe (a time-sensitive action whose value expires, per [permissions](permissions.md)), where it `cancelled`s (`permission_timeout`). A denied/expired leaf cascades to its dependents (§5.9). Every decision is logged ([activity-log](activity-log.md)).
+
+### 5.7a Plan-level pre-approval & batching
+
+> **REQ-TASK-14.** To avoid **approval fatigue** ([constitution](constitution.md) §5.2 *anticipate-don't-nag*), a multi-step or file-heavy plan must not generate N serial one-by-one interrupts when the Ask-first steps are foreseeable. When planning (§5.4) surfaces the Ask-first steps a plan will reach, the System **pre-computes them and asks once**: a single **batched `approval` Situation** that lists the **N planned actions** (each with its frozen previewed action, REQ-TASK-13) for the user to **approve as a set** (or approve a subset / deny individually). A **batch grant pre-approves** those exact frozen actions, so the corresponding leaves **proceed without re-parking** when reached. Only steps that were **not foreseeable at plan time** (an action discovered mid-execution) fall back to the per-leaf pause (§5.7). Pre-approval still binds the **frozen** action (REQ-TASK-13) — a pre-approved action that drifts from what was approved re-parks. Every batch decision is logged ([activity-log](activity-log.md)).
 
 ### 5.8 Review
 
-> **REQ-TASK-08.** When a leaf finishes, its result is checked by a **separate reviewer agent** (fresh context — not the worker grading itself), status `reviewing`. The reviewer returns one of:
+> **REQ-TASK-08.** Review is **risk-based, not blanket per-leaf** (resolves OQ-TASK-5). A leaf is reviewed when it is **risk-bearing** — it **acted** on the world (any Ask-first/Always side effect: outbound, destructive, or otherwise mutating per [permissions](permissions.md)) **or** the worker returned **low confidence** (self-reported uncertainty / explicit signal that the result may be wrong). A **pure read-only / internal** leaf (no external side effect, no mutation — e.g. a summary or an internal lookup) **skips review** and goes straight to `done`, saving the reviewer LLM call where it buys nothing. The risk classification is recorded on the leaf (`review_required`) and logged (REQ-TASK-11); when in doubt, **review** (fail safe toward review).
+>
+> When a leaf **is** reviewed, it is checked by a **separate reviewer agent** (fresh context — not the worker grading itself), status `reviewing`. The reviewer returns one of:
 > - **`approved`** → the Task is `done`;
 > - **`changes_requested`** (with **actionable feedback**) → the Task returns to `running` and the worker redoes it with the feedback. This loop is **bounded** (a small iteration cap); past the cap the Task **escalates to the user** (raised as a Situation) or ends `failed` (OQ-TASK-3).
 >
@@ -118,16 +124,29 @@ A Task is also the **attempt to change a [Situation](situations.md)** (REQ-SIT-1
 
 > **REQ-TASK-11.** A Task's **status**, its **review** outcomes, and every **approval decision** are observable and logged ([activity-log](activity-log.md)) with actor and time. A parent's subtasks are inspectable as its plan.
 
+> **REQ-TASK-15.** Running work is **visible and observable**, not opaque (supports P9 transparency). Two contracts:
+> 1. **Plan-surfacing on enqueue.** When planning (§5.4) produces a plan, that plan — the **ordered subtasks, their `assigned_role`, `depends_on`, and any foreseeable Ask-first steps** (REQ-TASK-14) — is **surfaced before execution begins**, so the work is inspectable up front (not only after the fact).
+> 2. **Live task-progress observation.** While a Task runs, its **live progress is observable** — current per-leaf status transitions (§5.2), which leaves are running/parked/reviewing/done, and review iterations — emitted as they happen, not only on completion.
+>
+> This spec owns the **behavior/contract** (what is surfaced and when); how a client renders it is out of scope (§2). Control beyond cancel — **pause/edit of a running plan** — is an OQ (OQ-TASK-6); today the guaranteed control is **cancel** (§5.9).
+
 ### 5.12 Emitting a Signal
 
 > **REQ-TASK-12.** A Task **may emit a [Signal](signals.md)** into the [Inbox](inbox.md). This is the capability that **replaces the watcher primitive**: a Task scheduled by a [Periodic Task](periodic-tasks.md) (REQ-PTASK-04) that polls a source and detects a meaningful change simply **emits a Signal**, which then flows through ingestion ([signals](signals.md) / [inbox](inbox.md)) like any other. Emitting is internal; the Signal is **untrusted data** thereafter (P12), handled by the normal pipeline.
+
+### 5.13 Durable park & resume
+
+> **REQ-TASK-13.** A park must survive a process restart across a multi-day approval wait. The orchestrator's working state lives **in memory** during a run, so a parked leaf persists only as a Task row is **not enough** to resume correctly. At park time the System **freezes and persists, alongside the parked Task**: (a) the **previewed tool-call arguments** — the exact action awaiting approval — so on **grant** the *approved* action executes **verbatim** (never a re-derived call); (b) the **parked-worker context** needed to resume that leaf; (c) the **done-set** (which sibling subtasks completed and their results); and (d) the **replan and review counters**. On grant the orchestrator rehydrates this state and resumes from the park point ([agent-orchestration](agent-orchestration.md) REQ-AORCH-14). This is **minimal durable state, not a workflow/durable-execution engine** — only what a correct resume requires (the explicit non-goal of §2 still holds: no saga/durable-execution machinery).
+
+### 5.14 Per-Task cost budget
+
+> **REQ-TASK-16.** A Task carries a **budget** — a cap on **tokens, monetary cost, and wallclock** — covering the *whole* recursive run (planning, routing, every leaf's execution, and reviews), not just an iteration count. The existing orchestration caps (decomposition depth OQ-TASK-1, review iterations OQ-TASK-3) bound *structure*; this bounds *spend*. Consumption accrues across the subtree against the **top-level Task's** budget (a parent's budget is the ceiling for its children). When the budget is **exhausted**, the orchestrator **stops spawning new work** and the Task **escalates to the user** (raised as a Situation) or ends `failed` — it does **not** silently keep spending. A budget is set at enqueue (with a Space/System default) and is observable (REQ-TASK-11). Token/cost accounting and rate/spend policy are owned by [token-cost-management](token-cost-management.md); this REQ owns only that **a Task is bounded by a budget and what happens at exhaustion**.
 
 ## 6. Visualizations
 
 ### 6.1 Task status
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 stateDiagram-v2
     classDef active fill:#4A90D9,stroke:#2C6FB5,color:#fff
     classDef hold fill:#FFF3CD,stroke:#FFC107,color:#333
@@ -165,7 +184,6 @@ stateDiagram-v2
 ### 6.2 Plan → execute → review
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     classDef plan fill:#7B68EE,stroke:#6A5ACD,color:#fff
     classDef run fill:#4A90D9,stroke:#2C6FB5,color:#fff
@@ -173,17 +191,17 @@ flowchart LR
     classDef good fill:#2ECC71,stroke:#27AE60,color:#fff
 
     GOAL["Task (a goal)"]:::plan
-    PLAN["orchestrator plans →\nordered subtasks"]:::plan
-    ROUTE["route each leaf →\nagent role (skills/tools)"]:::run
-    EXEC["agent executes\n(may await approval)"]:::run
-    REV["separate reviewer\nchecks result"]:::cond
+    PLAN["orchestrator plans →<br/>ordered subtasks"]:::plan
+    ROUTE["route each leaf →<br/>agent role (skills/tools)"]:::run
+    EXEC["agent executes<br/>(may await approval)"]:::run
+    REV["separate reviewer<br/>checks result"]:::cond
     DONE["done"]:::good
 
     GOAL --> PLAN --> ROUTE --> EXEC --> REV
     REV -->|"approved"| DONE
     REV -->|"changes (bounded)"| EXEC
     REV -.->|"cap reached"| ESC["escalate to user"]:::cond
-    EXEC -.->|"Ask-first"| APPR["approval Situation\n(awaiting_approval)"]:::cond
+    EXEC -.->|"Ask-first"| APPR["approval Situation<br/>(awaiting_approval)"]:::cond
     APPR -.->|"granted"| EXEC
 ```
 
@@ -205,12 +223,29 @@ interface Task {              // agentic, recursive — a subtask is a Task
   assigned_role?: string;     // the agent role routed to run a leaf (set by routing, §5.5)
   created_by: "user" | "agent" | "curator";
   situation_id?: string;      // the Situation it acts on; or the open `approval` Situation while awaiting permission
+  frozen_action?: {           // set while awaiting_approval — the previewed tool-call FROZEN at park time (REQ-TASK-13)
+    tool: string;             // the action awaiting approval; on grant it executes verbatim
+    args: Record<string, unknown>;
+  };
+  resume_state?: {            // minimal durable orchestration state for a correct restart (REQ-TASK-13)
+    worker_context: string;   // the parked worker's context needed to resume this leaf
+    done: string[];           // completed sibling subtask ids (the done-set)
+    replan_count: number;
+    review_iteration: number;
+  };
   context_evidence_ids: string[];
   result?: string;            // the leaf's output, which the reviewer checks
-  review?: {                  // the reviewer's verdict — a quality gate, NOT user permission
+  review_required?: boolean;  // risk-based (REQ-TASK-08): acting/destructive or low-confidence ⇒ true; pure read-only/internal ⇒ skip review
+  review?: {                  // the reviewer's verdict — a quality gate, NOT user permission. Absent when review_required is false
     outcome: "approved" | "changes_requested";
     feedback?: string;
     iteration: number;        // bounded; escalates to the user past the cap
+  };
+  pre_approved?: boolean;     // set by a plan-level batch grant (REQ-TASK-14) — frozen action proceeds without re-parking
+  budget?: {                  // per-Task cap over the whole recursive run (REQ-TASK-16); accrues to the top-level Task
+    max_tokens?: number;
+    max_cost?: number;        // monetary
+    max_wallclock_ms?: number;
   };
   cancel_reason?: "user" | "permission_denied" | "permission_timeout" | "parent_cancelled";
   error?: string;
@@ -238,7 +273,7 @@ The user cancels the parent *"prepare the handoff."* Subtask 3 (still `running`)
 - **Review never satisfied.** The bounded loop caps iterations, then escalates to the user / fails — it does not loop forever (REQ-TASK-08).
 - **Approval never answered.** The Task sits in `awaiting_approval`; the `approval` Situation keeps it visible; on the deadline it `cancelled`s (`permission_timeout`), or the user cancels first (REQ-TASK-07/09).
 - **Subtask fails.** The orchestrator **replans** the remaining work; only if unrecoverable does the parent fail/surface ([agent-orchestration](agent-orchestration.md) REQ-AORCH-08).
-- **Restart mid-flight.** Every Task is a persisted row; status, plan, and the `approval` Situation all survive — no engine needed.
+- **Restart mid-flight.** Every Task is a persisted row; status, plan, and the `approval` Situation all survive. A *parked* leaf also persists its **frozen previewed action, parked-worker context, done-set, and replan/review counters** (REQ-TASK-13), so a resume after a multi-day wait + restart executes the *approved* action verbatim — **minimal durable state, no workflow engine** ([agent-orchestration](agent-orchestration.md) REQ-AORCH-14).
 - **Self-review bias avoided.** Review is always a **separate** agent, never the worker grading itself (REQ-TASK-08).
 
 ## 10. Open Questions & Decisions
@@ -247,7 +282,8 @@ The user cancels the parent *"prepare the handoff."* Subtask 3 (still `running`)
 - **OQ-TASK-2 (resolved)** — Subtasks use a **`depends_on` dependency graph**; independent ones run in **parallel** (scheduling owned by [agent-orchestration](agent-orchestration.md)).
 - **OQ-TASK-3** — The **review iteration cap** and the **escalation** mechanism past it (a Situation vs `failed`).
 - **OQ-TASK-4 (resolved)** — On a subtask failure the orchestrator **dynamically replans** the remaining work, escalating only when unrecoverable ([agent-orchestration](agent-orchestration.md) REQ-AORCH-08).
-- **OQ-TASK-5** — Whether review is **per-leaf always**, or risk-based (skip pure-internal leaves). The queue **runtime** is [app-architecture](app-architecture.md); the approval **deadline** default lives on the `approval` Situation.
+- **OQ-TASK-5 (resolved)** — Review is **risk-based**, not blanket per-leaf: review acting/destructive or low-confidence leaves, **skip** pure read-only/internal ones (REQ-TASK-08). The queue **runtime** is [app-architecture](app-architecture.md); the approval **deadline** default lives on the `approval` Situation.
+- **OQ-TASK-6** — Control of a **running** plan **beyond cancel** — **pause** and **edit** (re-order/drop/amend subtasks mid-flight). Today the guaranteed control is cancel (§5.9); plan-surfacing + live progress (REQ-TASK-15) are the prerequisite visibility.
 
 ## 11. Review & Acceptance Checklist
 
@@ -255,8 +291,12 @@ The user cancels the parent *"prepare the handoff."* Subtask 3 (still `running`)
 - [ ] The 8-state status set is specified, with `awaiting_approval` dedicated and no auto-retry (REQ-TASK-02).
 - [ ] Enqueue (user/agent/Curator) and **plan-first decomposition** into ordered subtasks are specified (REQ-TASK-03/04).
 - [ ] Leaves are **routed** by skills/tools and executed by the assigned agent; a parent is done when its children are (REQ-TASK-05/06).
-- [ ] Mid-task approval uses the dedicated `awaiting_approval` status **mirroring** the `approval` Situation (single source of truth), gated before the side effect, with grant/deny/timeout outcomes (REQ-TASK-07).
-- [ ] Review is a **separate** reviewer agent, bounded, with reviewer-*quality* distinct from user-*permission* (REQ-TASK-08).
+- [ ] Mid-task approval uses the dedicated `awaiting_approval` status **mirroring** the `approval` Situation (single source of truth), gated before the side effect, with grant/deny/timeout outcomes; only the **blocked leaf + dependents** park while independent siblings keep running and the parent stays `running` (REQ-TASK-07).
+- [ ] A park **freezes & persists** the previewed action, parked-worker context, done-set, and replan/review counters; resume after restart executes the *approved* action verbatim — minimal durable state, no workflow engine (REQ-TASK-13).
+- [ ] Review is **risk-based** (acting/destructive or low-confidence reviewed; pure read-only/internal skipped), by a **separate** reviewer agent, bounded, with reviewer-*quality* distinct from user-*permission* (REQ-TASK-08).
+- [ ] **Plan-level pre-approval / batching** asks once for foreseeable Ask-first steps (a batched `approval` Situation over N frozen actions), with timeout defaulting to **park-and-hold** where safe (REQ-TASK-14/07).
+- [ ] The **plan is surfaced on enqueue** and **live progress is observable** during a run; behavior/contract only, client rendering out of scope (REQ-TASK-15).
+- [ ] A Task is bounded by a **per-Task budget** (tokens/cost/wallclock) over the whole recursive run; exhaustion escalates/fails, never silent spend (REQ-TASK-16, → [token-cost-management](token-cost-management.md)).
 - [ ] Cancellation is a terminal state from any non-terminal one, with `cancel_reason`, cascade to subtasks, cooperative, no compensation (REQ-TASK-09).
 - [ ] Situation relationship and observability/audit are specified (REQ-TASK-10/11). Examples use the [constitution](constitution.md) §7 cast; no enterprise machinery.
 - [ ] Subtasks carry `depends_on` (parallel where independent); a Task may **emit a Signal** (replaces the watcher) (REQ-TASK-06/12).
@@ -268,8 +308,9 @@ The user cancels the parent *"prepare the handoff."* Subtask 3 (still `running`)
 - [situations](situations.md) — a Task is an attempt to change a Situation (REQ-SIT-11); the `approval` Situation that represents a permission wait (REQ-SIT-04).
 - [constitution](constitution.md) §5 / [permissions](permissions.md) — the Always/Ask-first/Never gate this spec invokes. [proactivity](proactivity.md) — surfaces approvals/escalations.
 - [curator](curator.md) — an enqueuer. [periodic-tasks](periodic-tasks.md) — recurring Tasks. [app-architecture](app-architecture.md) — the queue runtime. [activity-log](activity-log.md) — the audit.
+- [token-cost-management](token-cost-management.md) — token/cost accounting and spend policy behind the per-Task budget (REQ-TASK-16).
 
-**Design lineage.** The model follows **orchestrator-workers** + **plan-and-execute** (decompose → dispatch → synthesize) and **evaluator-optimizer** (generate → review → refine, bounded) from the documented agent-pattern literature (e.g. Anthropic, "Building Effective Agents"), with a **separate reviewer** (not self-critique) to avoid self-grading bias, and the **approve-before-act** gate so the approval pause needs no durable-execution engine.
+**Design lineage.** The model follows **orchestrator-workers** + **plan-and-execute** (decompose → dispatch → synthesize) and **evaluator-optimizer** (generate → review → refine, bounded) from the documented agent-pattern literature (e.g. Anthropic, "Building Effective Agents"), with a **separate reviewer** (not self-critique) to avoid self-grading bias, and the **approve-before-act** gate so the approval pause needs only **minimal durable state** (the frozen action + resume state, REQ-TASK-13) rather than a full durable-execution engine.
 
 ## 13. Changelog
 
@@ -278,3 +319,5 @@ The user cancels the parent *"prepare the handoff."* Subtask 3 (still `running`)
 - **2026-06-04 — v0.3** — Added **`depends_on`** to subtasks (parallel where independent — resolves OQ-TASK-2) and noted **dynamic replanning** (resolves OQ-TASK-4, → [agent-orchestration](agent-orchestration.md)); added **REQ-TASK-12: a Task may emit a [Signal](signals.md)** (replaces the watcher primitive, [periodic-tasks](periodic-tasks.md) REQ-PTASK-04); **improved the §6.1 status diagram** (color-coded by state class).
 - **2026-06-04 — v0.4** — Aligned **REQ-TASK-05 routing** with [agent-orchestration](agent-orchestration.md) REQ-AORCH-03: routing is on an agent's **`description`/when-to-use + skills/tools** (deterministic-then-semantic), not skills/tools alone; the routing mechanism is owned by agent-orchestration.
 - **2026-06-04 — v1.0** — Approved.
+- **2026-06-10 — v1.1** — **(stays Approved.)** Resolved an `awaiting_approval` contradiction and added durable-resume guarantees, kept consistent with [agent-orchestration](agent-orchestration.md): **REQ-TASK-07** now states the pause parks **only the blocked leaf + its dependents** while independent sibling leaves keep running and the **parent stays `running`** (matching the leaf-level definition in REQ-TASK-02), and that the previewed action is **frozen** so grant executes it verbatim. **New REQ-TASK-13** requires freezing & persisting the previewed tool-call args, parked-worker context, done-set, and replan/review counters at park time for a correct restart, and softens the "no engine needed" overclaim to **"minimal durable state, no workflow engine"** (§9 edge case and §12 lineage updated to match). Added `frozen_action` and `resume_state` to the §7 Task shape; updated the §11 checklist.
+- **2026-06-10 — v1.2** — **(stays Approved.)** Four material changes. **REQ-TASK-08** is now **risk-based review** (resolves OQ-TASK-5): only acting/destructive or low-confidence leaves are reviewed, pure read-only/internal leaves **skip review** (with `review_required` recorded), cutting the per-leaf reviewer LLM call where it buys nothing. **New REQ-TASK-14 (§5.7a) plan-level pre-approval / batching**: foreseeable Ask-first steps are pre-computed and asked **once** as a batched `approval` Situation over N frozen actions (P5.2 anticipate-don't-nag), and **REQ-TASK-07** timeout default softens from auto-cancel to **park-and-hold** where safe (still `permission_timeout`-cancel for value-expiring actions). **New REQ-TASK-15** adds **plan-surfacing on enqueue** and **live task-progress observation** contracts (P9 transparency; client rendering out of scope), and opens **OQ-TASK-6** (pause/edit of a running plan). **New REQ-TASK-16 (§5.14) per-Task budget** (tokens/cost/wallclock over the whole recursive run; exhaustion escalates/fails, never silent spend), cross-referencing [token-cost-management](token-cost-management.md). Added `review_required`, `pre_approved`, and `budget` to the §7 Task shape; updated the §11 checklist and §12 cross-refs.

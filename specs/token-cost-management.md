@@ -2,7 +2,7 @@
 
 > **Status:** Approved
 >
-> **Version:** 1.0   ·   **Last updated:** 2026-06-09
+> **Version:** 1.3   ·   **Last updated:** 2026-06-10
 >
 > **Purpose:** The **accounting and governance layer** over every model call — metering token usage, attributing spend to a Space / Task / Agent / model, enforcing **hierarchical budgets and caps**, and **degrading rather than failing** at the limit. It answers *"how much did that cost, who spent it, and what happens when the budget runs out?"* — the money/compute analogue of [proactivity](proactivity.md)'s attention budget.
 >
@@ -95,7 +95,7 @@ Canonical terms in [glossary](glossary.md). Terms this spec uses:
 > - **Soft cap** — a fraction of the limit (e.g. 80%). Crossing it **warns** (burn-rate alert, §5.9) and **engages degradation** (§5.8) — cheaper tiers, trimmed context — but **work continues**.
 > - **Hard cap** — the limit the System **will not autonomously cross**. At the hard cap, an outbound (money-incurring) call is **not Always**: it converts to **Ask-first "continue and spend?"** ([constitution](constitution.md) §5 — *incur a cost*) or, where no user is reachable, **fail-closed** (§5.7).
 >
-> **Pre-flight, not post-hoc:** budgets are checked **before** dispatching the next call, using a token **pre-estimate** ([ai-models](ai-models.md) REQ-AIM-11 token counting) so the cap refuses *before* the spend, not after (◆ LiteLLM/llm-budget — enforce before the call). The smart routing of [ai-models](ai-models.md) may *lower* a call's tier to fit, but can **never raise a hard cap** (the deterministic-backstop rule, mirroring [proactivity](proactivity.md) REQ-PROACT-11).
+> **Pre-flight, not post-hoc — and atomic, not a bare read:** budgets are checked **before** dispatching the next call, using a token **pre-estimate** ([ai-models](ai-models.md) REQ-AIM-11 token counting) so the cap refuses *before* the spend, not after (◆ LiteLLM/llm-budget — enforce before the call). Admission must **atomically reserve** the estimate — *decrement-then-reconcile*: the pre-flight check and the reservation of the estimated tokens/cost against the tightest binding budget happen as **one atomic operation** (a single SQLite transaction over the budget row, [app-architecture](app-architecture.md) REQ-ARCH-03), and the reservation is **reconciled against actuals** from the usage record (§5.1) when the call completes (release the estimate, charge the real cost). A bare read of the running total is **insufficient**: because independent leaves dispatch **in parallel** ([app-architecture](app-architecture.md) REQ-ARCH-08), N concurrent admissions reading the *same* remaining budget would each pass and collectively overshoot a hard cap by N×estimate. Reserving on admission makes concurrent calls contend for the **same** decremented headroom, so they cannot collectively exceed a hard cap; a call whose reservation would breach a hard cap takes the hard-cap path (§5.7) instead of being admitted. The smart routing of [ai-models](ai-models.md) may *lower* a call's tier to fit, but can **never raise a hard cap** (the deterministic-backstop rule, mirroring [proactivity](proactivity.md) REQ-PROACT-11).
 
 ### 5.6 Rate ceiling — the token bucket
 
@@ -118,22 +118,36 @@ Canonical terms in [glossary](glossary.md). Terms this spec uses:
 >
 > | Rung | Lever | Owned by |
 > |------|-------|----------|
-> | 1 | **Tier downshift** — drop Strong→Standard→Fast where the task tolerates it | [ai-models](ai-models.md) REQ-AIM-05 |
+> | 1 | **Tier downshift** — drop Strong→Standard→Fast **only down to the task kind's MinTier floor** (never below — see below) | [ai-models](ai-models.md) REQ-AIM-05, **bounded by REQ-AIM-04** |
 > | 2 | **Lower thinking budget** — `high → low → off` | [ai-models](ai-models.md) REQ-AIM-12 |
 > | 3 | **Trim/compact context** — smaller retrieval, harder summarization | [context-management](context-management.md) |
 > | 4 | **Lean harder on cache** — prefer cache-warm paths; widen batching/debounce | [ai-models](ai-models.md) REQ-AIM-10, [inbox](inbox.md), [signals](signals.md) |
 > | 5 | **Defer non-urgent work** — push low-importance Signals/Curator jobs to off-peak | [signals](signals.md), [curator](curator.md) |
 > | 6 | **Disable an optional feature** — pause a watcher, skip a nightly reflection | [periodic-tasks](periodic-tasks.md), [memory](memory.md) |
 >
-> Degradation is **best-effort and surfaced**: the user is told *"running cheaper to stay in budget"* (P3), and full capability resumes when the window rolls over. Degradation **must not silently change a result's correctness contract** — e.g. a JSON-contract task still gets a JSON-capable model ([ai-models](ai-models.md) REQ-AIM-09); the System degrades *cost*, not *validity*.
+> **The tier-downshift rung respects the per-task-kind quality floor.** [ai-models](ai-models.md) REQ-AIM-04 declares a **minimum tier per task kind** (e.g. `narrative`/`synthesize` and `reflect` require **Strong**); **budget-pressure tier-downshift (rung 1) never drops a task kind below its REQ-AIM-04 `MinTier`.** When a task kind is already at its floor, **the tier-downshift rung is *skipped*** — the System does **not** silently degrade a contract below its quality floor — and the ladder **moves on to the next available lever** (lower thinking, trim context, lean on cache, then **defer** the work, then the **Ask-first "continue and spend?"** of §5.7). In other words: cost pressure may **defer or ask**, but it may **never push a Strong-required synthesis onto a Fast model** to save tokens. This mirrors the deterministic-backstop rule (§5.5): routing may *lower* a tier only within the band REQ-AIM-04 permits, never beneath the floor.
+>
+> Degradation is **best-effort and surfaced**: the user is told *"running cheaper to stay in budget"* (P3), and full capability resumes when the window rolls over. Degradation **must not silently change a result's correctness contract** — e.g. a JSON-contract task still gets a JSON-capable model ([ai-models](ai-models.md) REQ-AIM-09), and a tier-floored task keeps its REQ-AIM-04 MinTier; the System degrades *cost*, not *validity*.
 
 ### 5.9 Observability — spend, burn rate, alerts
 
 > **REQ-TOK-09.** The usage records (§5.1) are the substrate for **showback** (P1 — the user owns the deployment, so spend is shown to them, not charged to a vendor): aggregates **by Space / Task / Agent / model / purpose / day** (a `GROUP BY` over §5.3 tags), surfaced in client dashboards (out of scope here). The System computes a **burn rate** (spend per unit time) and **projects window exhaustion** (◆ FinOps burn-rate projection); crossing a soft cap or an anomalous burn spike raises an alert through [proactivity](proactivity.md) (a `watch`-category Situation — e.g. *"Brightmoor Space at 85% of its monthly model budget; projected to exhaust in 3 days"*), batched unless urgent. Every budget event (soft-cap crossed, hard-cap block, degradation engaged, limit raised) is appended to the [activity-log](activity-log.md) (P9). Cache-read savings are reported explicitly so the value of caching is visible.
 
-### 5.10 Ownership & non-duplication
+### 5.11 The degraded-mode marker — artifacts carry their quality posture
 
-> **REQ-TOK-10.** This spec **owns** the usage record, cost computation, attribution, the budget hierarchy, hard/soft caps, the rate ceiling, the enforcement decision, the degradation sequencing, and spend observability. It **references**: [ai-models](ai-models.md) (the `usage` object, model-card prices, token counting, caching, thinking, tiers, local-vs-remote — REQ-AIM-01/02/05/07/10/11/12), [constitution](constitution.md) §5/§5.2 (the Ask-first/Never gate and background parking), [proactivity](proactivity.md) (the surfacing of alerts and the parked-approval push), [tasks](tasks.md) REQ-TASK-07 (`awaiting_approval`), [agent-orchestration](agent-orchestration.md) REQ-AORCH-11 (escalation on a blocked step). It **defers**: the meter/budget persistence, the rolling-window store, the event bus and the audit append to [app-architecture](app-architecture.md); the budget-dashboard UI to the client surface (out of scope here); the actual cost-reduction implementations to the specs in §5.8.
+> **REQ-TOK-11.** When a producing call ran **degraded** — any rung of the §5.8 menu engaged (tier downshift, lowered thinking, trimmed/compacted context, deferred work) — the **artifact it produces** (a briefing, a Digest, a synthesis, a Situation summary) MUST carry a **degraded-mode marker** so a degraded result is **never indistinguishable from a full-quality one**. A briefing built under **Fast-tier + trimmed context** looks identical to a full one today; the §5.8 toast is **transient** and lost the moment it's dismissed, so the durable artifact itself must record the posture. The marker is **not new data** — it **links the existing records**: the **usage record(s)** behind the artifact (§5.1, which already carry tier/model/`purpose`) and the **context plan** that drove its window ([context-management](context-management.md) REQ-CTX-09, which already records what was trimmed/compacted/evicted). It captures at minimum: **which rungs were engaged**, the **tier actually used vs. the task's requested tier** ([ai-models](ai-models.md) REQ-AIM-04), and whether the context was **trimmed below its profile** (REQ-CTX-03). This is the durable, inspectable counterpart to §5.8's "best-effort and surfaced" and to the **pure-local degraded posture** ([ai-models](ai-models.md) REQ-AIM-17). **Client rendering of the marker (a badge, an "explain") is out of scope here** — this spec owns the **marker/contract**; the surface owns the pixel.
+
+### 5.12 Default posture — two knobs, the rest advanced
+
+> **REQ-TOK-12.** The budget machinery spans **4 scopes × hard/soft × windows × rate buckets** (§5.4–5.6) — powerful, but a configuration cliff if every knob faces the user on day one. The System therefore ships a **"two knobs by default"** posture, and **everything else is advanced / opt-in**:
+> - **Knob 1 — one money cap.** A single **System-scoped monthly money budget** on **remote** spend (§5.4), with the default **soft cap at 80%** (§5.5) so the System **degrades before it asks** (§5.7/5.8). This is the only money number a new user must understand: *"don't spend more than $X/month on remote models."*
+> - **Knob 2 — a per-Space local-only toggle, on by default.** Each [Space](spaces.md) exposes one **local-only** switch ([ai-models](ai-models.md) REQ-AIM-07); when on, that Space's work runs on **local models only** ($0 money, token-metered, §5.2) and **never egresses** — the privacy-preserving default. Turning it **off** for a Space is the same gesture as accepting the **remote Strong-tier opt-in** at onboarding ([ai-models](ai-models.md) REQ-AIM-17): an explicit, visible choice, never silent.
+>
+> All other budgets — **per-Space money caps, per-Task token ceilings, per-Agent caps, rate buckets, custom windows, soft-cap fractions** — exist (§5.4–5.6) but are **advanced/opt-in**, **off unless the user sets them**, with **conservative built-in safety rails** still active: the System ships a **default per-Task token ceiling** as the runaway guard for autonomous work (§5.4, the one non-user-facing default that stays on), so an unconfigured deployment still cannot fan out unboundedly. This resolves **OQ-TOK-1**: the default direction is **one money cap on + local-only-per-Space on + a per-Task runaway ceiling on; every other budget opt-in.**
+
+### 5.13 Ownership & non-duplication
+
+> **REQ-TOK-10.** This spec **owns** the usage record, cost computation, attribution, the budget hierarchy, hard/soft caps, the rate ceiling, the enforcement decision, the degradation sequencing, the degraded-mode marker, the default-posture ("two knobs") policy, and spend observability. It **references**: [ai-models](ai-models.md) (the `usage` object, model-card prices, token counting, caching, thinking, tiers, local-vs-remote — REQ-AIM-01/02/05/07/10/11/12), [constitution](constitution.md) §5/§5.2 (the Ask-first/Never gate and background parking), [proactivity](proactivity.md) (the surfacing of alerts and the parked-approval push), [tasks](tasks.md) REQ-TASK-07 (`awaiting_approval`), [agent-orchestration](agent-orchestration.md) REQ-AORCH-11 (escalation on a blocked step). It **defers**: the meter/budget persistence, the rolling-window store, the event bus and the audit append to [app-architecture](app-architecture.md); the budget-dashboard UI to the client surface (out of scope here); the actual cost-reduction implementations to the specs in §5.8.
 
 ## 6. Visualizations
 
@@ -209,9 +223,18 @@ type Verdict =
   | { allow: false; reason: "ask_first"; estimate_usd: number }
   | { allow: false; reason: "blocked"; scope: Scope }; // fail-closed
 
+interface Reservation {                // an atomic hold on estimated spend (REQ-TOK-05)
+  id: string;                          // res_
+  est_tokens: number;
+  est_cost_usd: number;
+}
+
 interface Meter {
-  charge(u: Usage): void;                                  // record + decrement buckets
-  preflight(tags: Partial<Usage>, estTokens: number): Verdict;
+  // preflight atomically checks + RESERVES the estimate against the tightest budget,
+  // in one transaction, so parallel admissions can't collectively cross a hard cap
+  // (REQ-TOK-05; composes with app-architecture REQ-ARCH-08 parallel dispatch):
+  preflight(tags: Partial<Usage>, estTokens: number): Verdict & { reservation?: Reservation };
+  charge(u: Usage, r?: Reservation): void;                 // record + reconcile: release reservation, charge actuals
   burnRate(scope: Scope, scope_id?: string): { perHour: number; exhaustsAt?: Date };
 }
 ```
@@ -240,7 +263,8 @@ The [Inbox](inbox.md) extractor runs thousands of times a day against a large ca
 
 ## 9. Edge Cases & Failure Modes
 
-- **Pre-estimate too low.** A call's actual output overshoots the estimate and tips a hard cap mid-window; the **next** call is refused (the overshoot is recorded, never silently allowed to recur). Estimates are conservative on output (reserve headroom, [ai-models](ai-models.md) REQ-AIM-11).
+- **Pre-estimate too low.** A call's actual output overshoots the estimate and tips a hard cap mid-window; reconciliation against actuals (§5.5) charges the real cost over the reservation, so the **next** call is refused (the overshoot is recorded, never silently allowed to recur). Estimates are conservative on output (reserve headroom, [ai-models](ai-models.md) REQ-AIM-11).
+- **Concurrent admissions racing one budget.** Independent leaves dispatch **in parallel** ([app-architecture](app-architecture.md) REQ-ARCH-08), so N pre-flight checks could see the same remaining budget and each pass — collectively overshooting a hard cap by N×estimate. The atomic **reserve-on-admission** of REQ-TOK-05 (decrement the budget row in the same transaction as the check) prevents this: each admission consumes headroom the next cannot re-read, so concurrent calls contend for the same decremented budget and cannot collectively cross a hard cap. A reservation that loses the race takes the hard-cap path (Ask-first / queue / fail-closed, REQ-TOK-07), never silent overshoot.
 - **Missing price card.** A model with no price snapshot ([ai-models](ai-models.md) REQ-AIM-14) degrades to a **token-only** budget for that model — never billed at silent $0 (REQ-TOK-02).
 - **Spend with no Space.** A System-level call (e.g. routing/classification not yet bound to a Space) charges the **System** scope, not an arbitrary Space (REQ-TOK-03; P10 — never mis-attribute across Spaces).
 - **Hard cap during foreground chat.** The user is prompted inline (Ask-first) rather than the background-parking path — same gate, louder channel (REQ-TOK-07).
@@ -251,7 +275,7 @@ The [Inbox](inbox.md) extractor runs thousands of times a day against a large ca
 
 ## 10. Open Questions & Decisions
 
-- **OQ-TOK-1** — Default **budget values** per scope (System monthly, per-Space, per-Task, per-Agent) and soft-cap fractions — default owned here; client config surface out of scope. *Leaning:* ship conservative defaults (a System soft cap + a per-Task token ceiling) on by default, the rest opt-in.
+- **OQ-TOK-1** — *(Resolved v1.2, REQ-TOK-12.)* The default direction is the **"two knobs"** posture: **on by default** = one **System monthly money cap** (soft at 80%) + a **per-Space local-only toggle** + a **per-Task token runaway ceiling**; **everything else** (per-Space money caps, per-Agent caps, rate buckets, custom windows/fractions) is **advanced/opt-in, off unless set**. The exact default **figures** ($X/month, the per-Task token number) remain deployment-tunable (client config surface, out of scope here).
 - **OQ-TOK-2** — Whether **local compute** gets a real cost estimate (electricity/GPU-hour amortization) or stays **money-free + token-metered**. *Leaning:* token-metered only in v1; a compute estimate is observability-grade at best (break-even economics are deployment-specific).
 - **OQ-TOK-3** — Where the **rate ceiling** sits relative to [app-architecture](app-architecture.md)'s concurrency cap and the provider's own rate-limit fallback ([ai-models](ai-models.md) REQ-AIM-06) — one queue or two.
 - **OQ-TOK-4** — The exact **degradation order** (§5.8) and whether it is per-Space configurable or a fixed policy.
@@ -263,11 +287,13 @@ The [Inbox](inbox.md) extractor runs thousands of times a day against a large ca
 - [ ] Cost is per-bucket from the model card; remote = money, local = $0 + token-metered (REQ-TOK-02).
 - [ ] Every record carries the Space/Task/Agent/model/purpose attribution chain; never mis-attributed across Spaces (REQ-TOK-03; P10).
 - [ ] Budgets are hierarchical (System·Space·Task·Agent); a call satisfies every binding budget (REQ-TOK-04).
-- [ ] Soft cap warns + degrades; hard cap is the autonomous ceiling; enforcement is **pre-flight**, not post-hoc (REQ-TOK-05).
+- [ ] Soft cap warns + degrades; hard cap is the autonomous ceiling; enforcement is **pre-flight** and **atomic** — admission reserves the estimate (decrement-then-reconcile) so parallel calls can't collectively cross a hard cap (REQ-TOK-05).
 - [ ] A token-bucket rate ceiling smooths bursts via backpressure, proactive to the provider's reactive fallback (REQ-TOK-06).
 - [ ] Enforcement is tier-aware: Always under soft, degraded between, Ask-first at hard, fail-closed when unreachable; never crosses a Never (REQ-TOK-07).
-- [ ] The degradation menu sequences cost levers owned elsewhere, reversible and surfaced, never trading away result validity (REQ-TOK-08).
+- [ ] The degradation menu sequences cost levers owned elsewhere, reversible and surfaced, never trading away result validity; tier-downshift never drops below a task kind's REQ-AIM-04 MinTier — at the floor the rung is skipped and the ladder moves to defer / Ask-first (REQ-TOK-08).
 - [ ] Showback aggregates by tag, burn-rate projects exhaustion, alerts surface via proactivity, events hit the activity-log (REQ-TOK-09).
+- [ ] Degraded artifacts carry a **degraded-mode marker** linking the usage record(s) + context plan, so a degraded result is never indistinguishable from full-quality; client rendering out of scope (REQ-TOK-11).
+- [ ] Default posture is **two knobs** — one System monthly money cap + a per-Space local-only toggle (on) + a per-Task runaway ceiling; everything else advanced/opt-in (REQ-TOK-12, resolves OQ-TOK-1).
 - [ ] Ownership vs ai-models / app-architecture / proactivity is explicit; no duplication of selection/caching/persistence (REQ-TOK-10). Examples use the [constitution](constitution.md) §7 cast; no placeholders.
 
 ## 12. Cross-References
@@ -289,5 +315,8 @@ The [Inbox](inbox.md) extractor runs thousands of times a day against a large ca
 
 ## 13. Changelog
 
+- **2026-06-10 — v1.3** — **(remains Approved.)** Reconciled the degradation ladder's tier-downshift rung (REQ-TOK-08, §5.8) with [ai-models](ai-models.md) REQ-AIM-04's **minimum tier per task kind**. Budget-pressure tier-downshift now **never goes below a task kind's REQ-AIM-04 `MinTier`**; at the floor the **tier-downshift rung is skipped** and the ladder moves to the **next lever (lower thinking, trim, cache, then defer, then the Ask-first "continue and spend?" of §5.7)** — never silently degrading a Strong-required synthesis onto a Fast model. Updated rung 1 of the §5.8 table (now bounded by REQ-AIM-04), added the floor paragraph and a cross-reference, and tightened the §11 checklist. No other requirement IDs changed; no cross-references broken.
+- **2026-06-10 — v1.2** — **(remains Approved.)** Added **REQ-TOK-11** (§5.11) — a degraded artifact (Fast-tier + trimmed context) must carry a **degraded-mode marker** so it is never indistinguishable from full-quality; the marker is **not new data** but a link over the existing **usage record** (§5.1) + **context plan** ([context-management](context-management.md) REQ-CTX-09), recording the rungs engaged, tier-used-vs-requested, and whether context was trimmed below profile — the durable counterpart to the transient §5.8 toast. Client rendering of the badge is out of scope; the marker/contract is owned here. Added **REQ-TOK-12** (§5.12) — a **"two knobs by default"** posture (one System monthly money cap with an 80% soft cap + a per-Space local-only toggle on by default + a per-Task runaway token ceiling on), with all other budgets advanced/opt-in — **resolving OQ-TOK-1**'s default direction. Updated REQ-TOK-10 ownership and the §11 checklist. No other requirement IDs changed; no cross-references broken.
+- **2026-06-10 — v1.1** — **Pre-flight concurrency-race fix (remains Approved).** REQ-TOK-05 now requires admission to **atomically reserve** the token/cost estimate (decrement-then-reconcile against actuals on completion) in one transaction, not merely *read* the running total — so that N leaves dispatched **in parallel** ([app-architecture](app-architecture.md) REQ-ARCH-08) cannot each pass the same headroom check and collectively overshoot a hard cap by N×estimate. Added a §9 edge case ("Concurrent admissions racing one budget"), a §7 `Reservation` shape + reserve/reconcile `Meter` signatures, and tightened the §5.5 / §11 wording. No other REQ changed.
 - **2026-06-09 — v1.0** — **Approved.** Moved from the untiered backlog into **Tier 3: Features** (§6.3); no requirement changes from v0.1.
 - **2026-06-08 — v0.1** — Initial draft. The accounting-and-governance layer over [ai-models](ai-models.md): the immutable per-call **usage record** with the four token buckets (REQ-TOK-01); per-bucket **cost** (remote money / local $0 + token-metered) from the model card (REQ-TOK-02); the **attribution chain** Space/Task/Agent/model/purpose (REQ-TOK-03); the **hierarchical budget** System→Space→Task→Agent (REQ-TOK-04); **hard/soft caps** enforced **pre-flight** (REQ-TOK-05); the **token-bucket rate ceiling** with backpressure (REQ-TOK-06); **tier-aware enforcement** — Always/degrade/Ask-first/fail-closed, never crossing a Never (REQ-TOK-07); the **reversible degradation menu** sequencing levers owned elsewhere (REQ-TOK-08); **showback + burn-rate** observability surfaced via proactivity and the activity-log (REQ-TOK-09); ownership/non-duplication vs ai-models/app-architecture/proactivity (REQ-TOK-10). §7 gives TS shapes. Research-grounded with inline ◆ Source patterns (LiteLLM budgets, Anthropic `usage` object, Langfuse/Helicone cost tracking, FinOps showback + burn-rate, token-bucket/fail-closed, local-vs-API economics). Diagrams Zed-safe (no `%%{init}%%`, `<br/>` breaks). In Review.
