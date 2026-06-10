@@ -1,4 +1,4 @@
-package server
+package router
 
 import (
 	"encoding/json"
@@ -6,9 +6,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/starfrontventures/dailydrift/dailydrift/app"
 )
 
-func newRouter() http.Handler {
+func NewRouter(app *app.App) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)

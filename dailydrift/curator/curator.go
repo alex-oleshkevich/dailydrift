@@ -1,14 +1,17 @@
 package curator
 
-import "context"
+import (
+	"context"
+	"log/slog"
+)
 
 type Curator struct{}
 
 func (c *Curator) Run(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	slog.Info("curator starting")
+	<-ctx.Done()
+	slog.Info("curator stopped")
+	return ctx.Err()
 }
 
 func NewCurator() *Curator {

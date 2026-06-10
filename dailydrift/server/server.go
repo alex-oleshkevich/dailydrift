@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -17,6 +18,7 @@ type Server struct {
 func (s *Server) Run(ctx context.Context) error {
 	s.http.BaseContext = func(net.Listener) context.Context { return ctx }
 
+	slog.Info("server starting", "addr", s.http.Addr)
 	errc := make(chan error, 1)
 	go func() { errc <- s.http.ListenAndServe() }()
 
@@ -27,6 +29,7 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 		return err
 	case <-ctx.Done():
+		slog.Info("server shutting down")
 		sctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		return s.http.Shutdown(sctx)
@@ -34,14 +37,15 @@ func (s *Server) Run(ctx context.Context) error {
 }
 
 type Deps struct {
-	Config *config.Config
+	Config  *config.Config
+	Handler http.Handler
 }
 
 func NewServer(deps Deps) *Server {
 	return &Server{
 		http: &http.Server{
 			Addr:              deps.Config.Addr(),
-			Handler:           newRouter(),
+			Handler:           deps.Handler,
 			ReadHeaderTimeout: 10 * time.Second,
 			IdleTimeout:       120 * time.Second,
 		},

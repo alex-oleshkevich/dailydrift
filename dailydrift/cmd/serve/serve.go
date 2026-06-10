@@ -2,11 +2,15 @@ package serve
 
 import (
 	"context"
+	"errors"
 
 	"github.com/starfrontventures/dailydrift/dailydrift/app"
 	"github.com/starfrontventures/dailydrift/dailydrift/config"
 	"github.com/starfrontventures/dailydrift/dailydrift/logger"
+	"github.com/starfrontventures/dailydrift/dailydrift/server"
+	"github.com/starfrontventures/dailydrift/dailydrift/server/router"
 	"github.com/urfave/cli/v3"
+	"golang.org/x/sync/errgroup"
 )
 
 func Command() *cli.Command {
@@ -42,7 +46,23 @@ func Command() *cli.Command {
 			if err := logger.Setup(cfg.LogLevel); err != nil {
 				return err
 			}
-			return app.NewApp(cfg).Run(ctx)
+			app := app.NewApp(cfg)
+			server := server.NewServer(server.Deps{
+				Config:  cfg,
+				Handler: router.NewRouter(app),
+			})
+			g, ctx := errgroup.WithContext(ctx)
+			g.Go(func() error {
+				return server.Run(ctx)
+			})
+			g.Go(func() error {
+				return app.Run(ctx)
+			})
+
+			if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+				return err
+			}
+			return nil
 		},
 	}
 }
