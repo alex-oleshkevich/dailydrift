@@ -6,7 +6,7 @@
 >
 > **Purpose:** When and how the System **initiates contact** — the relevance/urgency bar, urgency tiers, channels, quiet hours, anti-spam, and escalation — so that liberal capture never becomes notification spam (P4).
 >
-> **Depends on:** [constitution](constitution.md), [situations](situations.md), [insights](insights.md), [glossary](glossary.md)   ·   **Related:** [ui-shell](ui-shell.md), [conversation](conversation.md), [tasks](tasks.md), [curator](curator.md), [data-model](data-model.md), [ai-models](ai-models.md), [settings](settings.md), [activity-log](activity-log.md)
+> **Depends on:** [constitution](constitution.md), [situations](situations.md), [insights](insights.md), [glossary](glossary.md)   ·   **Related:** [conversation](conversation.md), [tasks](tasks.md), [curator](curator.md), [data-model](data-model.md), [ai-models](ai-models.md), [activity-log](activity-log.md)
 
 > Requirement tag: **PROACT**
 
@@ -18,14 +18,14 @@ This spec defines **proactivity**: the policy layer that decides **whether, when
 
 It owns: the **relevance/urgency bar**, **urgency tiers**, the **interrupt-now / batch-to-Digest / silent-log** decision, **per-channel thresholds**, **quiet hours**, **anti-spam** (a notification budget, frequency caps, dedup, dismiss-ratio suppression), **escalation**, the **user controls and feedback loop**, the **delivery record** (`notif_`), and a **surfacing-relevance LLM judge** for borderline cases.
 
-It does **not** detect what is important (that is [situations](situations.md) / [insights](insights.md)) nor render the surfaces (those are [ui-shell](ui-shell.md) / [conversation](conversation.md)); it decides what crosses the bar to reach them.
+It does **not** detect what is important (that is [situations](situations.md) / [insights](insights.md)) nor render the surfaces (those are [conversation](conversation.md) and the client surface, out of scope here); it decides what crosses the bar to reach them.
 
 ## 2. Non-Goals / Out of Scope
 
 - **Detecting importance** — the Situation **Attention score** ([situations](situations.md) REQ-SIT-06) and Insight capture ([insights](insights.md)) are inputs, not redefined here.
-- **Rendering the surfaces** — the **Attention-Needed** list and **Digest generation** are owned by [ui-shell](ui-shell.md); chat rendering by [conversation](conversation.md). Proactivity decides eligibility and timing; it owns the *policy*, not the *view*.
+- **Rendering the surfaces** — rendering the **Attention-Needed** list and the **Digest** is owned by the client (out of scope here); chat rendering by [conversation](conversation.md). Proactivity decides eligibility and timing; it owns the *policy*, not the *view*.
 - **The Ask-first approval mechanics** — owned by [constitution](constitution.md) §5.2 / [tasks](tasks.md) REQ-TASK-07; proactivity decides how loudly to surface a parked approval.
-- **Where preferences are stored** — quiet-hours windows and per-category settings live in [settings](settings.md); proactivity defines their semantics.
+- **Where preferences are stored** — quiet-hours windows and per-category settings are stored as standing preferences (client config surface, out of scope here); proactivity defines their semantics.
 - **The Curator keep/drop decision** — [curator](curator.md) REQ-CUR-07 decides what is *kept*; proactivity decides what is *surfaced*.
 
 ## 3. Background & Rationale
@@ -61,11 +61,11 @@ The design principle is therefore **deterministic restraint with a thin layer of
 
 ### 5.4 Channels and per-channel bars
 
-> **REQ-PROACT-04.** Four channels in v1, ordered by intrusiveness, each with its own bar (louder ⇒ higher bar): **chat injection** (strictest — interrupts the live conversation; coordinate the per-context cap with [insights](insights.md) OQ-INS-1) · **Home → Attention-Needed** (the persistent in-app list, ranked by Attention score) · **native push** (interruptive, budget- and quiet-hours-bound) · **Digest** (most lenient — the periodic roll-up). The **surfaces** are owned by [ui-shell](ui-shell.md) / [conversation](conversation.md); proactivity owns the **bar** that admits a candidate to each. (No email/SMS in v1 — OQ-PROACT-3.)
+> **REQ-PROACT-04.** Four channels in v1, ordered by intrusiveness, each with its own bar (louder ⇒ higher bar): **chat injection** (strictest — interrupts the live conversation; coordinate the per-context cap with [insights](insights.md) OQ-INS-1) · **Home → Attention-Needed** (the persistent in-app list, ranked by Attention score) · **native push** (interruptive, budget- and quiet-hours-bound) · **Digest** (most lenient — the periodic roll-up). The **surfaces** are owned by [conversation](conversation.md) and the client surface (out of scope here); proactivity owns the **bar** that admits a candidate to each. (No email/SMS in v1 — OQ-PROACT-3.)
 
 ### 5.5 Quiet hours and DND
 
-> **REQ-PROACT-05.** The user defines **quiet hours / DND** windows ([settings](settings.md) stores them). During a quiet window, **non-Critical** surfaces are **held** to the next allowed window (batched into the Digest or deferred). **Critical** surfaces **override** quiet hours — but only with **prior consent** (the user opts which categories may wake them). Absent configuration, a conservative default quiet window applies (OQ-PROACT-2).
+> **REQ-PROACT-05.** The user defines **quiet hours / DND** windows (stored as standing preferences — client config surface, out of scope here). During a quiet window, **non-Critical** surfaces are **held** to the next allowed window (batched into the Digest or deferred). **Critical** surfaces **override** quiet hours — but only with **prior consent** (the user opts which categories may wake them). Absent configuration, a conservative default quiet window applies (OQ-PROACT-2).
 
 ### 5.6 Anti-spam: budget, caps, dedup, suppression
 
@@ -73,7 +73,7 @@ The design principle is therefore **deterministic restraint with a thin layer of
 
 ### 5.7 Batching and the Digest
 
-> **REQ-PROACT-07.** Below-bar, held, and Low/Normal-urgency candidates **accumulate** and are surfaced together in the periodic **Digest**. Proactivity owns **eligibility** (which candidates batch) and the **aggregation window**; the Digest's **generation and rendering** are owned by [ui-shell](ui-shell.md). Critical/High items are **never** silently absorbed into a batch when they would otherwise interrupt.
+> **REQ-PROACT-07.** Below-bar, held, and Low/Normal-urgency candidates **accumulate** and are surfaced together in the periodic **Digest**. Proactivity owns **eligibility** (which candidates batch) and the **aggregation window**; the Digest's **rendering** is owned by the client (out of scope here). Critical/High items are **never** silently absorbed into a batch when they would otherwise interrupt.
 
 ### 5.8 Escalation when ignored
 
@@ -81,7 +81,7 @@ The design principle is therefore **deterministic restraint with a thin layer of
 
 ### 5.9 User control and the feedback loop
 
-> **REQ-PROACT-09.** The user can **snooze**, **dismiss**, **mute a topic/category**, and set **per-category and per-channel preferences** ("this category: Digest only", "no more than N pushes/day"). These are **standing preferences** — recorded, inspectable, revocable ([settings](settings.md)). The **dismiss/act feedback loop tunes the bar** (§5.6): the System learns *show me less of what I ignore*. Snoozing/dismissing a **notification** is a delivery action recorded on its `notif_`; it is distinct from changing the underlying [Situation](situations.md) status (`snoozed`/`dismissed`, REQ-SIT-07), though acting on one may drive the other.
+> **REQ-PROACT-09.** The user can **snooze**, **dismiss**, **mute a topic/category**, and set **per-category and per-channel preferences** ("this category: Digest only", "no more than N pushes/day"). These are **standing preferences** — recorded, inspectable, revocable (client config surface, out of scope here). The **dismiss/act feedback loop tunes the bar** (§5.6): the System learns *show me less of what I ignore*. Snoozing/dismissing a **notification** is a delivery action recorded on its `notif_`; it is distinct from changing the underlying [Situation](situations.md) status (`snoozed`/`dismissed`, REQ-SIT-07), though acting on one may drive the other.
 
 ### 5.10 Transparency, the delivery record, and audit
 
@@ -93,7 +93,7 @@ The design principle is therefore **deterministic restraint with a thin layer of
 
 ### 5.12 Ownership & non-duplication
 
-> **REQ-PROACT-12.** This spec **owns** the relevance/urgency bar, urgency tiers, the surface decision, per-channel bars, quiet hours, anti-spam, escalation, user controls/feedback, the `notif_` delivery record, and the relevance judge. It **references**: [constitution](constitution.md) P4/§5.2, [situations](situations.md) (Attention score/status — REQ-SIT-06/07/12), [insights](insights.md) (channels/escalation — REQ-INS-12/13/14), [curator](curator.md) (REQ-CUR-07/14: kept-vs-surfaced), [tasks](tasks.md) (REQ-TASK-07 approval push). It **defers**: the Attention-Needed surface and Digest generation to [ui-shell](ui-shell.md); chat rendering to [conversation](conversation.md); preference storage to [settings](settings.md); the `notif_` id format and persistence to [app-architecture](app-architecture.md).
+> **REQ-PROACT-12.** This spec **owns** the relevance/urgency bar, urgency tiers, the surface decision, per-channel bars, quiet hours, anti-spam, escalation, user controls/feedback, the `notif_` delivery record, and the relevance judge. It **references**: [constitution](constitution.md) P4/§5.2, [situations](situations.md) (Attention score/status — REQ-SIT-06/07/12), [insights](insights.md) (channels/escalation — REQ-INS-12/13/14), [curator](curator.md) (REQ-CUR-07/14: kept-vs-surfaced), [tasks](tasks.md) (REQ-TASK-07 approval push). It **defers**: rendering the Attention-Needed surface and Digest to the client (out of scope here); chat rendering to [conversation](conversation.md); preference storage to the client config surface (out of scope here); the `notif_` id format and persistence to [app-architecture](app-architecture.md).
 
 ## 6. Visualizations
 
@@ -146,7 +146,7 @@ type Notification struct {
 }
 
 type QuietHours struct {
-    Windows        []string // e.g. "22:00-08:00" (settings.md)
+    Windows        []string // e.g. "22:00-08:00"
     CriticalBypass []string // categories consented to wake the user
 }
 ```
@@ -179,7 +179,7 @@ A watcher reports *"Northwind Cloud bill spiked"* — a `watch`-category Situati
 ## 10. Open Questions & Decisions
 
 - **OQ-PROACT-1** — The exact **Attention-score → tier** mapping and category→tier table (coordinate [situations](situations.md) OQ-SIT-1).
-- **OQ-PROACT-2** — Default **notification budget** number, **quiet-hours** defaults, and whether quiet hours are **global only** or **global + per-Space override** (coordinate [settings](settings.md)).
+- **OQ-PROACT-2** — Default **notification budget** number, **quiet-hours** defaults, and whether quiet hours are **global only** or **global + per-Space override** (default owned here; client config surface out of scope).
 - **OQ-PROACT-3** — Additional **channels** beyond v1's four (email / SMS) and their bars.
 - **OQ-PROACT-4** — The **chat-injection cap**: how many items may enter one conversation before it crowds the chat ([insights](insights.md) OQ-INS-1, [conversation](conversation.md)).
 
@@ -204,9 +204,7 @@ A watcher reports *"Northwind Cloud bill spiked"* — a `watch`-category Situati
 - [insights](insights.md) — capture-cheap/surface-selective (REQ-INS-12), surfacing channels (REQ-INS-13), escalation to Situations (REQ-INS-14).
 - [curator](curator.md) — kept-vs-surfaced boundary (REQ-CUR-07) and Curator output gated by proactivity (REQ-CUR-14).
 - [tasks](tasks.md) — the parked-approval push (REQ-TASK-07).
-- [ui-shell](ui-shell.md) — the Attention-Needed surface and Digest generation this spec feeds.
 - [conversation](conversation.md) — chat as a channel; the injection cap.
-- [settings](settings.md) — quiet-hours and per-category preference storage.
 - [ai-models](ai-models.md) — the Fast-tier model for the relevance judge.
 
 ## 13. Changelog

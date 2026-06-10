@@ -6,7 +6,7 @@
 >
 > **Purpose:** The Space primitive end-to-end — the **only** organizing container in the System: one hierarchy, **downstream inheritance** of configuration and context, **nearest-scope-wins** precedence with explicit overrides, **physical per-Space isolation**, the rule that every item resolves to **exactly one** owning Space, and the create/move/archive lifecycle. The structural backbone every other spec is scoped to.
 >
-> **Depends on:** [constitution](constitution.md), [glossary](glossary.md), [data-model](data-model.md)   ·   **Related:** [permissions](permissions.md), [entities](entities.md), [narrative](narrative.md), [memory](memory.md), [agents](agents.md), [ai-models](ai-models.md), [secrets](secrets.md), [mcp](mcp.md), [settings](settings.md), [app-architecture](app-architecture.md)
+> **Depends on:** [constitution](constitution.md), [glossary](glossary.md), [data-model](data-model.md)   ·   **Related:** [permissions](permissions.md), [entities](entities.md), [narrative](narrative.md), [memory](memory.md), [agents](agents.md), [ai-models](ai-models.md), [secrets](secrets.md), [mcp](mcp.md), [app-architecture](app-architecture.md)
 
 > Requirement tag: **SPACE**
 
@@ -23,7 +23,7 @@ This spec owns the **mechanics of the container itself**: the **primitive and th
 - **Not sharing.** Sharing a Space with another person is **explicitly deferred** and out of scope for this suite ([index](index.md) changelog, 2026-05-29). This spec is *designed so sharing can layer on later* (§5.7, OQ-SPACE-3) — downstream-only per P10 — but specs **no** sharing mechanism, person model, or access-by-identity now. Where "isolation" appears it means the **structural boundary**, not an ACL.
 - **Not the per-Space data.** *What* lives in a Space and how it behaves is owned by the dimension specs: Entities ([entities](entities.md)), Narrative ([narrative](narrative.md)), Memory ([memory](memory.md)), grants ([permissions](permissions.md)), secrets ([secrets](secrets.md)), connectors ([mcp](mcp.md)), model selection ([ai-models](ai-models.md)). This spec owns only the **hierarchy, inheritance, precedence, and isolation** those specs reuse.
 - **Not persistence.** The one-SQLite-file-per-Space realization, the System DB boundary, and `space_<ULID>` identity are owned by [app-architecture](app-architecture.md) (REQ-ARCH-03) and [data-model](data-model.md); this spec states the *logical* isolation guarantee they make physical.
-- **Not settings UI / catalog.** The concrete set of configurable keys and their defaults is owned by [settings](settings.md); this spec owns *how* a key inherits and overrides, not the key list.
+- **Not settings UI / catalog.** The concrete set of configurable keys and their defaults is owned inline by each feature spec (the client config surface is out of scope here); this spec owns *how* a key inherits and overrides, not the key list.
 - **Not item mechanics.** How a Signal resolves, a Storyline merges, or a Situation is detected is owned by those specs; this spec owns only the invariant that the result lands in **one** Space (§5.8).
 
 ## 3. Background & Rationale
@@ -71,7 +71,7 @@ Canonical definition of **Space** is in [glossary](glossary.md). Terms this spec
 >
 > | Dimension | What inherits | Default on override | Owned by |
 > |-----------|---------------|---------------------|----------|
-> | **Configuration / settings** | preferences, cadences, budgets, toggles | **replace** (nearest key wins) | [settings](settings.md) |
+> | **Configuration / settings** | preferences, cadences, budgets, toggles | **replace** (nearest key wins) | client (out of scope) |
 > | **Context / prompt / personality** | the standing instructions, tone, and Narrative context an Agent runs with | **merge** (ancestor context + child context, child last) | [agents](agents.md), [narrative](narrative.md) |
 > | **Model selection** | the default AI model / tier for work in the Space | **replace** | [ai-models](ai-models.md) |
 > | **Permissions / grants** | standing `grant_` capabilities scoped to a Space | **merge, attenuate-only** (a child may narrow, never widen; deny-wins) | [permissions](permissions.md) |
@@ -122,7 +122,7 @@ Canonical definition of **Space** is in [glossary](glossary.md). Terms this spec
 
 ### 5.10 What this spec does *not* decide
 
-> **REQ-SPACE-10.** This spec owns the **tree, inheritance, precedence, and isolation**; it does **not** own the *content* of any dimension. The configurable key set ([settings](settings.md)), the grant model ([permissions](permissions.md)), the secret/connector catalog ([secrets](secrets.md), [mcp](mcp.md)), the model roster ([ai-models](ai-models.md)), the Narrative structure ([narrative](narrative.md)), and the Entity schema ([entities](entities.md)) are each owned by their spec, which **reuses** the resolution rules here (§5.5–5.6). When a dimension spec and this spec disagree on *how inheritance resolves*, **this spec wins**; on *what* a dimension contains, the dimension spec wins.
+> **REQ-SPACE-10.** This spec owns the **tree, inheritance, precedence, and isolation**; it does **not** own the *content* of any dimension. The configurable key set (owned inline by each feature spec; client config surface out of scope), the grant model ([permissions](permissions.md)), the secret/connector catalog ([secrets](secrets.md), [mcp](mcp.md)), the model roster ([ai-models](ai-models.md)), the Narrative structure ([narrative](narrative.md)), and the Entity schema ([entities](entities.md)) are each owned by their spec, which **reuses** the resolution rules here (§5.5–5.6). When a dimension spec and this spec disagree on *how inheritance resolves*, **this spec wins**; on *what* a dimension contains, the dimension spec wins.
 
 ## 6. Visualizations
 
@@ -192,7 +192,7 @@ interface Space {
   name: string;               // e.g. "Framework"
   status: "active" | "archived";
   // Per-dimension overrides set ON THIS Space. Absent key = inherit (NOT empty).
-  config?: Record<string, unknown>;       // replace-on-override (settings.md)
+  config?: Record<string, unknown>;       // replace-on-override
   context?: string;                       // merge-on-override (agents.md / narrative.md)
   model?: string;                         // replace-on-override (ai-models.md)
   // permissions, secrets, connectors live in their own per-Space stores,
@@ -263,7 +263,7 @@ The user moves `Research/LLM Agents` to become `Business/LLM Agents` (it has bec
 - [permissions](permissions.md) — cross-Space isolation of capabilities (REQ-PERM-06), attenuate-only (REQ-PERM-05), deny-wins (REQ-PERM-02) — the security dimensions resolved here.
 - [secrets](secrets.md) / [mcp](mcp.md) — per-Space secret handles and connectors that inherit downstream.
 - [narrative](narrative.md) — Space-scope Narrative; the sub-Space question (OQ-NAR-3 ↔ OQ-SPACE-1). [memory](memory.md) — per-Space recall scope. [entities](entities.md) — per-Space CRM and physical isolation (REQ-ENT-08).
-- [agents](agents.md) / [ai-models](ai-models.md) — context/personality and model selection that inherit downstream. [settings](settings.md) — the configurable key set.
+- [agents](agents.md) / [ai-models](ai-models.md) — context/personality and model selection that inherit downstream. The configurable key set is owned inline by each feature spec (client config surface out of scope).
 - [app-architecture](app-architecture.md) — `space_<ULID>` identity (REQ-ARCH-02) and the physical realization: one SQLite file + one index collection per Space, no cross-Space joins (REQ-ARCH-03/05).
 
 > **Sources.** Inheritance/cascade and precedence mechanics are grounded in primary docs: **GCP resource hierarchy** (effective policy = own ∪ inherited-from-parent; set-high-cascade-down); **Kubernetes Hierarchical Namespaces (HNC)** (ancestor→descendant propagation, `inherited-from` provenance); **AWS Organizations SCPs** (Allow restated at every level, Deny inherited & evaluated at every level — the deny-wins composition); **git config** (`local > global > system`) and **VS Code settings** (folder > workspace > user) for nearest-scope-wins / override-by-restating; and the **database-per-tenant "silo"** multi-tenant model for the physical isolation boundary.

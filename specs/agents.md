@@ -161,7 +161,7 @@ Don't ask permission. Just do it.
 > | `Ops` | subagent | perform outbound actions — exec, files, connectors, browser | the **actor** — the agent with side effects; executes one leaf, doesn't converse or delegate |
 > | `Reviewer` | subagent | check another agent's result with fresh eyes | **read-only, never self-reviews** ([agent-orchestration](agent-orchestration.md) REQ-AORCH-07) |
 >
-> A specialized actor — e.g. a **`Browser`** agent — is just **`Ops` narrowed to a tool surface** (the [browser-automation](browser-automation.md) skill + browser tools, a tighter `sandbox`/`tool_policy`); it is the canonical **user-defined specialization** (§5.14), not a separate built-in. Splitting a built-in per tool family would mean one role per integration (Browser, Email, Calendar, …) and ambiguous routing — so the roster splits on mode and read-only-vs-acting instead. User-defined agents are first-class — same fields, same routing — and may override or extend the built-ins.
+> A specialized actor — e.g. a **`Browser`** agent — is just **`Ops` narrowed to a tool surface** (browser tools (a deferred capability), a tighter `sandbox`/`tool_policy`); it is the canonical **user-defined specialization** (§5.14), not a separate built-in. Splitting a built-in per tool family would mean one role per integration (Browser, Email, Calendar, …) and ambiguous routing — so the roster splits on mode and read-only-vs-acting instead. User-defined agents are first-class — same fields, same routing — and may override or extend the built-ins.
 
 ### 5.10 The agent run loop
 
@@ -212,7 +212,7 @@ const DEFAULT_SUBAGENT_TOOL_DENY = [
 
 ### 5.14 Configuration — where agents are defined
 
-> **REQ-AGENT-14.** An Agent is **config-defined**: a definition with the §5.2 fields, typically a **markdown body = the `system_prompt`** plus **frontmatter** for the other fields (the Claude Code / opencode shape), or an equivalent struct (the OpenClaw `AgentConfig` shape). Built-ins ship with the System; user-defined agents live in the user's config and are loaded the same way. The concrete file location/format is owned by [app-architecture](app-architecture.md) / [settings](settings.md).
+> **REQ-AGENT-14.** An Agent is **config-defined**: a definition with the §5.2 fields, typically a **markdown body = the `system_prompt`** plus **frontmatter** for the other fields (the Claude Code / opencode shape), or an equivalent struct (the OpenClaw `AgentConfig` shape). Built-ins ship with the System; user-defined agents live in the user's config and are loaded the same way. The concrete file location/format is owned by [app-architecture](app-architecture.md).
 
 ## 6. Visualizations
 
@@ -309,8 +309,8 @@ A **`Browser`** agent — a user-defined `Ops` specialization (§5.14, REQ-AGENT
 
 ## 10. Open Questions & Decisions
 
-- **OQ-AGENT-1** — The concrete **definition file format/location** (markdown+frontmatter vs struct) and precedence of user vs built-in — owned by [app-architecture](app-architecture.md) / [settings](settings.md).
-- **OQ-AGENT-2** — Whether `personality` should be promotable/shared across agents in a Space (a Space "house voice"). Coordinate with [spaces](spaces.md) / [settings](settings.md).
+- **OQ-AGENT-1** — The concrete **definition file format/location** (markdown+frontmatter vs struct) and precedence of user vs built-in — owned by [app-architecture](app-architecture.md).
+- **OQ-AGENT-2** — Whether `personality` should be promotable/shared across agents in a Space (a Space "house voice"). Coordinate with [spaces](spaces.md) (default owned here; client config surface out of scope).
 - **OQ-AGENT-3** — Default `max_iterations` and `model` tier per built-in role ([ai-models](ai-models.md)).
 
 ## 11. Review & Acceptance Checklist

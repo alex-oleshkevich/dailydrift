@@ -32,7 +32,8 @@ func (a *App) Run(ctx context.Context) error {
 func NewApp(cfg *config.Config) *App {
 	curator := curator.NewCurator()
 	server := server.NewServer(server.Deps{
-		Config: cfg,
+		Config:  cfg,
+		Handler: router.NewRouter(),
 	})
 	return &App{
 		server:  server,

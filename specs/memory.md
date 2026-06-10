@@ -6,7 +6,7 @@
 >
 > **Purpose:** The Memory feature end-to-end — durable distilled knowledge (`mem_`: facts, preferences, profiles, summaries), the **shared semantic index** and **recall** that the rest of the System retrieves by meaning, **distillation** of accumulated material into durable knowledge, and **retention/decay**.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [insights](insights.md), [signals](signals.md), [evidence](evidence.md), [narrative](narrative.md), [storylines](storylines.md), [entities](entities.md), [agents](agents.md), [periodic-tasks](periodic-tasks.md), [ai-models](ai-models.md), [app-architecture](app-architecture.md), [spaces](spaces.md), [settings](settings.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [insights](insights.md), [signals](signals.md), [evidence](evidence.md), [narrative](narrative.md), [storylines](storylines.md), [entities](entities.md), [agents](agents.md), [periodic-tasks](periodic-tasks.md), [ai-models](ai-models.md), [app-architecture](app-architecture.md), [spaces](spaces.md)
 
 > Requirement tag: **MEM**
 
@@ -96,11 +96,11 @@ Canonical definitions in [glossary](glossary.md); the entity shape in [data-mode
 
 ### 5.8 Editability & provenance
 
-> **REQ-MEM-08.** Every Memory item is **traceable to its source** Evidence/Insights (P3, [glossary](glossary.md) REQ-CON-02) — the System can always answer *"why do I remember this?"*. `preference` and `profile` Memory is **human-editable** (e.g. correcting "prefers terse briefings" in [settings](settings.md)); user edits are preserved across distillation (the Curator reconciles, it does not overwrite), mirroring the Narrative's edit rule ([narrative](narrative.md) REQ-NAR-06).
+> **REQ-MEM-08.** Every Memory item is **traceable to its source** Evidence/Insights (P3, [glossary](glossary.md) REQ-CON-02) — the System can always answer *"why do I remember this?"*. `preference` and `profile` Memory is **human-editable** (e.g. correcting "prefers terse briefings"; the editing surface is a client surface, out of scope here); user edits are preserved across distillation (the Curator reconciles, it does not overwrite), mirroring the Narrative's edit rule ([narrative](narrative.md) REQ-NAR-06).
 
 ### 5.9 Surfacing & use
 
-> **REQ-MEM-09.** Memory is **mostly internal substrate** — injected into context on recall and consumed by the Curator. Its **user-facing** forms are: `preference`/`profile` shown and edited in [settings](settings.md), and the **provenance** behind recalled Insights, Narratives, and answers. Memory is never a feed the user is asked to triage (P4).
+> **REQ-MEM-09.** Memory is **mostly internal substrate** — injected into context on recall and consumed by the Curator. Its **user-facing** forms are: `preference`/`profile` shown and edited in the client surface (out of scope here), and the **provenance** behind recalled Insights, Narratives, and answers. Memory is never a feed the user is asked to triage (P4).
 
 ### 5.10 Retrieval scoring
 
@@ -415,7 +415,7 @@ interface Memory {              // durable distilled knowledge
 ## 8. Examples & Use Cases
 
 ### Example A — a preference is learned and applied (narrative)
-Across several chats the user trims the System's briefings and asks for "just the headline." Nightly distillation (REQ-MEM-05) consolidates this into a `preference` Memory — *"prefers terse briefings"* — cited to those conversations. From then on, recall injects it whenever the System drafts a briefing, and the user can edit it in [settings](settings.md) (REQ-MEM-08).
+Across several chats the user trims the System's briefings and asks for "just the headline." Nightly distillation (REQ-MEM-05) consolidates this into a `preference` Memory — *"prefers terse briefings"* — cited to those conversations. From then on, recall injects it whenever the System drafts a briefing, and the user can edit it (client surface, out of scope here) (REQ-MEM-08).
 
 ### Example B — a context Insight graduates into a profile (Given/When/Then)
 - **Given** a `context` [Insight](insights.md) *"Devin Osei prefers decisions in writing before calls,"* reinforced three times over two months,
@@ -462,7 +462,7 @@ A `fact` Memory *"Framework is local-first"* is contradicted by new Evidence tha
 - [signals](signals.md) — novelty scoring (REQ-SIG-14) and resolution (REQ-SIG-13) that use the index. [evidence](evidence.md) — reinforcement (REQ-EV-10) and the facts Memory distills.
 - [narrative](narrative.md) — the surface-facing `summary`; its generation owned there, its recall substrate here. [storylines](storylines.md) — summaries that embed into the index.
 - [curator](curator.md) — the Curator engine that runs distillation/compression. [periodic-tasks](periodic-tasks.md) — the distillation schedule. [entities](entities.md) — profile↔graph boundary.
-- [ai-models](ai-models.md) / [app-architecture](app-architecture.md) — the concrete embedding model, vector store, and persistence. [settings](settings.md) — editing preferences. [spaces](spaces.md) — scope, promotion, isolation.
+- [ai-models](ai-models.md) / [app-architecture](app-architecture.md) — the concrete embedding model, vector store, and persistence. Editing preferences is a client surface (out of scope here). [spaces](spaces.md) — scope, promotion, isolation.
 
 **Design lineage.** The mechanisms here are grounded in established work, adapted to this System's primitives: the **retrieval score** (recency + importance + relevance) and **reflection/consolidation** from Park et al., *Generative Agents* (arXiv 2304.03442); the **memory taxonomy** (working/episodic/semantic/procedural) from **CoALA** (Sumers et al., 2309.02427) and **MemGPT** (2310.08560); the **ADD/UPDATE/DELETE/NOOP** write-time classifier from **mem0**; **non-lossy supersession / temporal retirement** from **Zep/Graphiti** (2501.13956); and **exponential decay with reinforcement** from the **Ebbinghaus** forgetting curve. (Several bleeding-edge 2026 systems explore adaptive decay and consolidation; this spec deliberately grounds only in the above well-established sources.)
 

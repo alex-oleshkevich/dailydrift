@@ -64,30 +64,32 @@ Specs for every feature with overview, purpose, description, implementation deta
 | [token-cost-management](token-cost-management.md) | Token accounting + cost control: the per-call usage record (4 token buckets), cost (remote money / local token-metered), attribution per Space/Task/Agent/model/purpose, hierarchical budgets + hard/soft caps, token-bucket rate ceiling, pre-flight enforcement (Always/degrade/Ask-first/fail-closed), the degradation menu, showback + burn-rate alerts | Working on token/cost budgeting, metering, attribution, or spend enforcement | ✅ Approved |
 | [context-management](context-management.md) | Working-context assembly: the deterministic assembler between recall and the model call — zoned window + budget/output-headroom, selection reusing recall scores, packing for cache-stability & against lost-in-the-middle, progressive compaction (reusing the Narrative), lowest-value-first eviction with pinning, the inspectable context contract, single-Space isolation + envelope fencing | Working on prompt/context assembly, packing, or compaction | ✅ Approved |
 | [user-workflows](user_workflows.md) | User Workflows (`wf_`): user-authored "WHEN &lt;real-world event&gt; THEN &lt;instruction&gt;" rules — the event-triggered sibling of periodic-tasks; concrete per-source triggers, force-promotion past the noise funnel, instruction→Task, inherited governance | Working on user automations / event-triggered handling | 📝 In Review |
+| [integrations](integrations.md) | Inbound integration layer (`int_`): authorized, Space-scoped, **pull-first** connections (email · calendar · task-tracking · chat · code-host) that emit Signals — the event→Signal normalization contract, sync cursor + idempotency, OAuth-handle auth, health lifecycle; outbound stays with mcp/skills | Working on inbound connectors / external sources feeding Signals | ✅ Approved |
 
 
 ## Untiered — unapproved backlog
 
-Not yet placed in a structure: these are drafted/in-review or planned, and will be organized once written and approved.
+Not yet placed in a structure: these are planned and will be organized once written and approved.
 
 | Spec | Purpose | Load this when | Status |
 |------|---------|----------------|--------|
-| [ui-shell](ui-shell.md) | Global app shell: nav, command palette, search, layout, keyboard — **plus** the Home surface (the Attention-Needed list) and Digest rendering (absorbed from the removed `home-and-briefings`); Digest *policy* stays in [proactivity](proactivity.md), briefing *content* in [narrative](narrative.md) | Building navigation, the Home surface, or digests | ⬜ Planned |
-| [settings](settings.md) | Global + per-space configuration & preferences | Working on settings / configuration | ⬜ Planned |
 | [conversation](conversation.md) | Chat surface: message types, bg-task spawn+embed, threads, streaming | Building chat or message handling | ⬜ Planned |
 | [calendar](calendar.md) | Calendar of tasks, periodic tasks, watcher runs, deadlines, events | Building the calendar surface | ⬜ Planned |
-| [browser-automation](browser-automation.md) | Playwright workers, isolated browser profiles, approval-gating | Working on browser automation | ⬜ Planned |
-| [filesystem](filesystem.md) | Local filesystem access: scoped mounts, indexing, file→signal | Working on file access | ⬜ Planned |
 | [privacy-security](privacy-security.md) | Security posture, isolation, 3-layer auth, local models | Any security-sensitive decision | ⬜ Planned |
 | [activity-log](activity-log.md) | Audit/observability trail of agent/automation actions | Working on auditing/transparency | ⬜ Planned |
 | [stack](stack.md) | Go server + native clients: structure, build, libraries, rationale | Setting up the project / build | ⬜ Planned |
-| [integrations](integrations.md) | Inbound integration layer (`int_`): authorized, Space-scoped, **pull-first** connections (email · calendar · task-tracking · chat · code-host) that emit Signals — the event→Signal normalization contract, sync cursor + idempotency, OAuth-handle auth, health lifecycle; outbound stays with mcp/skills | Working on inbound connectors / external sources feeding Signals | 📝 In Review |
+
+### Out of scope (not planned)
+
+The **global UI shell, settings surface, browser automation, and local filesystem access** are **not** part of this spec suite. The product is a server brain with **native clients** ([overview](overview.md)); UI rendering (navigation, the Home/Attention-Needed surface, Digest *rendering*, the settings surface) belongs to the client, out of scope here — the underlying *policy* stays in [proactivity](proactivity.md) (Attention-Needed, Digest) and [narrative](narrative.md) (briefing content), and configuration *defaults* are owned inline by each feature spec. **Browser automation** and **local filesystem** are deferred capability domains, not v1 scope. Specs referencing these surfaces point at the conceptual owner or note "client / out of scope."
 
 ---
 
 **Maintenance rule ([constitution](constitution.md) §6.3):** when a spec is approved, move it from the untiered backlog into the structured section and refine its "load this when" note. The index must always reflect reality.
 
 ## Changelog
+- **2026-06-10** — **Approved** [integrations](integrations.md) (v1.0) and moved it from the untiered backlog into **Tier 3: Features** (§6.3). Approval applied the review-pass fixes (OQ-INT-0 OAuth-app registration, OQ-INT-6/7, REQ-INT-09 max-staleness, `thread_ts`→`thread_id`).
+- **2026-06-10** — **Cleared the planned backlog of out-of-scope specs.** Removed `ui-shell`, `settings`, `browser-automation`, and `filesystem` rows: the product is a server brain with **native clients**, so the global UI shell / settings surface (client rendering) and browser/filesystem (deferred capability domains) are **not** part of this spec suite. Added an **"Out of scope (not planned)"** note; UI *policy* stays in [proactivity](proactivity.md)/[narrative](narrative.md) and config *defaults* are owned inline per feature spec. Kept `conversation`, `calendar`, `privacy-security`, `activity-log`, `stack` as ⬜ Planned. Inbound references to the removed specs retargeted to their conceptual owner or marked "client / out of scope."
 - **2026-05-29** — Created; all 36 specs listed; `constitution` marked Approved.
 - **2026-05-29** — `overview` approved; added `space-sharing` and `prompt-injection` (now 38 specs); header format fixed.
 - **2026-05-29** — Sharing **deferred**: removed `space-sharing` from the tier roadmap (postponed, out of scope for the current suite). [[spaces]] covers hierarchy/inheritance/isolation only and is designed so sharing can layer on later. Retargeted former `[[space-sharing]]` links to `[[spaces]]`.

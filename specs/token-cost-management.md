@@ -6,7 +6,7 @@
 >
 > **Purpose:** The **accounting and governance layer** over every model call — metering token usage, attributing spend to a Space / Task / Agent / model, enforcing **hierarchical budgets and caps**, and **degrading rather than failing** at the limit. It answers *"how much did that cost, who spent it, and what happens when the budget runs out?"* — the money/compute analogue of [proactivity](proactivity.md)'s attention budget.
 >
-> **Depends on:** [constitution](constitution.md), [ai-models](ai-models.md), [app-architecture](app-architecture.md)   ·   **Related:** [proactivity](proactivity.md), [tasks](tasks.md), [agents](agents.md), [agent-orchestration](agent-orchestration.md), [periodic-tasks](periodic-tasks.md), [spaces](spaces.md), [settings](settings.md), [activity-log](activity-log.md), [glossary](glossary.md)
+> **Depends on:** [constitution](constitution.md), [ai-models](ai-models.md), [app-architecture](app-architecture.md)   ·   **Related:** [proactivity](proactivity.md), [tasks](tasks.md), [agents](agents.md), [agent-orchestration](agent-orchestration.md), [periodic-tasks](periodic-tasks.md), [spaces](spaces.md), [activity-log](activity-log.md), [glossary](glossary.md)
 
 > Requirement tag: **TOK**
 
@@ -82,12 +82,12 @@ Canonical terms in [glossary](glossary.md). Terms this spec uses:
 >
 > | Scope | Binds | Typical use | Owner of the limit |
 > |-------|-------|-------------|--------------------|
-> | **System** | the whole deployment | "≤ $X/month of remote spend total" | [settings](settings.md) |
-> | **Space** | one [Space](spaces.md) (+ downstream) | per-project/per-client cap; a **local-only** Space implies token-only | [settings](settings.md) / [spaces](spaces.md) |
+> | **System** | the whole deployment | "≤ $X/month of remote spend total" | client (out of scope) |
+> | **Space** | one [Space](spaces.md) (+ downstream) | per-project/per-client cap; a **local-only** Space implies token-only | [spaces](spaces.md) |
 > | **Task** | one [Task](tasks.md) tree | bound a recursive/agentic goal so it can't run away | [tasks](tasks.md) / planner |
 > | **Agent** | one [Agent](agents.md) role | cap a high-frequency or untrusted agent | [agents](agents.md) |
 >
-> Each budget has a **limit** (money or tokens), a rolling **window** (§5.6), and a **hard/soft** flag (§5.5). A call is admitted only if it fits under the **tightest binding** budget; the Task and Agent budgets are the runaway guard for autonomous work (§5.7). Defaults and per-scope overrides live in [settings](settings.md) (OQ-TOK-1).
+> Each budget has a **limit** (money or tokens), a rolling **window** (§5.6), and a **hard/soft** flag (§5.5). A call is admitted only if it fits under the **tightest binding** budget; the Task and Agent budgets are the runaway guard for autonomous work (§5.7). Defaults and per-scope overrides are owned here (client config surface out of scope) (OQ-TOK-1).
 
 ### 5.5 Hard vs soft caps
 
@@ -110,7 +110,7 @@ Canonical terms in [glossary](glossary.md). Terms this spec uses:
 > - **No user reachable / approval expires** → **fail-closed**: the step is blocked and recorded (the Task escalates per [agent-orchestration](agent-orchestration.md) REQ-AORCH-11). Fail-closed is correct here: an unbounded bill is worse than a stalled Task.
 > - **Local-only / token budgets** never become money prompts; they **degrade or queue**, since there is no money to ask about.
 >
-> A hard cap can be **raised only by the user** (a [settings](settings.md) change), never by an agent or the router — and never below a [constitution](constitution.md) **Never** (e.g. a budget can't authorize exfiltrating secrets to "save tokens").
+> A hard cap can be **raised only by the user** (an explicit configuration change; client config surface out of scope), never by an agent or the router — and never below a [constitution](constitution.md) **Never** (e.g. a budget can't authorize exfiltrating secrets to "save tokens").
 
 ### 5.8 Degradation — the cost-reduction menu
 
@@ -129,11 +129,11 @@ Canonical terms in [glossary](glossary.md). Terms this spec uses:
 
 ### 5.9 Observability — spend, burn rate, alerts
 
-> **REQ-TOK-09.** The usage records (§5.1) are the substrate for **showback** (P1 — the user owns the deployment, so spend is shown to them, not charged to a vendor): aggregates **by Space / Task / Agent / model / purpose / day** (a `GROUP BY` over §5.3 tags), surfaced in [settings](settings.md)/dashboards. The System computes a **burn rate** (spend per unit time) and **projects window exhaustion** (◆ FinOps burn-rate projection); crossing a soft cap or an anomalous burn spike raises an alert through [proactivity](proactivity.md) (a `watch`-category Situation — e.g. *"Brightmoor Space at 85% of its monthly model budget; projected to exhaust in 3 days"*), batched unless urgent. Every budget event (soft-cap crossed, hard-cap block, degradation engaged, limit raised) is appended to the [activity-log](activity-log.md) (P9). Cache-read savings are reported explicitly so the value of caching is visible.
+> **REQ-TOK-09.** The usage records (§5.1) are the substrate for **showback** (P1 — the user owns the deployment, so spend is shown to them, not charged to a vendor): aggregates **by Space / Task / Agent / model / purpose / day** (a `GROUP BY` over §5.3 tags), surfaced in client dashboards (out of scope here). The System computes a **burn rate** (spend per unit time) and **projects window exhaustion** (◆ FinOps burn-rate projection); crossing a soft cap or an anomalous burn spike raises an alert through [proactivity](proactivity.md) (a `watch`-category Situation — e.g. *"Brightmoor Space at 85% of its monthly model budget; projected to exhaust in 3 days"*), batched unless urgent. Every budget event (soft-cap crossed, hard-cap block, degradation engaged, limit raised) is appended to the [activity-log](activity-log.md) (P9). Cache-read savings are reported explicitly so the value of caching is visible.
 
 ### 5.10 Ownership & non-duplication
 
-> **REQ-TOK-10.** This spec **owns** the usage record, cost computation, attribution, the budget hierarchy, hard/soft caps, the rate ceiling, the enforcement decision, the degradation sequencing, and spend observability. It **references**: [ai-models](ai-models.md) (the `usage` object, model-card prices, token counting, caching, thinking, tiers, local-vs-remote — REQ-AIM-01/02/05/07/10/11/12), [constitution](constitution.md) §5/§5.2 (the Ask-first/Never gate and background parking), [proactivity](proactivity.md) (the surfacing of alerts and the parked-approval push), [tasks](tasks.md) REQ-TASK-07 (`awaiting_approval`), [agent-orchestration](agent-orchestration.md) REQ-AORCH-11 (escalation on a blocked step). It **defers**: the meter/budget persistence, the rolling-window store, the event bus and the audit append to [app-architecture](app-architecture.md); budget defaults and the dashboard UI to [settings](settings.md); the actual cost-reduction implementations to the specs in §5.8.
+> **REQ-TOK-10.** This spec **owns** the usage record, cost computation, attribution, the budget hierarchy, hard/soft caps, the rate ceiling, the enforcement decision, the degradation sequencing, and spend observability. It **references**: [ai-models](ai-models.md) (the `usage` object, model-card prices, token counting, caching, thinking, tiers, local-vs-remote — REQ-AIM-01/02/05/07/10/11/12), [constitution](constitution.md) §5/§5.2 (the Ask-first/Never gate and background parking), [proactivity](proactivity.md) (the surfacing of alerts and the parked-approval push), [tasks](tasks.md) REQ-TASK-07 (`awaiting_approval`), [agent-orchestration](agent-orchestration.md) REQ-AORCH-11 (escalation on a blocked step). It **defers**: the meter/budget persistence, the rolling-window store, the event bus and the audit append to [app-architecture](app-architecture.md); the budget-dashboard UI to the client surface (out of scope here); the actual cost-reduction implementations to the specs in §5.8.
 
 ## 6. Visualizations
 
@@ -232,7 +232,7 @@ The `Research/LLM Agents` Space is **local-only** ([ai-models](ai-models.md) REQ
 
 ### Example C — burn-rate alert as a quiet Situation (narrative)
 
-Mid-month, a chatty new watcher pushes `Business/Brightmoor`'s remote spend to **85%** of its $40 monthly Space budget. The meter's burn-rate projection (REQ-TOK-09) says *"exhausts in ~3 days at this rate."* It crosses the soft cap, so [proactivity](proactivity.md) raises a **`watch`-category** Situation — *"Brightmoor model budget 85% used; projected to exhaust before month-end"* — batched into the morning Digest (not an interruption, REQ-PROACT-07). The activity-log records the crossing. The user can widen the budget in [settings](settings.md) or let degradation hold the line.
+Mid-month, a chatty new watcher pushes `Business/Brightmoor`'s remote spend to **85%** of its $40 monthly Space budget. The meter's burn-rate projection (REQ-TOK-09) says *"exhausts in ~3 days at this rate."* It crosses the soft cap, so [proactivity](proactivity.md) raises a **`watch`-category** Situation — *"Brightmoor model budget 85% used; projected to exhaust before month-end"* — batched into the morning Digest (not an interruption, REQ-PROACT-07). The activity-log records the crossing. The user can widen the budget (client config surface, out of scope here) or let degradation hold the line.
 
 ### Example D — cache savings made visible (narrative)
 
@@ -251,7 +251,7 @@ The [Inbox](inbox.md) extractor runs thousands of times a day against a large ca
 
 ## 10. Open Questions & Decisions
 
-- **OQ-TOK-1** — Default **budget values** per scope (System monthly, per-Space, per-Task, per-Agent) and soft-cap fractions — coordinate with [settings](settings.md). *Leaning:* ship conservative defaults (a System soft cap + a per-Task token ceiling) on by default, the rest opt-in.
+- **OQ-TOK-1** — Default **budget values** per scope (System monthly, per-Space, per-Task, per-Agent) and soft-cap fractions — default owned here; client config surface out of scope. *Leaning:* ship conservative defaults (a System soft cap + a per-Task token ceiling) on by default, the rest opt-in.
 - **OQ-TOK-2** — Whether **local compute** gets a real cost estimate (electricity/GPU-hour amortization) or stays **money-free + token-metered**. *Leaning:* token-metered only in v1; a compute estimate is observability-grade at best (break-even economics are deployment-specific).
 - **OQ-TOK-3** — Where the **rate ceiling** sits relative to [app-architecture](app-architecture.md)'s concurrency cap and the provider's own rate-limit fallback ([ai-models](ai-models.md) REQ-AIM-06) — one queue or two.
 - **OQ-TOK-4** — The exact **degradation order** (§5.8) and whether it is per-Space configurable or a fixed policy.
@@ -276,7 +276,7 @@ The [Inbox](inbox.md) extractor runs thousands of times a day against a large ca
 - [constitution](constitution.md) — §5 (incur-a-cost is Ask-first), §5.2 (background parking / `awaiting_approval`), the Never floor a budget can't lift, and the fail-safe engineering principle.
 - [proactivity](proactivity.md) — the **attention** budget (distinct resource, same shape); also the channel that surfaces burn-rate alerts and parked spend approvals.
 - [tasks](tasks.md) REQ-TASK-07 (parking on Ask-first) · [agent-orchestration](agent-orchestration.md) REQ-AORCH-11 (escalation on a blocked step) · [agents](agents.md) (per-Agent budgets).
-- [app-architecture](app-architecture.md) — persistence of meter/budget rows, the event bus/outbox, the activity-log append, and the concurrency cap (orthogonal). [settings](settings.md) — budget defaults + dashboards. [spaces](spaces.md) — budget inheritance (OQ-TOK-5). [periodic-tasks](periodic-tasks.md)/[curator](curator.md)/[context-management](context-management.md) — degradation levers.
+- [app-architecture](app-architecture.md) — persistence of meter/budget rows, the event bus/outbox, the activity-log append, and the concurrency cap (orthogonal). Budget defaults are owned here; the budget dashboard is a client surface (out of scope here). [spaces](spaces.md) — budget inheritance (OQ-TOK-5). [periodic-tasks](periodic-tasks.md)/[curator](curator.md)/[context-management](context-management.md) — degradation levers.
 
 **Sources (research-grounded, read this session — figures are dated snapshots, June 2026):**
 

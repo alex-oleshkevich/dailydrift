@@ -265,7 +265,7 @@ Every write embeds its content for the shared index. Requirement: `{Kind: embed,
 
 - **OQ-AIM-1** — The **L2 classifier**: a fine-tuned embedding head vs a tiny distilled model vs heuristic signals; confidence threshold for escalation.
 - **OQ-AIM-2** — The **default local embedding model** + its dimension (BGE-M3 1024-d vs a 384-d MiniLM), and how `app-architecture` fixes the `vec0` column to it.
-- **OQ-AIM-3** — Per-Space **model-policy UI** (local-only, tier caps, allowed providers) — coordinate with [settings](settings.md)/[spaces](spaces.md).
+- **OQ-AIM-3** — Per-Space **model policy** (local-only, tier caps, allowed providers) — coordinate with [spaces](spaces.md); its config UI is a client surface (out of scope here).
 - **OQ-AIM-4** — Catalog **refresh cadence** + whether cards are fetched live (provider model lists) or shipped and updated per release.
 - **OQ-AIM-5** — Whether fitness signals (REQ-AIM-15) auto-adjust selection or only advise the user.
 
@@ -282,7 +282,7 @@ Every write embeds its content for the shared index. Requirement: `{Kind: embed,
 
 - [agents](agents.md) REQ-AGENT-07 (the `model` field this resolves) · [memory](memory.md) REQ-MEM-03/04 (the shared embedding substrate, local-default) · [prompt-injection](prompt-injection.md) REQ-PINJ-15 (model-strength posture) · [secrets](secrets.md) (keys as handles).
 - The prompt-contract consumers: [inbox](inbox.md) · [situations](situations.md) · [curator](curator.md) · [narrative](narrative.md) · [insights](insights.md) · [agent-orchestration](agent-orchestration.md).
-- **Mechanics:** [app-architecture](app-architecture.md) (client libs + vector store) · [privacy-security](privacy-security.md) (local-only enforcement) · [settings](settings.md) (model policy).
+- **Mechanics:** [app-architecture](app-architecture.md) (client libs + vector store) · [privacy-security](privacy-security.md) (local-only enforcement). Model policy is owned here; its config UI is a client surface (out of scope here).
 
 **Design lineage.** Grounded in real code + the current landscape (read this session):
 

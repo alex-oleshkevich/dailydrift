@@ -84,7 +84,7 @@ Above the single tool, the dominant risk is **excessive agency** (OWASP LLM06): 
 
 ### 5.9 Built-in catalog (reference set)
 
-> **REQ-TOOL-09.** The System ships a built-in Tool catalog; each entry declares its effect class and baseline tier. The reference set: **`web_fetch`** / **`web_search`** (read_only, Always); **`file_read`** (read_only, Always) · **`file_write`** (destructive, Ask-first) · **`file_exec`** (destructive, Ask-first) — all bounded by the sandbox; **`browser_*`** ([browser-automation](browser-automation.md); navigation read_only/Always, state-changing actions Ask-first); **`email_send`** / **`message_send`** (destructive, Ask-first); and **[MCP](mcp.md)-imported** tools, which enter the same catalog with their source marked `mcp`. The concrete schemas and additions are tracked with each tool's feature spec.
+> **REQ-TOOL-09.** The System ships a built-in Tool catalog; each entry declares its effect class and baseline tier. The reference set: **`web_fetch`** / **`web_search`** (read_only, Always); **`file_read`** (read_only, Always) · **`file_write`** (destructive, Ask-first) · **`file_exec`** (destructive, Ask-first) — all bounded by the sandbox; **`browser_*`** (deferred capability; navigation read_only/Always, state-changing actions Ask-first); **`email_send`** / **`message_send`** (destructive, Ask-first); and **[MCP](mcp.md)-imported** tools, which enter the same catalog with their source marked `mcp`. The concrete schemas and additions are tracked with each tool's feature spec.
 
 ### 5.10 Blast-radius denylist
 

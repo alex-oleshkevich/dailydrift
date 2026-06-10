@@ -6,7 +6,7 @@
 >
 > **Purpose:** The end-to-end story of how the System works, plus its full feature catalog — written for an investor or a new user, not an engineer. It explains *what every feature does and how they connect*; the deep mechanics of each live in that feature's own spec.
 >
-> **Depends on:** [constitution](constitution.md), [overview](overview.md), [glossary](glossary.md)   ·   **Related:** [spaces](spaces.md), [tasks](tasks.md), [periodic-tasks](periodic-tasks.md), [signals](signals.md), [agents](agents.md), [agent-orchestration](agent-orchestration.md), [tools](tools.md), [skills](skills.md), [permissions](permissions.md), [memory](memory.md), [insights](insights.md), [entities](entities.md), [ui-shell](ui-shell.md), [proactivity](proactivity.md), [conversation](conversation.md), [calendar](calendar.md), [browser-automation](browser-automation.md), [filesystem](filesystem.md), [mcp](mcp.md), [activity-log](activity-log.md), [privacy-security](privacy-security.md), [ai-models](ai-models.md), [ui-shell](ui-shell.md), [settings](settings.md), [data-model](data-model.md)
+> **Depends on:** [constitution](constitution.md), [overview](overview.md), [glossary](glossary.md)   ·   **Related:** [spaces](spaces.md), [tasks](tasks.md), [periodic-tasks](periodic-tasks.md), [signals](signals.md), [agents](agents.md), [agent-orchestration](agent-orchestration.md), [tools](tools.md), [skills](skills.md), [permissions](permissions.md), [memory](memory.md), [insights](insights.md), [entities](entities.md), [proactivity](proactivity.md), [conversation](conversation.md), [calendar](calendar.md), [mcp](mcp.md), [activity-log](activity-log.md), [privacy-security](privacy-security.md), [ai-models](ai-models.md), [data-model](data-model.md)
 
 > Requirement tag: **HOW**
 
@@ -25,7 +25,7 @@ Requirement IDs in this spec use the tag **`HOW`** (`REQ-HOW-NN`).
 - **Not implementation.** Structures, protocols, and build details live in each feature's spec and in [app-architecture](app-architecture.md) / [stack](stack.md).
 - **Not the vision.** The "why" and positioning live in [overview](overview.md).
 - **Not definitions.** Canonical term meanings live in [glossary](glossary.md).
-- **Out of scope here:** Space sharing (deferred), first-run onboarding ([ui-shell](ui-shell.md)/[settings](settings.md) will own it), and undo/reversibility detail ([activity-log](activity-log.md)/[permissions](permissions.md)). They are mentioned only where a flow touches them.
+- **Out of scope here:** Space sharing (deferred), first-run onboarding (client surface — out of scope here), and undo/reversibility detail ([activity-log](activity-log.md)/[permissions](permissions.md)). They are mentioned only where a flow touches them.
 
 ## 3. Background & Rationale
 
@@ -107,8 +107,8 @@ You organize work as Spaces — e.g. `Business/Framework`, `Business/Brightmoor`
 
 > **REQ-HOW-05.** The System connects to external systems under **least privilege** — every integration is granted narrowly and visibly, never silently broadened.
 
-- **Browser automation** — isolated browser profiles that log in, fill forms, extract data, and watch pages; state-changing actions are approval-gated. *See [browser-automation](browser-automation.md).*
-- **Filesystem** — scoped folder mounts; files become Signals; the System never scans the whole disk. *See [filesystem](filesystem.md).*
+- **Browser automation** — isolated browser profiles that log in, fill forms, extract data, and watch pages; state-changing actions are approval-gated. *(deferred capability — out of v1 scope.)*
+- **Filesystem** — scoped folder mounts; files become Signals; the System never scans the whole disk. *(deferred capability — out of v1 scope.)*
 - **Inbound Integrations** — email, calendar, chat, task-tracking, and code-host accounts that poll external services and emit Signals into one Space. *See [integrations](integrations.md).*
 - **Outbound Tools / MCP / Skills** — capabilities the System calls to act on the world, scoped per Space and gated by permissions. *See [tools](tools.md), [mcp](mcp.md), [skills](skills.md).*
 - **Ingestion API** — the open door of §5.3 for anything else.
@@ -262,10 +262,10 @@ sequenceDiagram
 ### 5.15 Surfaces tour (chat-first)
 
 All reachable from chat:
-- **Home / Briefings / Digests** — open any client and, in three sentences, know where everything stands; daily briefing + weekly Digest. *See [ui-shell](ui-shell.md).*
-- **Search & command palette** — find anything across your Spaces; run commands fast. *See [ui-shell](ui-shell.md).*
+- **Home / Briefings / Digests** — open any client and, in three sentences, know where everything stands; daily briefing + weekly Digest. *Rendered by the client (out of scope here); Digest policy in [proactivity](proactivity.md), briefing content in [narrative](narrative.md).*
+- **Search & command palette** — find anything across your Spaces; run commands fast. *(client surface — out of scope here.)*
 - **Activity log** — the auditable trail: "what did it do while I was away?" *See [activity-log](activity-log.md).*
-- **Settings** — global and per-Space configuration. *See [settings](settings.md).*
+- **Settings** — global and per-Space configuration. *(client surface — out of scope here.)*
 
 ### 5.16 Proactivity
 
@@ -328,7 +328,7 @@ You ask in chat, *"Where's the Brightmoor portal?"* While the assistant answers,
 - **D-3 — Ingestion API posture.** Decided: authenticated, Space-scoped, rate-limited, untrusted-as-data (§5.3).
 - **D-4 — Folded-in Monitor.** Decided: watching a source is a Periodic Task (watcher), not a separate primitive (§5.11).
 - **Out of scope (noted):** sharing, onboarding, and undo are deferred to their own specs.
-- **OQ-HOW-1** — Where exactly does the urgency bar live (per-Space override vs global)? (Resolve in [proactivity](proactivity.md)/[settings](settings.md).)
+- **OQ-HOW-1** — Where exactly does the urgency bar live (per-Space override vs global)? (Resolve in [proactivity](proactivity.md).)
 
 ## 11. Review & Acceptance Checklist
 

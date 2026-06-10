@@ -26,7 +26,7 @@ This spec owns the **Integration mechanics**: the **category taxonomy** (email �
 - **Not the scheduler.** Cron firing and the task queue are owned by [periodic-tasks](periodic-tasks.md) / [tasks](tasks.md). An Integration's sync **is** a Task they run.
 - **Not a webhook receiver.** v1 is **pull-only** (§5.5); a push/webhook receiver is deferred (OQ-INT-1). Push-capable external tools may still use the `POST /ingest` escape hatch ([app-architecture](app-architecture.md) REQ-ARCH-16).
 - **Not specific providers.** Gmail, Google Calendar, Jira, Slack, GitHub are a **roadmap** mapped onto the categories (§5.2), each detailed when built — not specified here.
-- **Not local sources.** Watched files, browser activity, and the local calendar surface are *local* edges owned by [filesystem](filesystem.md) / [browser-automation](browser-automation.md) / [calendar](calendar.md); this spec owns *external authorized accounts* (OQ-INT-5).
+- **Not local sources.** Watched files and browser activity are *local* edges — **deferred capabilities, out of v1 scope** — and the local calendar surface is owned by [calendar](calendar.md); this spec owns *external authorized accounts* (OQ-INT-5).
 
 ## 3. Background & Rationale
 

@@ -6,7 +6,7 @@
 >
 > **Purpose:** The Storyline feature end-to-end — what a Storyline is, how it is created from accumulating Evidence and promoted, how its Status and Momentum move, how Storylines merge, and how the System surfaces them.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [evidence](evidence.md), [situations](situations.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [ui-shell](ui-shell.md), [conversation](conversation.md), [entities](entities.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [glossary](glossary.md)   ·   **Related:** [signals](signals.md), [evidence](evidence.md), [situations](situations.md), [insights](insights.md), [narrative](narrative.md), [memory](memory.md), [conversation](conversation.md), [entities](entities.md)
 
 > Requirement tag: **STORY**
 
@@ -24,7 +24,7 @@ This spec owns the Storyline's **mechanics**: how a Storyline comes into being f
 - **Not Situations or Insights.** Their internals are owned by [situations](situations.md) and [insights](insights.md); here they are things a Storyline aggregates.
 - **Not Narrative generation.** A Storyline's running synthesis — its `summary` (§5.7) — **is** the Storyline-scoped Narrative, whose structure, cadence, and generation are owned by [narrative](narrative.md); this spec owns *when* a Storyline has one. The **Space** Narrative (synthesis *across* a Space's Storylines) is also [narrative](narrative.md).
 - **Not Evidence extraction.** Turning Signals into Evidence is owned by [signals](signals.md).
-- **Not surface layout.** Where Storylines render is owned by [ui-shell](ui-shell.md) and [conversation](conversation.md); this spec defines what is shown and when.
+- **Not surface layout.** Where Storylines render is owned by [conversation](conversation.md) and the client surface (out of scope here); this spec defines what is shown and when.
 
 ## 3. Background & Rationale
 
@@ -116,7 +116,7 @@ A Storyline is created when **enough Evidence converges on a single coherent, du
 
 ### 5.9 Surfacing
 
-> **REQ-STORY-10.** Storylines are a primary Home section, **"Active Storylines,"** each shown with its Status and Momentum so the user can see at a glance what defines their world and what is moving vs stuck ([ui-shell](ui-shell.md)). `candidate` Storylines never appear here; `dormant`/`archived` appear only on request.
+> **REQ-STORY-10.** Storylines are a primary Home section, **"Active Storylines,"** each shown with its Status and Momentum so the user can see at a glance what defines their world and what is moving vs stuck (client surface). `candidate` Storylines never appear here; `dormant`/`archived` appear only on request.
 
 > **REQ-STORY-11.** When the user enters a conversation, the System **identifies which Storyline it belongs to** and supplies that Storyline's summary, open Situations, recalled Insights, and linked material as context ([conversation](conversation.md)).
 
@@ -305,7 +305,7 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 ## 10. Open Questions & Decisions
 
 - **OQ-STORY-1** — The concrete promotion threshold (count of related Evidence and/or the time window). (Tune against real volume.)
-- **OQ-STORY-2** — The `dormant` quiet-period and the `dormant → archived` window — global defaults or per-Space configurable? (Coordinate with [settings](settings.md).)
+- **OQ-STORY-2** — The `dormant` quiet-period and the `dormant → archived` window — global defaults or per-Space configurable? (Default owned here; client config surface out of scope.)
 - **OQ-STORY-3** — Are merges ever fully automatic, or always at least logged for one-click undo? (Coordinate with [activity-log](activity-log.md).)
 
 ## 11. Review & Acceptance Checklist
@@ -327,7 +327,7 @@ Three candidate threads — *API client*, *Postman clone*, *HTTP tool* — share
 - [glossary](glossary.md) — canonical Storyline, Momentum, Status definitions.
 - [evidence](evidence.md) — the Evidence a Storyline accumulates; [signals](signals.md) — where it originates. [situations](situations.md) / [insights](insights.md) — what a Storyline aggregates.
 - [narrative](narrative.md) — the Narrative at Space and Storyline scope; a Storyline's `summary` is its Storyline-scoped Narrative. [memory](memory.md) — capture/retention/recall.
-- [ui-shell](ui-shell.md) / [conversation](conversation.md) — the surfaces that render Storylines. [proactivity](proactivity.md) — the bar for proposing one. [entities](entities.md) — linked Entities.
+- [conversation](conversation.md) and the client surface (out of scope here) — the surfaces that render Storylines. [proactivity](proactivity.md) — the bar for proposing one. [entities](entities.md) — linked Entities.
 
 ## 13. Changelog
 

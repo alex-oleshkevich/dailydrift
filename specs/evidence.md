@@ -91,7 +91,7 @@ The type vocabulary is **disjoint from** Situation `category`s ([situations](sit
 
 ### 5.9 Visibility
 
-> **REQ-EV-09.** Unlike [Signals](signals.md), which are internal infrastructure, **Evidence is user-visible**. It surfaces as the cited basis inside Storylines, Situations, Insight explanations, Narrative provenance, and knowledge-graph views. Users do not browse a raw "evidence feed"; they encounter Evidence as the **provenance** of the concepts they already care about ([ui-shell](ui-shell.md), [conversation](conversation.md)).
+> **REQ-EV-09.** Unlike [Signals](signals.md), which are internal infrastructure, **Evidence is user-visible**. It surfaces as the cited basis inside Storylines, Situations, Insight explanations, Narrative provenance, and knowledge-graph views. Users do not browse a raw "evidence feed"; they encounter Evidence as the **provenance** of the concepts they already care about ([conversation](conversation.md) and the client surface, out of scope here).
 
 ### 5.10 Dedup & reinforcement across Signals
 

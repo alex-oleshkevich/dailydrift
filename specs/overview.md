@@ -6,7 +6,7 @@
 >
 > **Purpose:** The product north-star — what the System is, who it's for, what it deliberately is *not*, the goals, the headline use cases, and what success feels like. The no-tech vision every other spec deepens.
 >
-> **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [how-it-works](how-it-works.md), [ui-shell](ui-shell.md)
+> **Depends on:** [constitution](constitution.md)   ·   **Related:** [glossary](glossary.md), [spaces](spaces.md), [how-it-works](how-it-works.md)
 
 > Requirement tag: **OVR**
 
@@ -111,7 +111,7 @@ The System is **narrative-driven, not event-driven** (P2): it models stories and
 
 ### 5.9 Onboarding at a glance
 
-First use is about **establishing scope, not configuration**: stand up the server (self-host it wherever you like), connect a desktop or mobile client, create your first Spaces, optionally mount a folder, connect a browser profile, or share a Space with someone — and state a few things you care about. From there the server begins observing and briefing. The principle is **incremental, visible reach** (P6): nothing is assumed. Full flows live in [ui-shell](ui-shell.md), [spaces](spaces.md), [filesystem](filesystem.md), [settings](settings.md).
+First use is about **establishing scope, not configuration**: stand up the server (self-host it wherever you like), connect a desktop or mobile client, create your first Spaces, optionally mount a folder, connect a browser profile, or share a Space with someone — and state a few things you care about. From there the server begins observing and briefing. The principle is **incremental, visible reach** (P6): nothing is assumed. Full flows live in [spaces](spaces.md) and the client surfaces (out of scope here).
 
 ## 6. Visualizations
 
@@ -170,7 +170,7 @@ You haven't touched the `Framework` Space in two weeks. You open a client. The S
 - **OQ-1 — Product name.** Deferred; no suitable domain is free. Specs use "the System" ([constitution](constitution.md) §1).
 - **OQ-2 — Export/import.** Peer sync is a non-goal, but a manual export/import for backup/migration is likely desirable. Deferred ([privacy-security](privacy-security.md) / [app-architecture](app-architecture.md)).
 - **OQ-3 — Mobile parity.** Companion-first is decided; whether mobile later grows toward parity is open.
-- **OQ-4 — Onboarding depth.** How far to simplify for non-technical users without diluting the power-user core. Revisit with [ui-shell](ui-shell.md).
+- **OQ-4 — Onboarding depth.** How far to simplify for non-technical users without diluting the power-user core. Revisit with the client surface (out of scope here).
 
 ## 11. Review & Acceptance Checklist
 
@@ -190,7 +190,7 @@ You haven't touched the `Framework` Space in two weeks. You open a client. The S
 - [spaces](spaces.md) — the hierarchy and sharing behind the multi-context and collaboration use cases.
 - [glossary](glossary.md) — definitions used loosely here.
 - [how-it-works](how-it-works.md) — the operating loop that realizes this vision.
-- [ui-shell](ui-shell.md) — the briefing experience in §5.8/§6.2.
+- [narrative](narrative.md) — the briefing content in §5.8/§6.2; its rendering is a client surface (out of scope here).
 
 ## 13. Changelog
 

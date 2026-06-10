@@ -60,7 +60,7 @@ Concrete bars (test strategy, accessibility level, performance budgets) are set 
 
 ## 5. The Always / Ask-first / Never framework
 
-The canonical autonomy & approval model. **Every action the System can take is classified into exactly one tier.** Subsystem specs ([permissions](permissions.md), [tools](tools.md), [browser-automation](browser-automation.md), [filesystem](filesystem.md), [tasks](tasks.md), [mcp](mcp.md), …) extend this table with their own actions; they may make a default *stricter* for a given space but never *looser* than this baseline. Every tool ([tools](tools.md)) declares the tier of the action it performs.
+The canonical autonomy & approval model. **Every action the System can take is classified into exactly one tier.** Subsystem specs ([permissions](permissions.md), [tools](tools.md), [tasks](tasks.md), [mcp](mcp.md), …) extend this table with their own actions; they may make a default *stricter* for a given space but never *looser* than this baseline. Every tool ([tools](tools.md)) declares the tier of the action it performs.
 
 ```mermaid
 flowchart LR
@@ -76,7 +76,7 @@ flowchart LR
 
 | Action | Default tier | Notes |
 |--------|--------------|-------|
-| Read mounted files / indexed content | **Always** | Within granted mounts only ([filesystem](filesystem.md)). |
+| Read mounted files / indexed content | **Always** | Within granted mounts only (local file mounts — deferred capability). |
 | Search the web / fetch a public page | **Always** | Read-only retrieval. |
 | Summarize, extract, analyze, generate insights | **Always** | Local reasoning over existing evidence. |
 | Create/update internal objects (Storylines, Memories, Tasks) | **Always** | Internal state; fully reversible & logged. |
@@ -150,7 +150,7 @@ flowchart LR
 *(Always actions and "Allow always" grants run without pausing; Never actions are refused and logged — see the rules below.)*
 
 - Autonomous work proceeds freely over **Always** actions and any **Allow-always standing grants**. Standing grants are what make meaningful autonomy possible — without them, an unattended task stalls at the first Ask-first step.
-- On an **Ask-first** action with no covering grant: the task **parks a permission request** and enters **Awaiting-approval**. The request surfaces as a permission-request message in [conversation](conversation.md), a Home → Attention-Needed item ([ui-shell](ui-shell.md)), an [activity-log](activity-log.md) entry, and (usually) a Situation ([glossary](glossary.md)) such as *"task blocked awaiting approval."* [proactivity](proactivity.md) decides whether to actively notify now or let it wait for the next digest, by urgency.
+- On an **Ask-first** action with no covering grant: the task **parks a permission request** and enters **Awaiting-approval**. The request surfaces as a permission-request message in [conversation](conversation.md), a Home → Attention-Needed item ([proactivity](proactivity.md)), an [activity-log](activity-log.md) entry, and (usually) a Situation ([glossary](glossary.md)) such as *"task blocked awaiting approval."* [proactivity](proactivity.md) decides whether to actively notify now or let it wait for the next digest, by urgency.
 - **Approved** → resume from the park point. **Denied** → the parked **leaf Task is cancelled** (`permission_denied`, [tasks](tasks.md) REQ-TASK-07/09); sibling branches continue and the parent reconciles, recording why. **Expired/timed out** (configurable) → the request lapses, the leaf Task is **cancelled** (`permission_timeout`), and the block is surfaced as stale. (Because every Ask-first side effect is gated *before* it happens, a cancel cannot leave a half-done irreversible action — no compensation is needed.)
 - On a **Never** action → refused immediately and logged; the branch is recorded as blocked (no approval can unlock a Never).
 - **Anticipate, don't nag.** A task that can foresee the approvals it will need SHOULD request them as one batch up front (or rely on standing grants) rather than interrupting repeatedly. Full mechanics live in [permissions](permissions.md), [tasks](tasks.md), and [proactivity](proactivity.md).
@@ -317,7 +317,7 @@ This spec is satisfied when:
 
 - [index](index.md) — the loading guide this document mandates.
 - [overview](overview.md) — applies the product principles to the product narrative.
-- [permissions](permissions.md), [tools](tools.md), [sandboxing](sandboxing.md), [privacy-security](privacy-security.md), [secrets](secrets.md), [browser-automation](browser-automation.md), [filesystem](filesystem.md), [mcp](mcp.md) — extend §5.
+- [permissions](permissions.md), [tools](tools.md), [sandboxing](sandboxing.md), [privacy-security](privacy-security.md), [secrets](secrets.md), [mcp](mcp.md) — extend §5.
 - [data-model](data-model.md) — fixes the concrete ID format referenced in §6.2.
 
 ## 11. Changelog

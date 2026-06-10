@@ -6,7 +6,7 @@
 >
 > **Purpose:** The concrete runtime architecture — the always-on self-hosted **Go server (the brain)** and its native clients: identity, persistence, the background runtime, the AI/vector/worker runtimes, the server↔client protocol, and the opinionated Go technology stack that realizes every conceptual spec.
 >
-> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [ai-models](ai-models.md), [memory](memory.md), [agent-orchestration](agent-orchestration.md), [sandboxing](sandboxing.md), [secrets](secrets.md), [tasks](tasks.md)   ·   **Related:** [stack](stack.md), [signals](signals.md), [inbox](inbox.md), [curator](curator.md), [entities](entities.md), [proactivity](proactivity.md), [privacy-security](privacy-security.md), [activity-log](activity-log.md), [settings](settings.md)
+> **Depends on:** [constitution](constitution.md), [data-model](data-model.md), [ai-models](ai-models.md), [memory](memory.md), [agent-orchestration](agent-orchestration.md), [sandboxing](sandboxing.md), [secrets](secrets.md), [tasks](tasks.md)   ·   **Related:** [stack](stack.md), [signals](signals.md), [inbox](inbox.md), [curator](curator.md), [entities](entities.md), [proactivity](proactivity.md), [privacy-security](privacy-security.md), [activity-log](activity-log.md)
 
 > Requirement tag: **ARCH**
 
@@ -112,7 +112,7 @@ The patterns are drawn from how comparable systems are built. Single-binary self
 
 ### 5.17 Configuration & definition files
 
-> **REQ-ARCH-17.** **Agent and Skill definitions** live on disk as **markdown + frontmatter** ([skills](skills.md) `SKILL.md`; [agents](agents.md) definitions) under the host config dir; **`spf13/viper`** loads config (env > file > defaults). **User definitions override built-ins by name.** **Settings**, quiet-hours/preferences ([proactivity](proactivity.md)/[settings](settings.md)), the **Space registry**, and **`notif_`** delivery records persist in the **System DB**. This fixes the agent/skill file-format/location and `notif_` persistence deferrals.
+> **REQ-ARCH-17.** **Agent and Skill definitions** live on disk as **markdown + frontmatter** ([skills](skills.md) `SKILL.md`; [agents](agents.md) definitions) under the host config dir; **`spf13/viper`** loads config (env > file > defaults). **User definitions override built-ins by name.** **Settings**, quiet-hours/preferences ([proactivity](proactivity.md)), the **Space registry**, and **`notif_`** delivery records persist in the **System DB**. This fixes the agent/skill file-format/location and `notif_` persistence deferrals.
 
 ### 5.18 Secrets broker runtime
 
