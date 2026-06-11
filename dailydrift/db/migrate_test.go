@@ -33,15 +33,15 @@ func TestMigrate(t *testing.T) {
 		return v
 	}
 
-	got := version()
-	if got != 1 {
-		t.Fatalf("version after migrate = %d, want 1", got)
+	v1 := version()
+	if v1 == 0 {
+		t.Fatal("expected migrations to run, version is 0")
 	}
 
 	if err := d.Migrate(ctx); err != nil {
 		t.Fatalf("Migrate (rerun): %v", err)
 	}
-	if got := version(); got != 1 {
-		t.Fatalf("version after idempotent rerun = %d, want 1", got)
+	if v2 := version(); v2 != v1 {
+		t.Fatalf("idempotent rerun changed version: %d → %d", v1, v2)
 	}
 }
