@@ -38,18 +38,12 @@ const DEMO_CHATS = [
     { id: "ch-2", label: "Architecture discussion" },
 ];
 
-export function AppSidebar({
-    activeView,
-    onNavigate,
-    onOpenSettings,
-}: AppSidebarProps) {
+export function AppSidebar({ activeView, onNavigate, onOpenSettings }: AppSidebarProps) {
     return (
         <Sidebar>
             <SidebarHeader>
                 <div className="px-2 py-1.5">
-                    <span className="font-semibold text-lg tracking-tight">
-                        dailydrift
-                    </span>
+                    <span className="font-semibold text-lg tracking-tight">dailydrift</span>
                 </div>
                 <SpaceSwitcher />
             </SidebarHeader>
@@ -61,8 +55,12 @@ export function AppSidebar({
                             {NAV_ITEMS.map((item) => (
                                 <SidebarMenuItem key={item.id}>
                                     <SidebarMenuButton
+                                        render={<a href="#" />}
                                         isActive={item.id === activeView}
-                                        onClick={() => onNavigate(item.id)}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            onNavigate(item.id);
+                                        }}
                                     >
                                         {item.label}
                                     </SidebarMenuButton>
@@ -78,7 +76,7 @@ export function AppSidebar({
                         <SidebarMenu>
                             {DEMO_STORYLINES.map((item) => (
                                 <SidebarMenuItem key={item.id}>
-                                    <SidebarMenuButton>
+                                    <SidebarMenuButton render={<a href="#" />}>
                                         {item.label}
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
@@ -93,7 +91,7 @@ export function AppSidebar({
                         <SidebarMenu>
                             {DEMO_CHATS.map((item) => (
                                 <SidebarMenuItem key={item.id}>
-                                    <SidebarMenuButton>
+                                    <SidebarMenuButton render={<a href="#" />}>
                                         {item.label}
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
