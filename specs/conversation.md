@@ -1,6 +1,6 @@
 # Conversation
-
-> **Status:** In Review
+ 
+> **Status:** In Revsiew 
 >
 > **Version:** 0.1   ·   **Last updated:** 2026-06-11
 >
