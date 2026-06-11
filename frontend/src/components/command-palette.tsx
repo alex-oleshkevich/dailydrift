@@ -1,82 +1,52 @@
 import { useEffect } from "react";
-import { useShallow } from "zustand/react/shallow";
-
 import {
     Command,
-    CommandDialog,
     CommandEmpty,
     CommandGroup,
     CommandInput,
     CommandItem,
     CommandList,
-    CommandShortcut,
 } from "@/components/ui/command";
-import { useCommandPaletteStore } from "@/stores/commands";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-export function CommandPalette() {
-    const { open, setOpen, toggle, commands, content } = useCommandPaletteStore(
-        useShallow((state) => ({
-            open: state.open,
-            setOpen: state.setOpen,
-            toggle: state.toggle,
-            commands: state.commands,
-            content: state.content,
-        })),
-    );
+interface CommandPaletteProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}
 
+export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if ((event.ctrlKey || event.metaKey) && event.key === "p") {
-                event.preventDefault();
-                toggle();
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                onOpenChange(true);
             }
         };
-        document.addEventListener("keydown", onKeyDown);
-        return () => document.removeEventListener("keydown", onKeyDown);
-    }, [toggle]);
-
-    // Stub: selecting an item just closes the palette for now.
-    const handleSelect = () => {
-        setOpen(false);
-    };
+        document.addEventListener("keydown", handler);
+        return () => document.removeEventListener("keydown", handler);
+    }, [onOpenChange]);
 
     return (
-        <CommandDialog open={open} onOpenChange={setOpen}>
-            <Command>
-                <CommandInput placeholder="Search content or run a command…" />
-                <CommandList>
-                    <CommandEmpty>No results found.</CommandEmpty>
-                    <CommandGroup heading="Content">
-                        {content.map((item) => (
-                            <CommandItem
-                                key={item.id}
-                                value={item.title}
-                                onSelect={handleSelect}
-                            >
-                                <span>{item.title}</span>
-                                <CommandShortcut>{item.kind}</CommandShortcut>
-                            </CommandItem>
-                        ))}
-                    </CommandGroup>
-                    <CommandGroup heading="Commands">
-                        {commands.map((command) => (
-                            <CommandItem
-                                key={command.id}
-                                value={command.title}
-                                onSelect={handleSelect}
-                            >
-                                <command.icon />
-                                <span>{command.title}</span>
-                                {command.shortcut ? (
-                                    <CommandShortcut>
-                                        {command.shortcut}
-                                    </CommandShortcut>
-                                ) : null}
-                            </CommandItem>
-                        ))}
-                    </CommandGroup>
-                </CommandList>
-            </Command>
-        </CommandDialog>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl gap-0 p-0">
+                <Command>
+                    <CommandInput placeholder="Search or jump to..." />
+                    <CommandList>
+                        <CommandEmpty>No results found.</CommandEmpty>
+                        <CommandGroup heading="Navigation">
+                            <CommandItem>Overview</CommandItem>
+                            <CommandItem>Inbox</CommandItem>
+                            <CommandItem>Calendar</CommandItem>
+                            <CommandItem>Tasks</CommandItem>
+                        </CommandGroup>
+                        <CommandGroup heading="Actions">
+                            <CommandItem>New chat</CommandItem>
+                            <CommandItem>New storyline</CommandItem>
+                            <CommandItem>New task</CommandItem>
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </DialogContent>
+        </Dialog>
     );
 }

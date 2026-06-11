@@ -1,18 +1,3 @@
-import {
-    Calendar,
-    Home,
-    Inbox,
-    ListTodo,
-    type LucideIcon,
-    MessageSquare,
-    Radar,
-    Settings,
-    Waypoints,
-} from "lucide-react";
-import type * as React from "react";
-import { useShallow } from "zustand/react/shallow";
-
-import { FileTreeNav } from "@/components/file-tree-nav";
 import { SpaceSwitcher } from "@/components/space-switcher";
 import {
     Sidebar,
@@ -23,183 +8,116 @@ import {
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
-    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarMenuSkeleton,
     SidebarRail,
 } from "@/components/ui/sidebar";
-import { useChatsStore } from "@/stores/chats";
-import { useFilesStore } from "@/stores/files";
-import { useStorylinesStore } from "@/stores/storylines";
 
-export interface NavLeaf {
-    id: string;
-    title: string;
-    icon: LucideIcon;
-    status?: "warning";
+export type View = "overview" | "inbox" | "calendar" | "tasks";
+
+interface AppSidebarProps {
+    activeView: View;
+    onNavigate: (view: View) => void;
+    onOpenSettings: () => void;
 }
 
-interface NavGroup {
-    label?: string;
-    items: NavLeaf[];
-    loading?: boolean;
-}
-
-// Static app navigation. Focus and Chats come from their stores (API-backed later).
-const mainItems: NavLeaf[] = [
-    { id: "home", title: "Home", icon: Home },
-    { id: "inbox", title: "Inbox", icon: Inbox },
-    { id: "calendar", title: "Calendar", icon: Calendar },
+const NAV_ITEMS: { id: View; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "inbox", label: "Inbox" },
+    { id: "calendar", label: "Calendar" },
+    { id: "tasks", label: "Tasks" },
 ];
 
-// Pinned to the footer, next to Settings.
-const footerItems: NavLeaf[] = [
-    { id: "tasks", title: "Tasks", icon: ListTodo },
-    { id: "settings", title: "Settings", icon: Settings },
+const DEMO_STORYLINES = [
+    { id: "sl-1", label: "Product launch Q3" },
+    { id: "sl-2", label: "Infrastructure migration" },
 ];
 
-const SKELETON_KEYS = ["a", "b", "c"];
+const DEMO_CHATS = [
+    { id: "ch-1", label: "Daily standup recap" },
+    { id: "ch-2", label: "Architecture discussion" },
+];
 
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-    activeId?: string;
-    onOpen: (item: NavLeaf) => void;
-}
-
-function NavButton({
-    item,
-    activeId,
-    onOpen,
-}: {
-    item: NavLeaf;
-    activeId?: string;
-    onOpen: (item: NavLeaf) => void;
-}) {
+export function AppSidebar({
+    activeView,
+    onNavigate,
+    onOpenSettings,
+}: AppSidebarProps) {
     return (
-        <SidebarMenuButton
-            isActive={item.id === activeId}
-            tooltip={item.title}
-            onClick={() => onOpen(item)}
-        >
-            <item.icon />
-            <span>{item.title}</span>
-        </SidebarMenuButton>
-    );
-}
-
-export function AppSidebar({ activeId, onOpen, ...props }: AppSidebarProps) {
-    const storylines = useStorylinesStore(
-        useShallow((state) => ({
-            items: state.items,
-            loading: state.loading,
-        })),
-    );
-    const chats = useChatsStore(
-        useShallow((state) => ({
-            items: state.items,
-            loading: state.loading,
-        })),
-    );
-    const files = useFilesStore(
-        useShallow((state) => ({
-            items: state.items,
-            loading: state.loading,
-        })),
-    );
-
-    const navGroups: NavGroup[] = [
-        { items: mainItems },
-        {
-            label: "Storylines",
-            loading: storylines.loading,
-            items: storylines.items.map((item) => ({
-                ...item,
-                icon: Waypoints,
-            })),
-        },
-        {
-            label: "Chats",
-            loading: chats.loading,
-            items: chats.items.map((chat) => ({
-                ...chat,
-                icon: MessageSquare,
-            })),
-        },
-    ];
-
-    return (
-        <Sidebar {...props}>
+        <Sidebar>
             <SidebarHeader>
-                <div className="flex h-8 items-center gap-2 px-2">
-                    <Radar className="size-5 shrink-0 text-primary" />
+                <div className="px-2 py-1.5">
                     <span className="font-semibold text-lg tracking-tight">
                         dailydrift
                     </span>
                 </div>
                 <SpaceSwitcher />
             </SidebarHeader>
+
             <SidebarContent>
-                {navGroups.map((group, index) => (
-                    <SidebarGroup key={group.label ?? `group-${index}`}>
-                        {group.label ? (
-                            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-                        ) : null}
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                {group.loading && group.items.length === 0
-                                    ? SKELETON_KEYS.map((key) => (
-                                          <SidebarMenuItem key={key}>
-                                              <SidebarMenuSkeleton showIcon />
-                                          </SidebarMenuItem>
-                                      ))
-                                    : group.items.map((item) => (
-                                          <SidebarMenuItem key={item.id}>
-                                              <NavButton
-                                                  item={item}
-                                                  activeId={activeId}
-                                                  onOpen={onOpen}
-                                              />
-                                              {item.status === "warning" ? (
-                                                  <SidebarMenuBadge className="min-w-0 p-0">
-                                                      <span className="size-2 rounded-full bg-warning" />
-                                                  </SidebarMenuBadge>
-                                              ) : null}
-                                          </SidebarMenuItem>
-                                      ))}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                ))}
                 <SidebarGroup>
-                    <SidebarGroupLabel>Files</SidebarGroupLabel>
                     <SidebarGroupContent>
-                        {files.loading && files.items.length === 0 ? (
-                            <SidebarMenu>
-                                {SKELETON_KEYS.map((key) => (
-                                    <SidebarMenuItem key={key}>
-                                        <SidebarMenuSkeleton showIcon />
-                                    </SidebarMenuItem>
-                                ))}
-                            </SidebarMenu>
-                        ) : (
-                            <FileTreeNav trees={files.items} />
-                        )}
+                        <SidebarMenu>
+                            {NAV_ITEMS.map((item) => (
+                                <SidebarMenuItem key={item.id}>
+                                    <SidebarMenuButton
+                                        isActive={item.id === activeView}
+                                        onClick={() => onNavigate(item.id)}
+                                    >
+                                        {item.label}
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+
+                <SidebarGroup>
+                    <SidebarGroupLabel>Storylines</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            {DEMO_STORYLINES.map((item) => (
+                                <SidebarMenuItem key={item.id}>
+                                    <SidebarMenuButton>
+                                        {item.label}
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+
+                <SidebarGroup>
+                    <SidebarGroupLabel>Chats</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            {DEMO_CHATS.map((item) => (
+                                <SidebarMenuItem key={item.id}>
+                                    <SidebarMenuButton>
+                                        {item.label}
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
+
             <SidebarFooter>
                 <SidebarMenu>
-                    {footerItems.map((item) => (
-                        <SidebarMenuItem key={item.id}>
-                            <NavButton
-                                item={item}
-                                activeId={activeId}
-                                onOpen={onOpen}
-                            />
-                        </SidebarMenuItem>
-                    ))}
+                    <SidebarMenuItem>
+                        <SidebarMenuButton className="text-muted-foreground">
+                            Running tasks (0)
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={onOpenSettings}>
+                            Settings
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>
+
             <SidebarRail />
         </Sidebar>
     );

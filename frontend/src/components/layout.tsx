@@ -1,72 +1,35 @@
-import { ListTodo, MessageSquare } from "lucide-react";
-import { useRef, useState } from "react";
-
-import { AppSidebar, type NavLeaf } from "@/components/app-sidebar";
+import { useState } from "react";
+import { AppSidebar, type View } from "@/components/app-sidebar";
 import { CommandPalette } from "@/components/command-palette";
-import { type TabItem, TabView } from "@/components/tab-view";
+import { MainHeader } from "@/components/main-header";
+import { SettingsDialog } from "@/components/settings-dialog";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-
-interface TabState {
-    tabs: TabItem[];
-    activeId?: string;
-}
+import { HomeView } from "@/components/views/home";
 
 export default function Layout() {
-    const [state, setState] = useState<TabState>({ tabs: [] });
-    const newCounter = useRef(0);
-
-    const openTab = (item: NavLeaf) => {
-        setState((prev) => ({
-            tabs: prev.tabs.some((tab) => tab.id === item.id)
-                ? prev.tabs
-                : [...prev.tabs, item],
-            activeId: item.id,
-        }));
-    };
-
-    const closeTab = (id: string) => {
-        setState((prev) => {
-            const index = prev.tabs.findIndex((tab) => tab.id === id);
-            if (index === -1) {
-                return prev;
-            }
-            const tabs = prev.tabs.filter((tab) => tab.id !== id);
-            const activeId =
-                prev.activeId === id
-                    ? (tabs[index] ?? tabs[index - 1])?.id
-                    : prev.activeId;
-            return { tabs, activeId };
-        });
-    };
-
-    const setActive = (id: string) => {
-        setState((prev) => ({ ...prev, activeId: id }));
-    };
-
-    const openNew = (kind: "chat" | "task") => {
-        newCounter.current += 1;
-        const count = newCounter.current;
-        openTab({
-            id: `${kind}-new-${count}`,
-            title: kind === "chat" ? `New chat ${count}` : `New task ${count}`,
-            icon: kind === "chat" ? MessageSquare : ListTodo,
-        });
-    };
+    const [view, setView] = useState<View>("overview");
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [commandOpen, setCommandOpen] = useState(false);
 
     return (
         <SidebarProvider>
-            <AppSidebar activeId={state.activeId} onOpen={openTab} />
+            <AppSidebar
+                activeView={view}
+                onNavigate={setView}
+                onOpenSettings={() => setSettingsOpen(true)}
+            />
             <SidebarInset>
-                <TabView
-                    tabs={state.tabs}
-                    activeId={state.activeId}
-                    onActiveChange={setActive}
-                    onClose={closeTab}
-                    onNew={openNew}
-                />
+                <MainHeader onOpenCommand={() => setCommandOpen(true)} />
+                <div className="flex flex-1 flex-col overflow-hidden p-6">
+                    <HomeView />
+                </div>
             </SidebarInset>
-            <CommandPalette />
+            <SettingsDialog
+                open={settingsOpen}
+                onOpenChange={setSettingsOpen}
+            />
+            <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
             <Toaster />
         </SidebarProvider>
     );
