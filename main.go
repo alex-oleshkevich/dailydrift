@@ -24,8 +24,8 @@ func main() {
 		Commands: []*cli.Command{
 			serve.Command(),
 		},
-		Action: func(_ context.Context, _ *cli.Command) error {
-			return desktop.RunWails(assets)
+		Action: func(ctx context.Context, _ *cli.Command) error {
+			return desktop.RunWails(ctx, assets)
 		},
 	}
 
