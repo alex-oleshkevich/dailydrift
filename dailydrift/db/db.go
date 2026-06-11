@@ -10,20 +10,20 @@ import (
 	"runtime"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/georgysavva/scany/v2/sqlscan"
 	sqlite "modernc.org/sqlite"
 )
 
 var Builder = sq.StatementBuilder.PlaceholderFormat(sq.Question)
 
 type DBTX interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 	Exec(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error)
-	FindAll(ctx context.Context, stmt sq.Sqlizer) (*sql.Rows, error)
-	FindOne(ctx context.Context, stmt sq.Sqlizer) (*sql.Row, error)
-	Delete(ctx context.Context, stmt sq.Sqlizer) error
-	DeleteBy(ctx context.Context, table, column string, value any) error
-	Insert(ctx context.Context, stmt sq.InsertBuilder) (sql.Result, error)
-	InsertMany(ctx context.Context, stmts []sq.InsertBuilder) error
-	Update(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error)
+	FindAll(ctx context.Context, dst any, stmt sq.Sqlizer) error
+	FindOne(ctx context.Context, dst any, stmt sq.Sqlizer) error
 }
 
 type DB struct {
@@ -38,7 +38,7 @@ type connector struct {
 	pragmas []string
 }
 
-func (c *connector) Connect(_ context.Context) (driver.Conn, error) {
+func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 	conn, err := (&sqlite.Driver{}).Open(c.dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connector: %w", err)
@@ -49,7 +49,7 @@ func (c *connector) Connect(_ context.Context) (driver.Conn, error) {
 		return nil, fmt.Errorf("connector: sqlite driver does not implement ExecerContext")
 	}
 	for _, p := range c.pragmas {
-		if _, err := ec.ExecContext(context.Background(), p, nil); err != nil {
+		if _, err := ec.ExecContext(ctx, p, nil); err != nil {
 			conn.Close()
 			return nil, fmt.Errorf("pragma %q: %w", p, err)
 		}
@@ -104,6 +104,9 @@ func Open(dsn string) (*DB, error) {
 func (d *DB) Close() error {
 	werr := d.writer.Close()
 	rerr := d.reader.Close()
+	if werr != nil && rerr != nil {
+		return fmt.Errorf("db.Close: %w", errors.Join(werr, rerr))
+	}
 	if werr != nil {
 		return fmt.Errorf("db.Close writer: %w", werr)
 	}
@@ -112,6 +115,22 @@ func (d *DB) Close() error {
 	}
 	slog.Debug("db closed", "dsn", d.dsn)
 	return nil
+}
+
+func (d *DB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return d.writer.ExecContext(ctx, query, args...)
+}
+
+func (d *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return d.reader.QueryContext(ctx, query, args...)
+}
+
+func (d *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return d.reader.QueryRowContext(ctx, query, args...)
+}
+
+func (d *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return d.writer.PrepareContext(ctx, query)
 }
 
 func (d *DB) Exec(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
@@ -126,59 +145,46 @@ func (d *DB) Exec(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
 	return res, nil
 }
 
-func (d *DB) FindAll(ctx context.Context, stmt sq.Sqlizer) (*sql.Rows, error) {
+func (d *DB) FindAll(ctx context.Context, dst any, stmt sq.Sqlizer) error {
 	q, args, err := stmt.ToSql()
 	if err != nil {
-		return nil, fmt.Errorf("db.FindAll build: %w", err)
+		return fmt.Errorf("db.FindAll build: %w", err)
 	}
 	rows, err := d.reader.QueryContext(ctx, q, args...)
 	if err != nil {
-		return nil, fmt.Errorf("db.FindAll: %w", err)
+		return fmt.Errorf("db.FindAll: %w", err)
 	}
-	return rows, nil
-}
-
-func (d *DB) FindOne(ctx context.Context, stmt sq.Sqlizer) (*sql.Row, error) {
-	q, args, err := stmt.ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("db.FindOne build: %w", err)
-	}
-	return d.reader.QueryRowContext(ctx, q, args...), nil
-}
-
-func (d *DB) Delete(ctx context.Context, stmt sq.Sqlizer) error {
-	_, err := d.Exec(ctx, stmt)
-	return err
-}
-
-func (d *DB) DeleteBy(ctx context.Context, table, column string, value any) error {
-	if err := d.Delete(ctx, Builder.Delete(table).Where(sq.Eq{column: value})); err != nil {
-		return fmt.Errorf("db.DeleteBy %s.%s: %w", table, column, err)
+	if err := sqlscan.ScanAll(dst, rows); err != nil {
+		return fmt.Errorf("db.FindAll scan: %w", err)
 	}
 	return nil
 }
 
-func (d *DB) Insert(ctx context.Context, stmt sq.InsertBuilder) (sql.Result, error) {
-	return d.Exec(ctx, stmt)
+func (d *DB) FindOne(ctx context.Context, dst any, stmt sq.Sqlizer) error {
+	q, args, err := stmt.ToSql()
+	if err != nil {
+		return fmt.Errorf("db.FindOne build: %w", err)
+	}
+	rows, err := d.reader.QueryContext(ctx, q, args...)
+	if err != nil {
+		return fmt.Errorf("db.FindOne: %w", err)
+	}
+	if err := sqlscan.ScanOne(dst, rows); err != nil {
+		return fmt.Errorf("db.FindOne scan: %w", err)
+	}
+	return nil
 }
 
-// InsertMany executes all inserts atomically inside an implicit transaction.
-func (d *DB) InsertMany(ctx context.Context, stmts []sq.InsertBuilder) error {
+func (d *DB) RunInTx(ctx context.Context, fn func(*Tx) error) error {
 	tx, err := d.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	for i, stmt := range stmts {
-		if _, err := tx.Insert(ctx, stmt); err != nil {
-			return fmt.Errorf("db.InsertMany[%d]: %w", i, err)
-		}
+	if err := fn(tx); err != nil {
+		return err
 	}
 	return tx.Commit()
-}
-
-func (d *DB) Update(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
-	return d.Exec(ctx, stmt)
 }
 
 // Tx wraps *sql.Tx and implements DBTX.
@@ -210,6 +216,22 @@ func (t *Tx) Rollback() error {
 	return nil
 }
 
+func (t *Tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return t.raw.ExecContext(ctx, query, args...)
+}
+
+func (t *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return t.raw.QueryContext(ctx, query, args...)
+}
+
+func (t *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return t.raw.QueryRowContext(ctx, query, args...)
+}
+
+func (t *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return t.raw.PrepareContext(ctx, query)
+}
+
 func (t *Tx) Exec(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
 	q, args, err := stmt.ToSql()
 	if err != nil {
@@ -222,51 +244,36 @@ func (t *Tx) Exec(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
 	return res, nil
 }
 
-func (t *Tx) FindAll(ctx context.Context, stmt sq.Sqlizer) (*sql.Rows, error) {
+func (t *Tx) FindAll(ctx context.Context, dst any, stmt sq.Sqlizer) error {
 	q, args, err := stmt.ToSql()
 	if err != nil {
-		return nil, fmt.Errorf("tx.FindAll build: %w", err)
+		return fmt.Errorf("tx.FindAll build: %w", err)
 	}
 	rows, err := t.raw.QueryContext(ctx, q, args...)
 	if err != nil {
-		return nil, fmt.Errorf("tx.FindAll: %w", err)
+		return fmt.Errorf("tx.FindAll: %w", err)
 	}
-	return rows, nil
+	if err := sqlscan.ScanAll(dst, rows); err != nil {
+		return fmt.Errorf("tx.FindAll scan: %w", err)
+	}
+	return nil
 }
 
-func (t *Tx) FindOne(ctx context.Context, stmt sq.Sqlizer) (*sql.Row, error) {
+func (t *Tx) FindOne(ctx context.Context, dst any, stmt sq.Sqlizer) error {
 	q, args, err := stmt.ToSql()
 	if err != nil {
-		return nil, fmt.Errorf("tx.FindOne build: %w", err)
+		return fmt.Errorf("tx.FindOne build: %w", err)
 	}
-	return t.raw.QueryRowContext(ctx, q, args...), nil
-}
-
-func (t *Tx) Delete(ctx context.Context, stmt sq.Sqlizer) error {
-	_, err := t.Exec(ctx, stmt)
-	return err
-}
-
-func (t *Tx) DeleteBy(ctx context.Context, table, column string, value any) error {
-	if err := t.Delete(ctx, Builder.Delete(table).Where(sq.Eq{column: value})); err != nil {
-		return fmt.Errorf("tx.DeleteBy %s.%s: %w", table, column, err)
+	rows, err := t.raw.QueryContext(ctx, q, args...)
+	if err != nil {
+		return fmt.Errorf("tx.FindOne: %w", err)
+	}
+	if err := sqlscan.ScanOne(dst, rows); err != nil {
+		return fmt.Errorf("tx.FindOne scan: %w", err)
 	}
 	return nil
 }
 
-func (t *Tx) Insert(ctx context.Context, stmt sq.InsertBuilder) (sql.Result, error) {
-	return t.Exec(ctx, stmt)
-}
-
-func (t *Tx) InsertMany(ctx context.Context, stmts []sq.InsertBuilder) error {
-	for i, stmt := range stmts {
-		if _, err := t.Insert(ctx, stmt); err != nil {
-			return fmt.Errorf("tx.InsertMany[%d]: %w", i, err)
-		}
-	}
-	return nil
-}
-
-func (t *Tx) Update(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
-	return t.Exec(ctx, stmt)
+func IsNotFound(err error) bool {
+	return sqlscan.NotFound(err)
 }

@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -16,6 +15,12 @@ const schema = `CREATE TABLE widgets (
 	name TEXT NOT NULL,
 	qty  INTEGER NOT NULL DEFAULT 0
 )`
+
+type widget struct {
+	ID   string `db:"id"`
+	Name string `db:"name"`
+	Qty  int    `db:"qty"`
+}
 
 func openDB(t *testing.T) *db.DB {
 	t.Helper()
@@ -39,24 +44,21 @@ func setup(t *testing.T) (context.Context, *db.DB) {
 
 func insertRow(t *testing.T, ctx context.Context, d *db.DB, id, name string, qty int) {
 	t.Helper()
-	_, err := d.Insert(ctx, db.Builder.Insert("widgets").
-		Columns("id", "name", "qty").Values(id, name, qty))
-	if err != nil {
+	stmt := db.Builder.Insert("widgets").Columns("id", "name", "qty").Values(id, name, qty)
+	if _, err := d.Exec(ctx, stmt); err != nil {
 		t.Fatalf("insert %q: %v", id, err)
 	}
 }
 
 func countRows(t *testing.T, ctx context.Context, d *db.DB) int {
 	t.Helper()
-	row, err := d.FindOne(ctx, db.Builder.Select("COUNT(*)").From("widgets"))
-	if err != nil {
+	var row struct {
+		N int `db:"n"`
+	}
+	if err := d.FindOne(ctx, &row, db.Builder.Select("COUNT(*) AS n").From("widgets")); err != nil {
 		t.Fatalf("count: %v", err)
 	}
-	var n int
-	if err := row.Scan(&n); err != nil {
-		t.Fatalf("count scan: %v", err)
-	}
-	return n
+	return row.N
 }
 
 func TestOpen(t *testing.T) {
@@ -73,55 +75,25 @@ func TestDB_Exec(t *testing.T) {
 	}
 }
 
-func TestDB_Insert(t *testing.T) {
-	ctx, d := setup(t)
-	insertRow(t, ctx, d, "w1", "sprocket", 10)
-	if n := countRows(t, ctx, d); n != 1 {
-		t.Errorf("got %d rows, want 1", n)
-	}
-}
-
-func TestDB_InsertMany(t *testing.T) {
-	ctx, d := setup(t)
-	stmts := []sq.InsertBuilder{
-		db.Builder.Insert("widgets").Columns("id", "name", "qty").Values("w1", "a", 1),
-		db.Builder.Insert("widgets").Columns("id", "name", "qty").Values("w2", "b", 2),
-		db.Builder.Insert("widgets").Columns("id", "name", "qty").Values("w3", "c", 3),
-	}
-	if err := d.InsertMany(ctx, stmts); err != nil {
-		t.Fatalf("InsertMany: %v", err)
-	}
-	if n := countRows(t, ctx, d); n != 3 {
-		t.Errorf("got %d rows, want 3", n)
-	}
-}
-
 func TestDB_FindOne(t *testing.T) {
 	ctx, d := setup(t)
 	insertRow(t, ctx, d, "w1", "sprocket", 10)
 
-	row, err := d.FindOne(ctx, db.Builder.Select("name", "qty").From("widgets").Where(sq.Eq{"id": "w1"}))
-	if err != nil {
+	var w widget
+	if err := d.FindOne(ctx, &w, db.Builder.Select("id", "name", "qty").From("widgets").Where(sq.Eq{"id": "w1"})); err != nil {
 		t.Fatalf("FindOne: %v", err)
 	}
-	var name string
-	var qty int
-	if err := row.Scan(&name, &qty); err != nil {
-		t.Fatalf("Scan: %v", err)
-	}
-	if name != "sprocket" || qty != 10 {
-		t.Errorf("got (%q, %d), want (sprocket, 10)", name, qty)
+	if w.Name != "sprocket" || w.Qty != 10 {
+		t.Errorf("got (%q, %d), want (sprocket, 10)", w.Name, w.Qty)
 	}
 }
 
 func TestDB_FindOne_NotFound(t *testing.T) {
 	ctx, d := setup(t)
-	row, err := d.FindOne(ctx, db.Builder.Select("name").From("widgets").Where(sq.Eq{"id": "nope"}))
-	if err != nil {
-		t.Fatalf("FindOne: %v", err)
-	}
-	if err := row.Scan(new(string)); !errors.Is(err, sql.ErrNoRows) {
-		t.Errorf("got %v, want sql.ErrNoRows", err)
+	var w widget
+	err := d.FindOne(ctx, &w, db.Builder.Select("id", "name", "qty").From("widgets").Where(sq.Eq{"id": "nope"}))
+	if !db.IsNotFound(err) {
+		t.Errorf("got %v, want not-found error", err)
 	}
 }
 
@@ -131,122 +103,113 @@ func TestDB_FindAll(t *testing.T) {
 	insertRow(t, ctx, d, "w2", "b", 2)
 	insertRow(t, ctx, d, "w3", "c", 3)
 
-	rows, err := d.FindAll(ctx, db.Builder.Select("id").From("widgets").OrderBy("id"))
-	if err != nil {
+	var widgets []widget
+	if err := d.FindAll(ctx, &widgets, db.Builder.Select("id", "name", "qty").From("widgets").OrderBy("id")); err != nil {
 		t.Fatalf("FindAll: %v", err)
 	}
-	defer rows.Close()
-
-	var ids []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			t.Fatalf("Scan: %v", err)
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		t.Fatalf("rows.Err: %v", err)
-	}
-	if len(ids) != 3 || ids[0] != "w1" || ids[2] != "w3" {
-		t.Errorf("got %v, want [w1 w2 w3]", ids)
+	if len(widgets) != 3 || widgets[0].ID != "w1" || widgets[2].ID != "w3" {
+		t.Errorf("got %v, want [w1 w2 w3]", widgets)
 	}
 }
 
 func TestDB_FindAll_Empty(t *testing.T) {
 	ctx, d := setup(t)
-	rows, err := d.FindAll(ctx, db.Builder.Select("id").From("widgets"))
-	if err != nil {
+	var widgets []widget
+	if err := d.FindAll(ctx, &widgets, db.Builder.Select("id", "name", "qty").From("widgets")); err != nil {
 		t.Fatalf("FindAll: %v", err)
 	}
-	defer rows.Close()
-	if rows.Next() {
-		t.Error("expected no rows, got at least one")
+	if len(widgets) != 0 {
+		t.Errorf("expected no rows, got %d", len(widgets))
 	}
 }
 
-func TestDB_Update(t *testing.T) {
+func TestDB_RunInTx_Commit(t *testing.T) {
 	ctx, d := setup(t)
-	insertRow(t, ctx, d, "w1", "sprocket", 10)
-
-	if _, err := d.Update(ctx, db.Builder.Update("widgets").Set("qty", 99).Where(sq.Eq{"id": "w1"})); err != nil {
-		t.Fatalf("Update: %v", err)
-	}
-
-	row, err := d.FindOne(ctx, db.Builder.Select("qty").From("widgets").Where(sq.Eq{"id": "w1"}))
+	err := d.RunInTx(ctx, func(tx *db.Tx) error {
+		_, err := tx.Exec(ctx, db.Builder.Insert("widgets").Columns("id", "name").Values("w1", "bolt"))
+		return err
+	})
 	if err != nil {
-		t.Fatalf("FindOne: %v", err)
+		t.Fatalf("RunInTx: %v", err)
 	}
-	var qty int
-	if err := row.Scan(&qty); err != nil {
-		t.Fatalf("Scan: %v", err)
-	}
-	if qty != 99 {
-		t.Errorf("got qty %d after Update, want 99", qty)
+	if n := countRows(t, ctx, d); n != 1 {
+		t.Errorf("got %d rows after commit, want 1", n)
 	}
 }
 
-func TestDB_Delete(t *testing.T) {
+func TestDB_RunInTx_Rollback(t *testing.T) {
 	ctx, d := setup(t)
 	insertRow(t, ctx, d, "w1", "sprocket", 10)
 
-	if err := d.Delete(ctx, db.Builder.Delete("widgets").Where(sq.Eq{"id": "w1"})); err != nil {
-		t.Fatalf("Delete: %v", err)
-	}
-	if n := countRows(t, ctx, d); n != 0 {
-		t.Errorf("got %d rows after Delete, want 0", n)
-	}
-}
-
-func TestDB_DeleteBy(t *testing.T) {
-	ctx, d := setup(t)
-	insertRow(t, ctx, d, "w1", "sprocket", 10)
-
-	if err := d.DeleteBy(ctx, "widgets", "id", "w1"); err != nil {
-		t.Fatalf("DeleteBy: %v", err)
-	}
-	if n := countRows(t, ctx, d); n != 0 {
-		t.Errorf("got %d rows after DeleteBy, want 0", n)
-	}
-}
-
-func TestTx_Commit(t *testing.T) {
-	ctx, d := setup(t)
-
-	tx, err := d.Begin(ctx)
-	if err != nil {
-		t.Fatalf("Begin: %v", err)
-	}
-	if _, err := tx.Insert(ctx, db.Builder.Insert("widgets").Columns("id", "name").Values("w1", "bolt")); err != nil {
-		tx.Rollback()
-		t.Fatalf("tx.Insert: %v", err)
-	}
-	if err := tx.Commit(); err != nil {
-		t.Fatalf("Commit: %v", err)
-	}
+	_ = d.RunInTx(ctx, func(tx *db.Tx) error {
+		if _, err := tx.Exec(ctx, db.Builder.Insert("widgets").Columns("id", "name").Values("w2", "bolt")); err != nil {
+			return err
+		}
+		return errors.New("forced rollback")
+	})
 
 	if n := countRows(t, ctx, d); n != 1 {
-		t.Errorf("got %d rows after Commit, want 1", n)
+		t.Errorf("got %d rows after rollback, want 1", n)
 	}
 }
 
-func TestTx_Rollback(t *testing.T) {
+func TestDB_ExecContext(t *testing.T) {
 	ctx, d := setup(t)
+	if _, err := d.ExecContext(ctx, "INSERT INTO widgets (id, name) VALUES (?, ?)", "w1", "bolt"); err != nil {
+		t.Fatalf("ExecContext: %v", err)
+	}
+	if n := countRows(t, ctx, d); n != 1 {
+		t.Errorf("got %d rows, want 1", n)
+	}
+}
 
-	tx, err := d.Begin(ctx)
+func TestDB_QueryContext(t *testing.T) {
+	ctx, d := setup(t)
+	insertRow(t, ctx, d, "w1", "sprocket", 10)
+
+	rows, err := d.QueryContext(ctx, "SELECT name, qty FROM widgets WHERE id = ?", "w1")
 	if err != nil {
-		t.Fatalf("Begin: %v", err)
+		t.Fatalf("QueryContext: %v", err)
 	}
-	if _, err := tx.Insert(ctx, db.Builder.Insert("widgets").Columns("id", "name").Values("w1", "bolt")); err != nil {
-		tx.Rollback()
-		t.Fatalf("tx.Insert: %v", err)
+	defer rows.Close()
+	if !rows.Next() {
+		t.Fatal("expected one row")
 	}
-	if err := tx.Rollback(); err != nil {
-		t.Fatalf("Rollback: %v", err)
+	var name string
+	var qty int
+	if err := rows.Scan(&name, &qty); err != nil {
+		t.Fatalf("Scan: %v", err)
 	}
+	if name != "sprocket" || qty != 10 {
+		t.Errorf("got (%q, %d), want (sprocket, 10)", name, qty)
+	}
+}
 
-	if n := countRows(t, ctx, d); n != 0 {
-		t.Errorf("got %d rows after Rollback, want 0", n)
+func TestDB_QueryRowContext(t *testing.T) {
+	ctx, d := setup(t)
+	insertRow(t, ctx, d, "w1", "sprocket", 10)
+
+	var qty int
+	if err := d.QueryRowContext(ctx, "SELECT qty FROM widgets WHERE id = ?", "w1").Scan(&qty); err != nil {
+		t.Fatalf("QueryRowContext: %v", err)
+	}
+	if qty != 10 {
+		t.Errorf("got qty %d, want 10", qty)
+	}
+}
+
+func TestDB_PrepareContext(t *testing.T) {
+	ctx, d := setup(t)
+	stmt, err := d.PrepareContext(ctx, "INSERT INTO widgets (id, name) VALUES (?, ?)")
+	if err != nil {
+		t.Fatalf("PrepareContext: %v", err)
+	}
+	defer stmt.Close()
+	if _, err := stmt.ExecContext(ctx, "w1", "bolt"); err != nil {
+		t.Fatalf("stmt.ExecContext: %v", err)
+	}
+	if n := countRows(t, ctx, d); n != 1 {
+		t.Errorf("got %d rows, want 1", n)
 	}
 }
 
