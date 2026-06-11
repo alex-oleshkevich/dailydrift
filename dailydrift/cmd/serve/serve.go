@@ -3,9 +3,11 @@ package serve
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/starfrontventures/dailydrift/dailydrift/app"
 	"github.com/starfrontventures/dailydrift/dailydrift/config"
+	"github.com/starfrontventures/dailydrift/dailydrift/db"
 	"github.com/starfrontventures/dailydrift/dailydrift/logger"
 	"github.com/starfrontventures/dailydrift/dailydrift/server"
 	"github.com/starfrontventures/dailydrift/dailydrift/server/router"
@@ -36,14 +38,33 @@ func Command() *cli.Command {
 				Usage:   "log level (debug, info, warn, error)",
 				Sources: cli.EnvVars("DAILYDRIFT_LOG_LEVEL"),
 			},
+			&cli.StringFlag{
+				Name:    "db",
+				Value:   config.DefaultDBPath,
+				Usage:   "path to the SQLite database file",
+				Sources: cli.EnvVars("DAILYDRIFT_DB"),
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			cfg := &config.Config{
 				Host:     cmd.String("host"),
 				Port:     cmd.Int("port"),
 				LogLevel: cmd.String("log-level"),
+				DBPath:   cmd.String("db"),
 			}
 			if err := logger.Setup(cfg.LogLevel); err != nil {
+				return err
+			}
+			database, err := db.Open(cfg.DBPath)
+			if err != nil {
+				return err
+			}
+			defer func() {
+				if err := database.Close(); err != nil {
+					slog.Error("db close failed", "err", err)
+				}
+			}()
+			if err := database.Migrate(ctx); err != nil {
 				return err
 			}
 			app := app.NewApp(cfg)
