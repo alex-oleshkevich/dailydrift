@@ -134,6 +134,7 @@ body {
     }
     body {
         @apply bg-background text-foreground;
+        font-synthesis: none;
     }
     html {
         @apply font-sans;
