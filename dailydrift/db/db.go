@@ -21,6 +21,10 @@ type DBTX interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+	ExecStmtContext(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error)
+	QueryStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Rows, error)
+	QueryRowStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Row, error)
+	PrepareStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Stmt, error)
 	Exec(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error)
 	FindAll(ctx context.Context, dst any, stmt sq.Sqlizer) error
 	FindOne(ctx context.Context, dst any, stmt sq.Sqlizer) error
@@ -133,6 +137,50 @@ func (d *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error
 	return d.writer.PrepareContext(ctx, query)
 }
 
+func (d *DB) ExecStmtContext(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
+	q, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("db.ExecStmtContext build: %w", err)
+	}
+	res, err := d.writer.ExecContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("db.ExecStmtContext: %w", err)
+	}
+	return res, nil
+}
+
+func (d *DB) QueryStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Rows, error) {
+	q, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("db.QueryStmtContext build: %w", err)
+	}
+	rows, err := d.reader.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("db.QueryStmtContext: %w", err)
+	}
+	return rows, nil
+}
+
+func (d *DB) QueryRowStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Row, error) {
+	q, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("db.QueryRowStmtContext build: %w", err)
+	}
+	return d.reader.QueryRowContext(ctx, q, args...), nil
+}
+
+func (d *DB) PrepareStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Stmt, error) {
+	q, _, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("db.PrepareStmtContext build: %w", err)
+	}
+	s, err := d.writer.PrepareContext(ctx, q)
+	if err != nil {
+		return nil, fmt.Errorf("db.PrepareStmtContext: %w", err)
+	}
+	return s, nil
+}
+
 func (d *DB) Exec(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
 	q, args, err := stmt.ToSql()
 	if err != nil {
@@ -230,6 +278,50 @@ func (t *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sq
 
 func (t *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return t.raw.PrepareContext(ctx, query)
+}
+
+func (t *Tx) ExecStmtContext(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {
+	q, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("tx.ExecStmtContext build: %w", err)
+	}
+	res, err := t.raw.ExecContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("tx.ExecStmtContext: %w", err)
+	}
+	return res, nil
+}
+
+func (t *Tx) QueryStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Rows, error) {
+	q, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("tx.QueryStmtContext build: %w", err)
+	}
+	rows, err := t.raw.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("tx.QueryStmtContext: %w", err)
+	}
+	return rows, nil
+}
+
+func (t *Tx) QueryRowStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Row, error) {
+	q, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("tx.QueryRowStmtContext build: %w", err)
+	}
+	return t.raw.QueryRowContext(ctx, q, args...), nil
+}
+
+func (t *Tx) PrepareStmtContext(ctx context.Context, stmt sq.Sqlizer) (*sql.Stmt, error) {
+	q, _, err := stmt.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("tx.PrepareStmtContext build: %w", err)
+	}
+	s, err := t.raw.PrepareContext(ctx, q)
+	if err != nil {
+		return nil, fmt.Errorf("tx.PrepareStmtContext: %w", err)
+	}
+	return s, nil
 }
 
 func (t *Tx) Exec(ctx context.Context, stmt sq.Sqlizer) (sql.Result, error) {

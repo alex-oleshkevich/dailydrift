@@ -223,3 +223,159 @@ func TestTx_ImplementsDBTX(t *testing.T) {
 
 	var _ db.DBTX = tx
 }
+
+func TestDB_ExecStmtContext(t *testing.T) {
+	ctx, d := setup(t)
+	stmt := db.Builder.Insert("widgets").Columns("id", "name", "qty").Values("w1", "bolt", 5)
+	if _, err := d.ExecStmtContext(ctx, stmt); err != nil {
+		t.Fatalf("ExecStmtContext: %v", err)
+	}
+	if n := countRows(t, ctx, d); n != 1 {
+		t.Errorf("got %d rows, want 1", n)
+	}
+}
+
+func TestDB_QueryStmtContext(t *testing.T) {
+	ctx, d := setup(t)
+	insertRow(t, ctx, d, "w1", "sprocket", 10)
+
+	stmt := db.Builder.Select("name", "qty").From("widgets").Where(sq.Eq{"id": "w1"})
+	rows, err := d.QueryStmtContext(ctx, stmt)
+	if err != nil {
+		t.Fatalf("QueryStmtContext: %v", err)
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		t.Fatal("expected one row")
+	}
+	var name string
+	var qty int
+	if err := rows.Scan(&name, &qty); err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	if name != "sprocket" || qty != 10 {
+		t.Errorf("got (%q, %d), want (sprocket, 10)", name, qty)
+	}
+}
+
+func TestDB_QueryRowStmtContext(t *testing.T) {
+	ctx, d := setup(t)
+	insertRow(t, ctx, d, "w1", "sprocket", 10)
+
+	stmt := db.Builder.Select("qty").From("widgets").Where(sq.Eq{"id": "w1"})
+	row, err := d.QueryRowStmtContext(ctx, stmt)
+	if err != nil {
+		t.Fatalf("QueryRowStmtContext: %v", err)
+	}
+	var qty int
+	if err := row.Scan(&qty); err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	if qty != 10 {
+		t.Errorf("got qty %d, want 10", qty)
+	}
+}
+
+func TestDB_PrepareStmtContext(t *testing.T) {
+	ctx, d := setup(t)
+	stmt := db.Builder.Insert("widgets").Columns("id", "name").Values("x", "x")
+	ps, err := d.PrepareStmtContext(ctx, stmt)
+	if err != nil {
+		t.Fatalf("PrepareStmtContext: %v", err)
+	}
+	defer ps.Close()
+	if _, err := ps.ExecContext(ctx, "w1", "bolt"); err != nil {
+		t.Fatalf("stmt.ExecContext: %v", err)
+	}
+	if n := countRows(t, ctx, d); n != 1 {
+		t.Errorf("got %d rows, want 1", n)
+	}
+}
+
+func TestTx_ExecStmtContext(t *testing.T) {
+	ctx, d := setup(t)
+	err := d.RunInTx(ctx, func(tx *db.Tx) error {
+		stmt := db.Builder.Insert("widgets").Columns("id", "name").Values("w1", "bolt")
+		_, err := tx.ExecStmtContext(ctx, stmt)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("RunInTx: %v", err)
+	}
+	if n := countRows(t, ctx, d); n != 1 {
+		t.Errorf("got %d rows, want 1", n)
+	}
+}
+
+func TestTx_QueryStmtContext(t *testing.T) {
+	ctx, d := setup(t)
+	insertRow(t, ctx, d, "w1", "sprocket", 10)
+
+	err := d.RunInTx(ctx, func(tx *db.Tx) error {
+		stmt := db.Builder.Select("name", "qty").From("widgets").Where(sq.Eq{"id": "w1"})
+		rows, err := tx.QueryStmtContext(ctx, stmt)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		if !rows.Next() {
+			t.Fatal("expected one row")
+		}
+		var name string
+		var qty int
+		if err := rows.Scan(&name, &qty); err != nil {
+			return err
+		}
+		if name != "sprocket" || qty != 10 {
+			t.Errorf("got (%q, %d), want (sprocket, 10)", name, qty)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunInTx: %v", err)
+	}
+}
+
+func TestTx_QueryRowStmtContext(t *testing.T) {
+	ctx, d := setup(t)
+	insertRow(t, ctx, d, "w1", "sprocket", 10)
+
+	err := d.RunInTx(ctx, func(tx *db.Tx) error {
+		stmt := db.Builder.Select("qty").From("widgets").Where(sq.Eq{"id": "w1"})
+		row, err := tx.QueryRowStmtContext(ctx, stmt)
+		if err != nil {
+			return err
+		}
+		var qty int
+		if err := row.Scan(&qty); err != nil {
+			return err
+		}
+		if qty != 10 {
+			t.Errorf("got qty %d, want 10", qty)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("RunInTx: %v", err)
+	}
+}
+
+func TestTx_PrepareStmtContext(t *testing.T) {
+	ctx, d := setup(t)
+	err := d.RunInTx(ctx, func(tx *db.Tx) error {
+		stmt := db.Builder.Insert("widgets").Columns("id", "name").Values("x", "x")
+		ps, err := tx.PrepareStmtContext(ctx, stmt)
+		if err != nil {
+			return err
+		}
+		defer ps.Close()
+		_, err = ps.ExecContext(ctx, "w1", "bolt")
+		return err
+	})
+	if err != nil {
+		t.Fatalf("RunInTx: %v", err)
+	}
+	if n := countRows(t, ctx, d); n != 1 {
+		t.Errorf("got %d rows, want 1", n)
+	}
+}

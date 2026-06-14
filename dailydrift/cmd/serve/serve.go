@@ -22,36 +22,36 @@ func Command() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "host",
-				Value:   config.DefaultHost,
+				Value:   "127.0.0.1",
 				Usage:   "host/interface to bind the server to",
 				Sources: cli.EnvVars("DAILYDRIFT_HOST"),
 			},
 			&cli.IntFlag{
 				Name:    "port",
-				Value:   config.DefaultPort,
+				Value:   8080,
 				Usage:   "port to listen on",
 				Sources: cli.EnvVars("DAILYDRIFT_PORT"),
 			},
 			&cli.StringFlag{
 				Name:    "log-level",
-				Value:   config.DefaultLogLevel,
+				Value:   "info",
 				Usage:   "log level (debug, info, warn, error)",
 				Sources: cli.EnvVars("DAILYDRIFT_LOG_LEVEL"),
 			},
 			&cli.StringFlag{
 				Name:    "db",
-				Value:   config.DefaultDBPath,
+				Value:   "dailydrift.db",
 				Usage:   "path to the SQLite database file",
 				Sources: cli.EnvVars("DAILYDRIFT_DB"),
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			cfg := &config.Config{
-				Host:     cmd.String("host"),
-				Port:     cmd.Int("port"),
-				LogLevel: cmd.String("log-level"),
-				DBPath:   cmd.String("db"),
-			}
+			cfg := config.New(func(c *config.Config) {
+				c.Host = cmd.String("host")
+				c.Port = cmd.Int("port")
+				c.LogLevel = cmd.String("log-level")
+				c.DBPath = cmd.String("db")
+			})
 			if err := logger.Setup(cfg.LogLevel); err != nil {
 				return err
 			}
@@ -67,7 +67,8 @@ func Command() *cli.Command {
 			if err := database.Migrate(ctx); err != nil {
 				return err
 			}
-			app := app.NewApp(cfg)
+
+			app := app.NewApp(cfg, database)
 			server := server.NewServer(server.Deps{
 				Config:  cfg,
 				Handler: router.NewRouter(app),
